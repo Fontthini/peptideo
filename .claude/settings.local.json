@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(gstack-upgrade)",
+      "Skill(gstack-upgrade:*)",
+      "PowerShell(powershell -Command \"irm bun.sh/install.ps1 | iex\" 2>&1)",
+      "PowerShell(Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{N='Used\\(GB\\)';E={[math]::Round\\($_.Used/1GB,1\\)}}, @{N='Free\\(GB\\)';E={[math]::Round\\($_.Free/1GB,1\\)}}, @{N='Total\\(GB\\)';E={[math]::Round\\(\\($_.Used+$_.Free\\)/1GB,1\\)}})",
+      "PowerShell(npm cache clean --force)",
+      "PowerShell(Get-PSDrive C | Select-Object @{N='Free\\(GB\\)';E={[math]::Round\\($_.Free/1GB,2\\)}})"
+    ]
+  }
+}
