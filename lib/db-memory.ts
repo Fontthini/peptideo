@@ -258,6 +258,9 @@ export function mem_seedProdutos(items: Array<{ id: number | string; nome: strin
   }));
   global.__produtos__ = novos;
   salvarJSON('produtos.json', novos);
+  // Persistir no Supabase para sobreviver a cold starts
+  const s = sb();
+  if (s) novos.forEach(p => s.sbSaveProduto(p)?.catch(console.error));
 }
 
 export function mem_editarProduto(id: string, data: Partial<Omit<ProdutoMemory, 'id' | 'created_at'>>): ProdutoMemory | null {
