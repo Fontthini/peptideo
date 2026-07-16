@@ -194,8 +194,8 @@ export async function loadAllFromSupabase() {
     if (cadastros) global.__cadastros__ = cadastros as Cadastro[];
     if (produtos) global.__produtos__ = produtos as ProdutoMemory[];
     if (configRow) global.__config__ = rowToConfig(configRow as Record<string, unknown>);
-    if (banners) global.__banners__ = banners.map(b => ({ ...b, created_at: b.created_at || new Date().toISOString() })) as BannerItem[];
-    if (bannersBlog) global.__banners_blog__ = bannersBlog.map(b => ({ ...b, created_at: b.created_at || new Date().toISOString() })) as BannerItem[];
+    if (banners && banners.length > 0) global.__banners__ = banners.map(b => ({ ...b, created_at: b.created_at || new Date().toISOString() })) as BannerItem[];
+    if (bannersBlog && bannersBlog.length > 0) global.__banners_blog__ = bannersBlog.map(b => ({ ...b, created_at: b.created_at || new Date().toISOString() })) as BannerItem[];
     if (artigos) global.__artigos__ = artigos as Artigo[];
     if (equipe) global.__equipe__ = equipe.map((m: Record<string, unknown>) => ({
       ...m, token_acesso: m.token as string,

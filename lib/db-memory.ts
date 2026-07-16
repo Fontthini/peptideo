@@ -331,7 +331,11 @@ function getBannersStore(): BannerItem[] {
       { id: 'b2', imagem: '/banners/banner2.svg', titulo: 'Peptídeos Certificados', subtitulo: 'Pureza ≥98% · Cadeia de Frio · Laudo Analítico', ativo: true, ordem: 2, created_at: new Date().toISOString() },
       { id: 'b3', imagem: '/banners/banner3.svg', titulo: 'Acesso Exclusivo', subtitulo: 'Para Médicos e Profissionais de Saúde', ativo: true, ordem: 3, created_at: new Date().toISOString() },
     ];
-    if (!saved) salvarJSON('banners.json', global.__banners__);
+    if (!saved) {
+      salvarJSON('banners.json', global.__banners__);
+      const s = sb();
+      if (s) s.sbSaveBanners(global.__banners__!, 'banners')?.catch(console.error);
+    }
   }
   return global.__banners__;
 }

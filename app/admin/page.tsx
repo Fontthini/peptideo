@@ -372,7 +372,7 @@ export default function AdminPage() {
       body: JSON.stringify(editandoMembro ?? novoMembro),
     });
     if (r.ok) { showMsg(editandoMembro ? 'OK: Membro atualizado!' : 'OK: Membro adicionado!'); setEditandoMembro(null); setNovoMembro({ nome: '', email: '', cargo: 'vendedor', ativo: true, senha: '' }); carregarEquipe(); }
-    else showMsg('R Erro ao salvar membro');
+    else { const d = await r.json().catch(() => ({})); showMsg('R Erro: ' + (d.error || r.status)); }
   };
   const deletarMembro = async (id: string, nome: string) => {
     if (!confirm(`Remover ${nome} da equipe?`)) return;
@@ -1533,22 +1533,8 @@ export default function AdminPage() {
                     </table>
                   </div>
                 )}
-                <div style={{ marginTop: 20, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: '16px 18px' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>Atribuições por Cargo</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    {[
-                      { cargo: 'Superadmin', cor: '#a16207', bg: '#fef9c3', desc: 'Acesso total: aprova/rejeita leads, vê equipe completa, todos os pedidos e métricas.' },
-                      { cargo: 'Gerente', cor: '#1d4ed8', bg: '#eff6ff', desc: 'Aprova ou rejeita leads, vê performance dos vendedores e todos os pedidos.' },
-                      { cargo: 'Vendedor', cor: '#15803d', bg: '#f0fdf4', desc: 'Assume leads livres, solicita aprovação ao gerente, gerencia seus próprios pedidos.' },
-                      { cargo: 'Designer', cor: '#7c3aed', bg: '#fdf4ff', desc: 'Acesso exclusivo a edição de produtos, blog e conteúdo. Sem acesso a leads.' },
-                    ].map(({ cargo, cor, bg, desc }) => (
-                      <div key={cargo} style={{ background: bg, borderRadius: 8, padding: '10px 12px' }}>
-                        <div style={{ fontSize: 11, fontWeight: 800, color: cor, marginBottom: 4 }}>{cargo}</div>
-                        <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.5 }}>{desc}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ marginTop: 10, fontSize: 11, color: '#9ca3af' }}>Portal da equipe: <strong>/equipe/login</strong></div>
+                <div style={{ marginTop: 20, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '14px 18px', fontSize: 13, color: '#92400e' }}>
+                  Portal da equipe disponível em <strong>/equipe/login</strong> para vendedores, gerentes e designers.
                 </div>
               </div>
 
