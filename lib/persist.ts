@@ -1,7 +1,10 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
-const DATA_DIR = join(process.cwd(), 'data');
+// On Vercel the project root is read-only; use /tmp for writable scratch space
+const DATA_DIR = process.env.VERCEL
+  ? join('/tmp', 'peptidez-data')
+  : join(process.cwd(), 'data');
 
 function ensureDir() {
   if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
