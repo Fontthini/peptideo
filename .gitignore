@@ -1,5 +1,15 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# dados persistidos localmente (gerados em runtime)
+/data/*.json
+
+# uploads de usuário (binários locais)
+/public/uploads/*.jpg
+/public/uploads/*.jpeg
+/public/uploads/*.png
+/public/uploads/*.webp
+/public/uploads/*.gif
+
 # dependencies
 /node_modules
 /.pnp
@@ -40,3 +50,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .gstack/
+
+.vercel
+
+# claude local settings
+.claude/launch.json
+.claude/settings.local.json

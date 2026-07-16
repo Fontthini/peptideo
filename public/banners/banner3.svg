@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400">
+  <defs>
+    <linearGradient id="bg3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f2044"/>
+      <stop offset="50%" style="stop-color:#0c1a36"/>
+      <stop offset="100%" style="stop-color:#071224"/>
+    </linearGradient>
+    <linearGradient id="accent3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#22c55e"/>
+      <stop offset="100%" style="stop-color:#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="btngrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#16a34a"/>
+      <stop offset="100%" style="stop-color:#0ea5e9"/>
+    </linearGradient>
+    <radialGradient id="glow3" cx="75%" cy="50%">
+      <stop offset="0%" style="stop-color:#0ea5e9;stop-opacity:0.2"/>
+      <stop offset="100%" style="stop-color:#0c1a36;stop-opacity:0"/>
+    </radialGradient>
+    <filter id="blur3"><feGaussianBlur stdDeviation="22"/></filter>
+    <filter id="glow3f">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="400" fill="url(#bg3)"/>
+  <rect width="1200" height="400" fill="url(#glow3)"/>
+
+  <!-- Hexagonal grid pattern right half -->
+  <!-- Row 1 -->
+  <polygon points="840,40 865,27 890,40 890,67 865,80 840,67" fill="none" stroke="rgba(14,165,233,0.15)" stroke-width="1"/>
+  <polygon points="890,40 915,27 940,40 940,67 915,80 890,67" fill="none" stroke="rgba(14,165,233,0.12)" stroke-width="1"/>
+  <polygon points="940,40 965,27 990,40 990,67 965,80 940,67" fill="none" stroke="rgba(14,165,233,0.1)" stroke-width="1"/>
+  <polygon points="990,40 1015,27 1040,40 1040,67 1015,80 990,67" fill="none" stroke="rgba(14,165,233,0.08)" stroke-width="1"/>
+  <polygon points="1040,40 1065,27 1090,40 1090,67 1065,80 1040,67" fill="none" stroke="rgba(14,165,233,0.1)" stroke-width="1"/>
+  <polygon points="1090,40 1115,27 1140,40 1140,67 1115,80 1090,67" fill="none" stroke="rgba(14,165,233,0.07)" stroke-width="1"/>
+  <polygon points="1140,40 1165,27 1190,40 1190,67 1165,80 1140,67" fill="none" stroke="rgba(14,165,233,0.05)" stroke-width="1"/>
+  <!-- Row 1.5 (offset) -->
+  <polygon points="815,80 840,67 865,80 865,107 840,120 815,107" fill="none" stroke="rgba(14,165,233,0.12)" stroke-width="1"/>
+  <polygon points="865,80 890,67 915,80 915,107 890,120 865,107" fill="rgba(14,165,233,0.04)" stroke="rgba(14,165,233,0.18)" stroke-width="1"/>
+  <polygon points="915,80 940,67 965,80 965,107 940,120 915,107" fill="none" stroke="rgba(14,165,233,0.12)" stroke-width="1"/>
+  <polygon points="965,80 990,67 1015,80 1015,107 990,120 965,107" fill="none" stroke="rgba(14,165,233,0.1)" stroke-width="1"/>
+  <polygon points="1015,80 1040,67 1065,80 1065,107 1040,120 1015,107" fill="rgba(34,197,94,0.04)" stroke="rgba(34,197,94,0.15)" stroke-width="1"/>
+  <polygon points="1065,80 1090,67 1115,80 1115,107 1090,120 1065,107" fill="none" stroke="rgba(14,165,233,0.08)" stroke-width="1"/>
+  <polygon points="1115,80 1140,67 1165,80 1165,107 1140,120 1115,107" fill="none" stroke="rgba(14,165,233,0.07)" stroke-width="1"/>
+  <!-- Row 2 -->
+  <polygon points="840,120 865,107 890,120 890,147 865,160 840,147" fill="none" stroke="rgba(14,165,233,0.1)" stroke-width="1"/>
+  <polygon points="890,120 915,107 940,120 940,147 915,160 890,147" fill="rgba(14,165,233,0.03)" stroke="rgba(14,165,233,0.15)" stroke-width="1"/>
+  <polygon points="940,120 965,107 990,120 990,147 965,160 940,147" fill="none" stroke="rgba(14,165,233,0.12)" stroke-width="1"/>
+  <polygon points="990,120 1015,107 1040,120 1040,147 1015,160 990,147" fill="rgba(34,197,94,0.05)" stroke="rgba(34,197,94,0.18)" stroke-width="1.2"/>
+  <polygon points="1040,120 1065,107 1090,120 1090,147 1065,160 1040,147" fill="none" stroke="rgba(14,165,233,0.1)" stroke-width="1"/>
+  <polygon points="1090,120 1115,107 1140,120 1140,147 1115,160 1090,147" fill="none" stroke="rgba(14,165,233,0.08)" stroke-width="1"/>
+  <polygon points="1140,120 1165,107 1190,120 1190,147 1165,160 1140,147" fill="none" stroke="rgba(14,165,233,0.05)" stroke-width="1"/>
+  <!-- Row 2.5 -->
+  <polygon points="815,160 840,147 865,160 865,187 840,200 815,187" fill="none" stroke="rgba(14,165,233,0.08)" stroke-width="1"/>
+  <polygon points="865,160 890,147 915,160 915,187 890,200 865,187" fill="none" stroke="rgba(14,165,233,0.1)" stroke-width="1"/>
+  <polygon points="915,160 940,147 965,160 965,187 940,200 915,187" fill="rgba(14,165,233,0.05)" stroke="rgba(14,165,233,0.2)" stroke-width="1.2"/>
+  <polygon points="965,160 990,147 1015,160 1015,187 990,200 965,187" fill="none" stroke="rgba(14,165,233,0.12)" stroke-width="1"/>
+  <polygon points="1015,160 1040,147 1065,160 1065,187 1040,200 1015,187" fill="none" stroke="rgba(14,165,233,0.1)" stroke-width="1"/>
+  <polygon points="1065,160 1090,147 1115,160 1115,187 1090,200 1065,187" fill="rgba(34,197,94,0.04)" stroke="rgba(34,197,94,0.12)" stroke-width="1"/>
+  <polygon points="1115,160 1140,147 1165,160 1165,187 1140,200 1115,187" fill="none" stroke="rgba(14,165,233,0.07)" stroke-width="1"/>
+  <!-- Row 3 -->
+  <polygon points="840,200 865,187 890,200 890,227 865,240 840,227" fill="none" stroke="rgba(14,165,233,0.1)" stroke-width="1"/>
+  <polygon points="890,200 915,187 940,200 940,227 915,240 890,227" fill="none" stroke="rgba(14,165,233,0.08)" stroke-width="1"/>
+  <polygon points="940,200 965,187 990,200 990,227 965,240 940,227" fill="none" stroke="rgba(14,165,233,0.12)" stroke-width="1"/>
+  <polygon points="990,200 1015,187 1040,200 1040,227 1015,240 990,227" fill="rgba(14,165,233,0.04)" stroke="rgba(14,165,233,0.15)" stroke-width="1"/>
+  <polygon points="1040,200 1065,187 1090,200 1090,227 1065,240 1040,227" fill="rgba(34,197,94,0.06)" stroke="rgba(34,197,94,0.2)" stroke-width="1.2"/>
+  <polygon points="1090,200 1115,187 1140,200 1140,227 1115,240 1090,227" fill="none" stroke="rgba(14,165,233,0.08)" stroke-width="1"/>
+  <polygon points="1140,200 1165,187 1190,200 1190,227 1165,240 1140,227" fill="none" stroke="rgba(14,165,233,0.05)" stroke-width="1"/>
+  <!-- Row 3.5 -->
+  <polygon points="815,240 840,227 865,240 865,267 840,280 815,267" fill="none" stroke="rgba(14,165,233,0.07)" stroke-width="1"/>
+  <polygon points="865,240 890,227 915,240 915,267 890,280 865,267" fill="rgba(14,165,233,0.04)" stroke="rgba(14,165,233,0.18)" stroke-width="1"/>
+  <polygon points="915,240 940,227 965,240 965,267 940,280 915,267" fill="none" stroke="rgba(14,165,233,0.1)" stroke-width="1"/>
+  <polygon points="965,240 990,227 1015,240 1015,267 990,280 965,267" fill="rgba(34,197,94,0.03)" stroke="rgba(34,197,94,0.12)" stroke-width="1"/>
+  <polygon points="1015,240 1040,227 1065,240 1065,267 1040,280 1015,267" fill="none" stroke="rgba(14,165,233,0.1)" stroke-width="1"/>
+  <polygon points="1065,240 1090,227 1115,240 1115,267 1090,280 1065,267" fill="none" stroke="rgba(14,165,233,0.07)" stroke-width="1"/>
+  <!-- Row 4 -->
+  <polygon points="840,280 865,267 890,280 890,307 865,320 840,307" fill="none" stroke="rgba(14,165,233,0.08)" stroke-width="1"/>
+  <polygon points="890,280 915,267 940,280 940,307 915,320 890,307" fill="none" stroke="rgba(14,165,233,0.07)" stroke-width="1"/>
+  <polygon points="940,280 965,267 990,280 990,307 965,320 940,307" fill="rgba(14,165,233,0.03)" stroke="rgba(14,165,233,0.12)" stroke-width="1"/>
+  <polygon points="990,280 1015,267 1040,280 1040,307 1015,320 990,307" fill="none" stroke="rgba(14,165,233,0.08)" stroke-width="1"/>
+  <polygon points="1040,280 1065,267 1090,280 1090,307 1065,320 1040,307" fill="none" stroke="rgba(14,165,233,0.07)" stroke-width="1"/>
+  <polygon points="1090,280 1115,267 1140,280 1140,307 1115,320 1090,307" fill="rgba(34,197,94,0.04)" stroke="rgba(34,197,94,0.14)" stroke-width="1"/>
+  <polygon points="1140,280 1165,267 1190,280 1190,307 1165,320 1140,307" fill="none" stroke="rgba(14,165,233,0.04)" stroke-width="1"/>
+  <!-- Row 4.5 -->
+  <polygon points="865,320 890,307 915,320 915,347 890,360 865,347" fill="none" stroke="rgba(14,165,233,0.07)" stroke-width="1"/>
+  <polygon points="915,320 940,307 965,320 965,347 940,360 915,347" fill="none" stroke="rgba(14,165,233,0.06)" stroke-width="1"/>
+  <polygon points="965,320 990,307 1015,320 1015,347 990,360 965,347" fill="rgba(14,165,233,0.02)" stroke="rgba(14,165,233,0.1)" stroke-width="1"/>
+  <polygon points="1015,320 1040,307 1065,320 1065,347 1040,360 1015,347" fill="none" stroke="rgba(14,165,233,0.07)" stroke-width="1"/>
+  <polygon points="1065,320 1090,307 1115,320 1115,347 1090,360 1065,347" fill="none" stroke="rgba(14,165,233,0.06)" stroke-width="1"/>
+  <polygon points="1115,320 1140,307 1165,320 1165,347 1140,360 1115,347" fill="none" stroke="rgba(14,165,233,0.05)" stroke-width="1"/>
+
+  <!-- Gradient line separator -->
+  <rect x="600" y="0" width="2" height="400" fill="none"/>
+
+  <!-- LEFT CONTENT -->
+  <!-- Gradient top accent bar -->
+  <rect x="0" y="0" width="600" height="4" fill="url(#accent3)"/>
+
+  <!-- Brand + lock badge -->
+  <rect x="80" y="72" width="280" height="30" rx="15" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+  <text x="98" y="91" font-family="Arial, sans-serif" font-size="12" fill="rgba(255,255,255,0.5)">🔒</text>
+  <text x="122" y="91" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="rgba(255,255,255,0.7)" letter-spacing="1.5">PLATAFORMA RESTRITA</text>
+
+  <!-- Main title -->
+  <text x="80" y="175" font-family="Arial, sans-serif" font-size="52" font-weight="900" fill="#ffffff" letter-spacing="-1">Acesso</text>
+  <text x="80" y="235" font-family="Arial, sans-serif" font-size="52" font-weight="900" letter-spacing="-1">
+    <tspan fill="url(#accent3)">Exclusivo</tspan>
+  </text>
+
+  <!-- Subtitle -->
+  <text x="80" y="272" font-family="Arial, sans-serif" font-size="16" fill="rgba(255,255,255,0.55)" letter-spacing="0.2">Para Médicos e Profissionais de Saúde Habilitados</text>
+
+  <!-- CTA Button -->
+  <rect x="80" y="296" width="220" height="46" rx="23" fill="url(#btngrad)"/>
+  <text x="190" y="324" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="white" letter-spacing="0.5">Solicitar Acesso →</text>
+
+  <!-- Stats row -->
+  <line x1="80" y1="365" x2="580" y2="365" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+  <!-- Stat 1 -->
+  <text x="80" y="386" font-family="Arial, sans-serif" font-size="18" font-weight="900" fill="#22c55e">+500</text>
+  <text x="80" y="398" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.4)">Profissionais</text>
+
+  <!-- Stat 2 -->
+  <text x="210" y="386" font-family="Arial, sans-serif" font-size="18" font-weight="900" fill="#0ea5e9">20+</text>
+  <text x="210" y="398" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.4)">Peptídeos</text>
+
+  <!-- Stat 3 -->
+  <text x="320" y="386" font-family="Arial, sans-serif" font-size="18" font-weight="900" fill="#22c55e">98%</text>
+  <text x="320" y="398" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.4)">Pureza</text>
+
+  <!-- Stat 4 -->
+  <text x="420" y="386" font-family="Arial, sans-serif" font-size="18" font-weight="900" fill="#0ea5e9">24h</text>
+  <text x="420" y="398" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.4)">Aprovação</text>
+
+  <!-- Bottom accent -->
+  <rect x="0" y="396" width="600" height="4" fill="url(#accent3)"/>
+</svg>

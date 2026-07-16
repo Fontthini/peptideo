@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 220" width="160" height="220">
+  <defs>
+    <linearGradient id="cap" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#9ca3af"/>
+      <stop offset="40%" style="stop-color:#d1d5db"/>
+      <stop offset="70%" style="stop-color:#e5e7eb"/>
+      <stop offset="100%" style="stop-color:#9ca3af"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#dbeafe;stop-opacity:0.7"/>
+      <stop offset="15%" style="stop-color:#f0f9ff;stop-opacity:0.9"/>
+      <stop offset="50%" style="stop-color:#ffffff;stop-opacity:1"/>
+      <stop offset="80%" style="stop-color:#f0f9ff;stop-opacity:0.9"/>
+      <stop offset="100%" style="stop-color:#bfdbfe;stop-opacity:0.7"/>
+    </linearGradient>
+    <linearGradient id="label" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#e2e8f0"/>
+      <stop offset="10%" style="stop-color:#ffffff"/>
+      <stop offset="90%" style="stop-color:#ffffff"/>
+      <stop offset="100%" style="stop-color:#e2e8f0"/>
+    </linearGradient>
+    <linearGradient id="stripe" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#16a34a;stop-opacity:0.7"/>
+      <stop offset="20%" style="stop-color:#22c55e"/>
+      <stop offset="80%" style="stop-color:#22c55e"/>
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:0.7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Neck -->
+  <rect x="60" y="28" width="40" height="20" rx="4" fill="url(#glass)" stroke="#d1d5db" stroke-width="0.8"/>
+
+  <!-- Cap (aluminum) -->
+  <rect x="55" y="14" width="50" height="18" rx="5" fill="url(#cap)" stroke="#9ca3af" stroke-width="0.8"/>
+  <rect x="62" y="18" width="36" height="6" rx="3" fill="#f3f4f6" opacity="0.6"/>
+
+  <!-- Stopper (rubber) -->
+  <ellipse cx="80" cy="34" rx="17" ry="5" fill="#374151"/>
+
+  <!-- Glass body -->
+  <rect x="40" y="46" width="80" height="140" rx="12" fill="url(#glass)" stroke="#d1d5db" stroke-width="1"/>
+
+  <!-- White label -->
+  <rect x="45" y="70" width="70" height="92" rx="4" fill="url(#label)" stroke="#e2e8f0" stroke-width="0.5"/>
+
+  <!-- Green stripe at top of label -->
+  <rect x="45" y="70" width="70" height="14" rx="4" fill="url(#stripe)"/>
+  <rect x="45" y="76" width="70" height="8" fill="url(#stripe)"/>
+
+  <!-- Logo text area -->
+  <text x="80" y="96" font-family="Arial, sans-serif" font-size="7" font-weight="bold" fill="#1e293b" text-anchor="middle">PeptideZ</text>
+  <text x="80" y="105" font-family="Arial, sans-serif" font-size="5.5" fill="#64748b" text-anchor="middle">Health</text>
+
+  <!-- Divider line -->
+  <line x1="50" y1="110" x2="110" y2="110" stroke="#e2e8f0" stroke-width="0.8"/>
+
+  <!-- Peptide name placeholder -->
+  <text x="80" y="126" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#0f172a" text-anchor="middle">PEPTÍDEO</text>
+
+  <!-- Dose placeholder -->
+  <text x="80" y="140" font-family="Arial, sans-serif" font-size="7.5" fill="#475569" text-anchor="middle">5 mg / mL</text>
+
+  <!-- Purity text -->
+  <text x="80" y="153" font-family="Arial, sans-serif" font-size="5.5" fill="#94a3b8" text-anchor="middle">Pureza ≥98%</text>
+
+  <!-- Bottom barcode-like decoration -->
+  <line x1="52" y1="158" x2="108" y2="158" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="80" y="167" font-family="Arial, sans-serif" font-size="5" fill="#cbd5e1" text-anchor="middle">Rx Only · Manter refrigerado</text>
+
+  <!-- Glass shine highlight -->
+  <rect x="46" y="50" width="10" height="132" rx="5" fill="white" opacity="0.35"/>
+  <rect x="104" y="60" width="6" height="110" rx="3" fill="#dbeafe" opacity="0.4"/>
+
+  <!-- Bottom curve of glass -->
+  <ellipse cx="80" cy="183" rx="40" ry="4" fill="#d1d5db" opacity="0.4"/>
+</svg>
