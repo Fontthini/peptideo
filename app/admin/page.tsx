@@ -196,8 +196,20 @@ export default function AdminPage() {
       body: JSON.stringify({ id }),
     });
     const d = await r.json();
-    if (r.ok) { showMsg(`OK: ${d.nome} aprovado!`); carregarCadastros(); }
-    else showMsg('R Erro: ' + d.error);
+    if (r.ok) {
+      carregarCadastros();
+      const emailStatus = d.emailEnviado ? '✅ Email enviado' : '⚠️ Email não enviado';
+      const waStatus = d.waEnviado ? '✅ WhatsApp enviado' : '';
+      if (d.waLink && !d.waEnviado) {
+        // Z-API não configurado — mostra botão para abrir WhatsApp
+        const abrir = confirm(`${d.nome} aprovado!\n${emailStatus}\n\nClicar OK abre o WhatsApp para enviar o convite.`);
+        if (abrir) window.open(d.waLink, '_blank');
+      } else {
+        showMsg(`OK: ${d.nome} aprovado! ${emailStatus} ${waStatus}`);
+      }
+    } else {
+      showMsg('R Erro: ' + d.error);
+    }
   };
 
   const rejeitar = async (id: string) => {

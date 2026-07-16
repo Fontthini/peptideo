@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mem_buscarId, mem_aprovar } from '@/lib/db-memory';
 import { enviarEmailAprovacao } from '@/lib/email';
+import { enviarWhatsApp } from '@/lib/whatsapp';
 import { v4 as uuidv4 } from 'uuid';
 
 function checkAdmin(req: NextRequest) {
@@ -17,27 +18,27 @@ export async function POST(req: NextRequest) {
     if (!id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
 
     const token = uuidv4();
-
-    if (process.env.DATABASE_URL || process.env.POSTGRES_URL) {
-      try {
-        const { aprovarCadastro, buscarPorId, initDB } = await import('@/lib/db');
-        await initDB();
-        const cadastro = await buscarPorId(id);
-        if (!cadastro) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 });
-        await aprovarCadastro(id, token);
-        await enviarEmailAprovacao(cadastro.nome, cadastro.email, token);
-        return NextResponse.json({ ok: true, token, nome: cadastro.nome });
-      } catch (e) {
-        console.error('[DB]', e);
-      }
-    }
-
-    // Modo memória
     const cadastro = mem_buscarId(id);
     if (!cadastro) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 });
+
     mem_aprovar(id, token);
-    await enviarEmailAprovacao(cadastro.nome, cadastro.email, token);
-    return NextResponse.json({ ok: true, token, nome: cadastro.nome });
+
+    // Email via Resend
+    const emailResult = await enviarEmailAprovacao(cadastro.nome, cadastro.email, token);
+
+    // WhatsApp via Z-API ou link
+    const waResult = await enviarWhatsApp(cadastro.whatsapp, cadastro.nome, token);
+
+    return NextResponse.json({
+      ok: true,
+      token,
+      nome: cadastro.nome,
+      whatsapp: cadastro.whatsapp,
+      emailEnviado: emailResult.ok,
+      waEnviado: waResult.ok,
+      waVia: waResult.via,
+      waLink: waResult.link,
+    });
 
   } catch (err) {
     console.error('[APROVAR]', err);
