@@ -8,7 +8,6 @@ const nextConfig: NextConfig = {
     ],
   },
   typescript: { ignoreBuildErrors: true },
-  experimental: { instrumentationHook: true },
 };
 
 export default nextConfig;
