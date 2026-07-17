@@ -708,7 +708,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
                           <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: l.solicitacao === 'aprovar' ? '#dcfce7' : '#fef2f2', color: l.solicitacao === 'aprovar' ? '#15803d' : '#dc2626' }}>
                             Sol. {l.solicitacao === 'aprovar' ? 'Aprovacao' : 'Rejeicao'}
                           </span>
-                        ) : <span style={{ color: '#9ca3af', fontSize: 11 }}>—</span>}
+                        ) : <span style={{ color: '#6b7280', fontSize: 12, fontWeight: 600 }}>—</span>}
                       </td>
                       <td style={{ padding: '11px 14px', color: '#374151', fontSize: 12 }}>{formatDate(l.created_at)}</td>
                     </tr>
