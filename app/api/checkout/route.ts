@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mem_buscarToken, mem_getConfig, mem_criarPedido } from '@/lib/db-memory';
+import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 async function getUsuario(token: string) {
-  if (process.env.DATABASE_URL || process.env.POSTGRES_URL) {
-    try {
-      const { buscarPorToken } = await import('@/lib/db');
-      return await buscarPorToken(token);
-    } catch {}
-  }
+  await reloadFromSupabase();
   return mem_buscarToken(token);
 }
 

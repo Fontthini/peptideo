@@ -203,12 +203,16 @@ export async function loadAllFromSupabase() {
     })) as MembroEquipe[];
     if (categorias) global.__categorias__ = categorias.map((c: { nome: string }) => c.nome);
     if (categoriasBlog) global.__categorias_blog__ = categoriasBlog.map((c: { nome: string }) => c.nome);
-    if (pedidos) global.__pedidos__ = pedidos.map((p: Record<string, unknown>) => ({
-      ...p,
-      cadastro_nome: '',
-      cadastro_email: '',
-      produto_nome: Array.isArray(p.itens) && p.itens.length ? (p.itens[0] as { nome: string }).nome : '',
-    })) as Pedido[];
+    if (pedidos) global.__pedidos__ = pedidos.map((p: Record<string, unknown>) => {
+      const cad = (cadastros as Cadastro[] | null)?.find(c => c.id === p.cadastro_id);
+      return {
+        ...p,
+        cadastro_nome: cad ? `${cad.nome} ${cad.sobrenome || ''}`.trim() : (p.cadastro_nome as string || ''),
+        cadastro_email: cad ? cad.email : (p.cadastro_email as string || ''),
+        cadastro_whatsapp: cad ? cad.whatsapp : (p.cadastro_whatsapp as string || ''),
+        produto_nome: Array.isArray(p.itens) && p.itens.length ? (p.itens[0] as { nome: string }).nome : '',
+      };
+    }) as Pedido[];
 
     console.log('[SUPABASE] Dados carregados com sucesso');
   } catch (err) {
