@@ -1,3 +1,4 @@
+// equipe admin API
 import { NextRequest, NextResponse } from 'next/server';
 import { mem_listarEquipe, mem_criarMembro, mem_editarMembro, mem_deletarMembro } from '@/lib/db-memory';
 
