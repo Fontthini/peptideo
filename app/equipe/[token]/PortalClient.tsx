@@ -702,15 +702,15 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
                         <div style={{ fontSize: 11, color: '#9ca3af' }}>{l.email}</div>
                       </td>
                       <td style={{ padding: '11px 14px' }}><Badge status={l.status} map={STATUS_COLOR} /></td>
-                      <td style={{ padding: '11px 14px', color: '#6b7280', fontSize: 12 }}>{vendNome || <span style={{ color: '#d1d5db' }}>Livre</span>}</td>
+                      <td style={{ padding: '11px 14px', color: '#111827', fontSize: 12 }}>{vendNome || <span style={{ color: '#6b7280' }}>Livre</span>}</td>
                       <td style={{ padding: '11px 14px' }}>
                         {l.solicitacao ? (
                           <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: l.solicitacao === 'aprovar' ? '#dcfce7' : '#fef2f2', color: l.solicitacao === 'aprovar' ? '#15803d' : '#dc2626' }}>
                             Sol. {l.solicitacao === 'aprovar' ? 'Aprovacao' : 'Rejeicao'}
                           </span>
-                        ) : <span style={{ color: '#d1d5db', fontSize: 11 }}>—</span>}
+                        ) : <span style={{ color: '#9ca3af', fontSize: 11 }}>—</span>}
                       </td>
-                      <td style={{ padding: '11px 14px', color: '#9ca3af', fontSize: 12 }}>{formatDate(l.created_at)}</td>
+                      <td style={{ padding: '11px 14px', color: '#374151', fontSize: 12 }}>{formatDate(l.created_at)}</td>
                     </tr>
                   );
                 })}
