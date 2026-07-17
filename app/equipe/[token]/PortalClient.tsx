@@ -148,13 +148,34 @@ function LeadDetail({
             ))}
           </div>
 
-          {/* Botao WhatsApp */}
+          {/* Botao WhatsApp contato */}
           {waLead && (
             <a href={waLead} target="_blank" rel="noreferrer"
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#25D366', color: '#fff', borderRadius: 8, padding: '12px 0', textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
               <span style={{ fontSize: 18 }}>📱</span> Iniciar Conversa no WhatsApp
             </a>
           )}
+
+          {/* Botao reenviar link de acesso — visível para todos quando lead está aprovado */}
+          {lead.status === 'aprovado' && lead.token && (() => {
+            const base = typeof window !== 'undefined' ? window.location.origin : '';
+            const lojaUrl = `${base}/acesso/${lead.token}`;
+            const nomeCliente = `${lead.nome}${lead.sobrenome ? ' ' + lead.sobrenome : ''}`;
+            const msg = `Olá ${nomeCliente}! 🎉\n\nSeu cadastro na PeptideZ Health foi *aprovado*!\n\nAcesse sua loja exclusiva pelo link abaixo:\n👉 ${lojaUrl}\n\nEm caso de dúvidas, entre em contato conosco.`;
+            const waReenvio = lead.whatsapp
+              ? `https://wa.me/${lead.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`
+              : null;
+            return waReenvio ? (
+              <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#15803d' }}>✅ Lead aprovado — envie o link de acesso:</div>
+                <a href={waReenvio} target="_blank" rel="noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#25D366', color: '#fff', borderRadius: 8, padding: '12px 0', textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
+                  <span style={{ fontSize: 18 }}>📱</span> Enviar Link de Acesso via WhatsApp
+                </a>
+                <div style={{ fontSize: 11, color: '#6b7280', wordBreak: 'break-all' }}>{lojaUrl}</div>
+              </div>
+            ) : null;
+          })()}
 
           {/* Motivo de rejeicao (se houver) */}
           {lead.motivo_rejeicao && (
