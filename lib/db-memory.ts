@@ -526,7 +526,7 @@ export function mem_listarEquipe(): MembroEquipe[] {
 }
 export function mem_criarMembro(data: Omit<MembroEquipe, 'id' | 'created_at'>): MembroEquipe {
   const store = getEquipeStore();
-  const m: MembroEquipe = { ...data, id: randomUUID(), created_at: new Date().toISOString() };
+  const m: MembroEquipe = { ...data, id: randomUUID(), created_at: new Date().toISOString(), token_acesso: data.token_acesso || randomUUID() };
   store.push(m); salvarEquipe(); sb()?.sbSaveMembro(m)?.catch(console.error);
   return m;
 }

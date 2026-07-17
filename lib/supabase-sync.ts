@@ -197,7 +197,7 @@ export async function loadAllFromSupabase() {
     if (banners && banners.length > 0) global.__banners__ = banners.map(b => ({ ...b, created_at: b.created_at || new Date().toISOString() })) as BannerItem[];
     if (bannersBlog && bannersBlog.length > 0) global.__banners_blog__ = bannersBlog.map(b => ({ ...b, created_at: b.created_at || new Date().toISOString() })) as BannerItem[];
     if (artigos) global.__artigos__ = artigos as Artigo[];
-    if (equipe) global.__equipe__ = equipe.map((m: Record<string, unknown>) => ({
+    if (equipe && equipe.length > 0) global.__equipe__ = equipe.map((m: Record<string, unknown>) => ({
       ...m, token_acesso: m.token as string,
     })) as MembroEquipe[];
     if (categorias) global.__categorias__ = categorias.map((c: { nome: string }) => c.nome);
