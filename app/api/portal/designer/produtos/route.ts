@@ -23,5 +23,6 @@ export async function PUT(req: NextRequest) {
   const { id, ...rest } = data;
   const p = mem_editarProduto(id, rest);
   if (!p) return NextResponse.json({ error: 'Produto não encontrado' }, { status: 404 });
+  try { const { sbSaveProduto } = await import('@/lib/supabase-sync'); await sbSaveProduto(p); } catch (e) { console.error('[PRODUTO] save error:', e); }
   return NextResponse.json(p);
 }

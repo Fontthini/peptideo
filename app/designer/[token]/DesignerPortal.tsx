@@ -36,6 +36,8 @@ export default function DesignerPortal({ membro, produtos: produtosInit, artigos
   const [artigos, setArtigos] = useState(artigosInit);
   const [editandoArtigo, setEditandoArtigo] = useState<Artigo | null>(null);
   const [novoArtigo, setNovoArtigo] = useState({ titulo: '', conteudo: '', imagem: '', video: '', categoria: '', publicado: false });
+  const [novoMaterial, setNovoMaterial] = useState({ nome: '', url: '' });
+  const [novoMaterialEdit, setNovoMaterialEdit] = useState({ nome: '', url: '' });
 
   const headers = { 'Content-Type': 'application/json', 'x-member-token': token };
 
@@ -53,22 +55,27 @@ export default function DesignerPortal({ membro, produtos: produtosInit, artigos
     } else { showMsg('Erro ao salvar'); }
   }
 
+  const [novosMateriais, setNovosMateriais] = useState<Material[]>([]);
+
   async function salvarArtigo(e: React.FormEvent) {
     e.preventDefault();
     const isEdit = !!editandoArtigo;
-    const payload = isEdit ? editandoArtigo : novoArtigo;
+    const payload = isEdit ? editandoArtigo : { ...novoArtigo, materiais: novosMateriais };
     const r = await fetch('/api/portal/designer/artigos', {
       method: isEdit ? 'PUT' : 'POST', headers,
-      body: JSON.stringify(isEdit ? payload : { ...payload, materiais: [] }),
+      body: JSON.stringify(payload),
     });
     if (r.ok) {
       const saved = await r.json();
       if (isEdit) {
         setArtigos(prev => prev.map(a => a.id === saved.id ? saved : a));
         setEditandoArtigo(null);
+        setNovoMaterialEdit({ nome: '', url: '' });
       } else {
         setArtigos(prev => [saved, ...prev]);
         setNovoArtigo({ titulo: '', conteudo: '', imagem: '', video: '', categoria: '', publicado: false });
+        setNovosMateriais([]);
+        setNovoMaterial({ nome: '', url: '' });
       }
       showMsg(isEdit ? 'Artigo atualizado!' : 'Artigo criado!');
     } else { showMsg('Erro ao salvar artigo'); }
@@ -166,14 +173,39 @@ export default function DesignerPortal({ membro, produtos: produtosInit, artigos
                   <div><label style={labelStyle}>Titulo</label><input style={inputStyle} value={editandoArtigo.titulo} onChange={e => setEditandoArtigo(a => a && ({ ...a, titulo: e.target.value }))} required /></div>
                   <div><label style={labelStyle}>Conteudo</label><textarea style={{ ...inputStyle, minHeight: 150, resize: 'vertical' }} value={editandoArtigo.conteudo} onChange={e => setEditandoArtigo(a => a && ({ ...a, conteudo: e.target.value }))} /></div>
                   <div><label style={labelStyle}>Imagem (URL)</label><input style={inputStyle} value={editandoArtigo.imagem || ''} onChange={e => setEditandoArtigo(a => a && ({ ...a, imagem: e.target.value }))} /></div>
-                  <div><label style={labelStyle}>Video (URL)</label><input style={inputStyle} value={editandoArtigo.video || ''} onChange={e => setEditandoArtigo(a => a && ({ ...a, video: e.target.value }))} /></div>
+                  <div><label style={labelStyle}>Video YouTube (URL)</label><input style={inputStyle} value={editandoArtigo.video || ''} onChange={e => setEditandoArtigo(a => a && ({ ...a, video: e.target.value }))} placeholder="https://www.youtube.com/watch?v=..." /></div>
+                  <div><label style={labelStyle}>Categoria</label><input style={inputStyle} value={editandoArtigo.categoria || ''} onChange={e => setEditandoArtigo(a => a && ({ ...a, categoria: e.target.value }))} placeholder="Ex: Protocolos, Guias..." /></div>
+                  {/* Materiais */}
+                  <div>
+                    <label style={labelStyle}>Materiais para Download</label>
+                    {(editandoArtigo.materiais || []).length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+                        {(editandoArtigo.materiais || []).map((m, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 7, padding: '7px 12px' }}>
+                            <span style={{ fontSize: 16 }}>📄</span>
+                            <span style={{ flex: 1, fontSize: 13, color: '#111827', fontWeight: 600 }}>{m.nome}</span>
+                            <span style={{ fontSize: 11, color: '#9ca3af', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.url}</span>
+                            <button type="button" onClick={() => setEditandoArtigo(a => a && ({ ...a, materiais: a.materiais.filter((_, j) => j !== i) }))}
+                              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 5, padding: '3px 8px', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input style={{ ...inputStyle, flex: 1 }} placeholder="Nome do arquivo" value={novoMaterialEdit.nome} onChange={e => setNovoMaterialEdit(m => ({ ...m, nome: e.target.value }))} />
+                      <input style={{ ...inputStyle, flex: 2 }} placeholder="URL do arquivo (https://...)" value={novoMaterialEdit.url} onChange={e => setNovoMaterialEdit(m => ({ ...m, url: e.target.value }))} />
+                      <button type="button"
+                        onClick={() => { if (!novoMaterialEdit.nome || !novoMaterialEdit.url) return; setEditandoArtigo(a => a && ({ ...a, materiais: [...(a.materiais || []), novoMaterialEdit] })); setNovoMaterialEdit({ nome: '', url: '' }); }}
+                        style={{ background: '#111827', color: '#fff', border: 'none', padding: '10px 14px', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>+ Add</button>
+                    </div>
+                  </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <input type="checkbox" id="pub-edit" checked={editandoArtigo.publicado} onChange={e => setEditandoArtigo(a => a && ({ ...a, publicado: e.target.checked }))} />
                     <label htmlFor="pub-edit" style={{ fontSize: 13, color: '#374151' }}>Publicado</label>
                   </div>
                   <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
                     <button type="submit" style={{ background: '#111827', color: '#fff', border: 'none', padding: '11px 24px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>Salvar</button>
-                    <button type="button" onClick={() => setEditandoArtigo(null)} style={{ background: '#f9fafb', color: '#374151', border: '1px solid #e5e7eb', padding: '11px 24px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+                    <button type="button" onClick={() => { setEditandoArtigo(null); setNovoMaterialEdit({ nome: '', url: '' }); }} style={{ background: '#f9fafb', color: '#374151', border: '1px solid #e5e7eb', padding: '11px 24px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
                   </div>
                 </form>
               </div>
@@ -184,6 +216,32 @@ export default function DesignerPortal({ membro, produtos: produtosInit, artigos
                   <div><label style={labelStyle}>Titulo</label><input style={inputStyle} value={novoArtigo.titulo} onChange={e => setNovoArtigo(a => ({ ...a, titulo: e.target.value }))} required placeholder="Titulo do artigo" /></div>
                   <div><label style={labelStyle}>Conteudo</label><textarea style={{ ...inputStyle, minHeight: 100, resize: 'vertical' }} value={novoArtigo.conteudo} onChange={e => setNovoArtigo(a => ({ ...a, conteudo: e.target.value }))} placeholder="Conteudo do artigo..." /></div>
                   <div><label style={labelStyle}>Imagem (URL)</label><input style={inputStyle} value={novoArtigo.imagem} onChange={e => setNovoArtigo(a => ({ ...a, imagem: e.target.value }))} /></div>
+                  <div><label style={labelStyle}>Video YouTube (URL)</label><input style={inputStyle} value={novoArtigo.video} onChange={e => setNovoArtigo(a => ({ ...a, video: e.target.value }))} placeholder="https://www.youtube.com/watch?v=..." /></div>
+                  <div><label style={labelStyle}>Categoria</label><input style={inputStyle} value={novoArtigo.categoria} onChange={e => setNovoArtigo(a => ({ ...a, categoria: e.target.value }))} placeholder="Ex: Protocolos, Guias..." /></div>
+                  {/* Materiais */}
+                  <div>
+                    <label style={labelStyle}>Materiais para Download</label>
+                    {novosMateriais.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+                        {novosMateriais.map((m, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 7, padding: '7px 12px' }}>
+                            <span style={{ fontSize: 16 }}>📄</span>
+                            <span style={{ flex: 1, fontSize: 13, color: '#111827', fontWeight: 600 }}>{m.nome}</span>
+                            <span style={{ fontSize: 11, color: '#9ca3af', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.url}</span>
+                            <button type="button" onClick={() => setNovosMateriais(prev => prev.filter((_, j) => j !== i))}
+                              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 5, padding: '3px 8px', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input style={{ ...inputStyle, flex: 1 }} placeholder="Nome do arquivo" value={novoMaterial.nome} onChange={e => setNovoMaterial(m => ({ ...m, nome: e.target.value }))} />
+                      <input style={{ ...inputStyle, flex: 2 }} placeholder="URL do arquivo (https://...)" value={novoMaterial.url} onChange={e => setNovoMaterial(m => ({ ...m, url: e.target.value }))} />
+                      <button type="button"
+                        onClick={() => { if (!novoMaterial.nome || !novoMaterial.url) return; setNovosMateriais(prev => [...prev, novoMaterial]); setNovoMaterial({ nome: '', url: '' }); }}
+                        style={{ background: '#111827', color: '#fff', border: 'none', padding: '10px 14px', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>+ Add</button>
+                    </div>
+                  </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <input type="checkbox" id="pub-novo" checked={novoArtigo.publicado} onChange={e => setNovoArtigo(a => ({ ...a, publicado: e.target.checked }))} />
                     <label htmlFor="pub-novo" style={{ fontSize: 13, color: '#374151' }}>Publicar imediatamente</label>
