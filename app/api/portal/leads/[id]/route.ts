@@ -6,8 +6,10 @@ import {
   mem_getConfig,
 } from '@/lib/db-memory';
 import { randomUUID } from 'crypto';
+import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  await reloadFromSupabase();
   const { id } = await params;
   const token = req.headers.get('x-member-token') || '';
   const membro = mem_buscarMembroPorToken(token);
@@ -63,26 +65,38 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         ? `https://wa.me/${c.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(msgAprovacao)}`
         : null;
 
-      // Enviar email via Resend se configurado
+      // Enviar email via Resend
       let emailEnviado = false;
-      if (cfg.resend_api_key && c.email) {
+      const resendKey = process.env.RESEND_API_KEY || cfg.resend_api_key;
+      if (resendKey && c.email) {
         try {
-          await fetch('https://api.resend.com/emails', {
+          const emailRes = await fetch('https://api.resend.com/emails', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cfg.resend_api_key}` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${resendKey}` },
             body: JSON.stringify({
-              from: 'PeptideZ Health <noreply@peptidezhealth.com.br>',
+              from: 'PeptideZ Health <onboarding@resend.dev>',
               to: c.email,
-              subject: 'Seu acesso foi aprovado — PeptideZ Health',
-              html: `<p>Olá <strong>${nomeCliente}</strong>,</p>
-<p>Seu cadastro foi <strong>aprovado</strong>! Acesse sua loja exclusiva:</p>
-<p><a href="${lojaUrl}" style="background:#16a34a;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block">Acessar Minha Loja</a></p>
-<p>Link direto: <a href="${lojaUrl}">${lojaUrl}</a></p>
-<p>Em caso de dúvidas, entre em contato pelo WhatsApp: ${whatsappNumero}</p>`,
+              subject: '✅ Seu acesso foi aprovado — PeptideZ Health',
+              html: `<div style="font-family:Arial,sans-serif;background:#000;color:#fff;padding:40px;max-width:600px;margin:0 auto;">
+<h1 style="color:#8AE152;">PeptideZ Health</h1>
+<h2 style="color:#fff;">Olá, ${nomeCliente}! 🎉</h2>
+<p style="color:#ccc;line-height:1.6;">Seu cadastro foi <strong style="color:#8AE152;">aprovado</strong>! Acesse sua loja exclusiva de peptídeos:</p>
+<div style="text-align:center;margin:40px 0;">
+<a href="${lojaUrl}" style="background:#8AE152;color:#000;padding:16px 40px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:16px;display:inline-block">Acessar Minha Loja →</a>
+</div>
+<p style="color:#888;font-size:12px;text-align:center;">Link direto: <a href="${lojaUrl}" style="color:#8AE152;">${lojaUrl}</a></p>
+${whatsappNumero ? `<p style="color:#888;font-size:12px;text-align:center;">Dúvidas? WhatsApp: ${whatsappNumero}</p>` : ''}
+</div>`,
             }),
           });
-          emailEnviado = true;
-        } catch {}
+          emailEnviado = emailRes.ok;
+          if (!emailRes.ok) {
+            const errBody = await emailRes.text();
+            console.error('[APROVAR] Resend erro:', emailRes.status, errBody);
+          }
+        } catch (e) {
+          console.error('[APROVAR] Email exception:', e);
+        }
       }
 
       return NextResponse.json({ ...c, wa_link: waLead, email_enviado: emailEnviado, loja_url: lojaUrl });

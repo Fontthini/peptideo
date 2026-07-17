@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mem_buscarMembroPorToken, mem_listar } from '@/lib/db-memory';
+import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 export async function GET(req: NextRequest) {
+  await reloadFromSupabase();
   const token = req.headers.get('x-member-token') || '';
   const membro = mem_buscarMembroPorToken(token);
   if (!membro) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });

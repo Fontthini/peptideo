@@ -67,6 +67,7 @@ function LeadDetail({
   const [loading, setLoading] = useState('');
   const [msg, setMsg] = useState('');
   const [waLink, setWaLink] = useState('');
+  const [emailEnviado, setEmailEnviado] = useState<boolean | null>(null);
 
   const vendNome = equipe.find(e => e.id === lead.vendedor_id)?.nome;
 
@@ -83,6 +84,7 @@ function LeadDetail({
       onUpdate(d);
       if (d.wa_link) setWaLink(d.wa_link);
       else setMsg('Acao realizada com sucesso!');
+      if (d.email_enviado !== undefined) setEmailEnviado(d.email_enviado);
       setTimeout(() => setMsg(''), 4000);
     } finally { setLoading(''); }
   }
@@ -181,14 +183,27 @@ function LeadDetail({
 
           {msg && <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#15803d' }}>{msg}</div>}
 
-          {/* Link WhatsApp de aprovacao */}
+          {/* Resultado da aprovacao */}
           {waLink && (
-            <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#15803d', marginBottom: 10 }}>Lead aprovado! Envie a mensagem de boas-vindas:</div>
+            <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>Lead aprovado! Notifique o cliente:</div>
+              {emailEnviado === true && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#15803d' }}>
+                  <span>✅</span> Email de aprovacao enviado para o cliente
+                </div>
+              )}
+              {emailEnviado === false && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#dc2626' }}>
+                  <span>⚠️</span> Email nao enviado — use o WhatsApp abaixo
+                </div>
+              )}
               <a href={waLink} target="_blank" rel="noreferrer"
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#25D366', color: '#fff', borderRadius: 8, padding: '12px 0', textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
                 <span style={{ fontSize: 18 }}>📱</span> Enviar Link de Acesso via WhatsApp
               </a>
+              <div style={{ fontSize: 11, color: '#6b7280', wordBreak: 'break-all' }}>
+                Clique no botao verde acima para abrir o WhatsApp com a mensagem ja preenchida.
+              </div>
             </div>
           )}
 

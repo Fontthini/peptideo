@@ -123,6 +123,7 @@ export async function sbSaveMembro(m: MembroEquipe) {
   await supabase.from('equipe').upsert({
     id: m.id, nome: m.nome, email: m.email, cargo: m.cargo,
     token: m.token_acesso || m.id,
+    senha: m.senha || null,
     ativo: m.ativo, created_at: m.created_at,
   });
 }
@@ -198,7 +199,7 @@ export async function loadAllFromSupabase() {
     if (bannersBlog && bannersBlog.length > 0) global.__banners_blog__ = bannersBlog.map(b => ({ ...b, created_at: b.created_at || new Date().toISOString() })) as BannerItem[];
     if (artigos) global.__artigos__ = artigos as Artigo[];
     if (equipe && equipe.length > 0) global.__equipe__ = equipe.map((m: Record<string, unknown>) => ({
-      ...m, token_acesso: m.token as string,
+      ...m, token_acesso: m.token as string, senha: m.senha as string | undefined,
     })) as MembroEquipe[];
     if (categorias) global.__categorias__ = categorias.map((c: { nome: string }) => c.nome);
     if (categoriasBlog) global.__categorias_blog__ = categoriasBlog.map((c: { nome: string }) => c.nome);

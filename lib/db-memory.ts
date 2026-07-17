@@ -555,6 +555,7 @@ export function mem_buscarMembroPorEmail(email: string): MembroEquipe | null {
 export function mem_gerarTokenMembro(id: string): string | null {
   const m = getEquipeStore().find(m => m.id === id);
   if (!m) return null;
+  if (m.token_acesso) { sb()?.sbSaveMembro(m)?.catch(console.error); return m.token_acesso; }
   const token = randomUUID();
   m.token_acesso = token;
   salvarEquipe(); sb()?.sbSaveMembro(m)?.catch(console.error);
