@@ -1,15 +1,11 @@
 import Link from 'next/link';
 import { mem_buscarToken, mem_listarProdutos, mem_seedProdutos, mem_getConfig, mem_listarBanners } from '@/lib/db-memory';
 import { PRODUTOS, CATEGORIAS } from '@/lib/produtos';
+import { reloadFromSupabase } from '@/lib/ensure-equipe';
 import LojaClient from './LojaClient';
 
 async function getUsuario(token: string) {
-  if (process.env.DATABASE_URL || process.env.POSTGRES_URL) {
-    try {
-      const { buscarPorToken } = await import('@/lib/db');
-      return await buscarPorToken(token);
-    } catch {}
-  }
+  await reloadFromSupabase();
   return mem_buscarToken(token);
 }
 
