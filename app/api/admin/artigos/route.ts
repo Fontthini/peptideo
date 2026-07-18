@@ -17,9 +17,11 @@ export async function POST(req: NextRequest) {
   const a = mem_criarArtigo({
     titulo: data.titulo, conteudo: data.conteudo || '',
     imagem: data.imagem || undefined, video: data.video || undefined,
+    categoria: data.categoria || undefined,
     materiais: Array.isArray(data.materiais) ? data.materiais : [],
     publicado: data.publicado ?? false,
   });
+  try { const { sbSaveArtigo } = await import('@/lib/supabase-sync'); await sbSaveArtigo(a); } catch (e) { console.error('[ARTIGO] save error:', e); }
   return NextResponse.json(a, { status: 201 });
 }
 
@@ -30,10 +32,12 @@ export async function PUT(req: NextRequest) {
   const a = mem_editarArtigo(data.id, {
     titulo: data.titulo, conteudo: data.conteudo || '',
     imagem: data.imagem || undefined, video: data.video || undefined,
+    categoria: data.categoria || undefined,
     materiais: Array.isArray(data.materiais) ? data.materiais : [],
     publicado: data.publicado ?? false,
   });
   if (!a) return NextResponse.json({ error: 'Artigo não encontrado' }, { status: 404 });
+  try { const { sbSaveArtigo } = await import('@/lib/supabase-sync'); await sbSaveArtigo(a); } catch (e) { console.error('[ARTIGO] save error:', e); }
   return NextResponse.json(a);
 }
 

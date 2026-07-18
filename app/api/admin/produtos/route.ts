@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
     video: data.video || undefined,
     galeria: Array.isArray(data.galeria) ? data.galeria : undefined,
   });
+  try { const { sbSaveProduto } = await import('@/lib/supabase-sync'); await sbSaveProduto(p); } catch (e) { console.error('[PRODUTO] save error:', e); }
   return NextResponse.json({ ...p, custom: true }, { status: 201 });
 }
 
@@ -57,6 +58,7 @@ export async function PUT(req: NextRequest) {
     galeria: Array.isArray(data.galeria) ? data.galeria : [],
   });
   if (!p) return NextResponse.json({ error: 'Produto não encontrado' }, { status: 404 });
+  try { const { sbSaveProduto } = await import('@/lib/supabase-sync'); await sbSaveProduto(p); } catch (e) { console.error('[PRODUTO] save error:', e); }
   return NextResponse.json({ ...p, custom: !isSeeded(p.id) });
 }
 

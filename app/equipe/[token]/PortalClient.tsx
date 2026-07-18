@@ -19,10 +19,10 @@ type Pedido = {
 
 type Props = { membro: Membro; leads: Cadastro[]; equipe: Membro[]; token: string; };
 
-const CARGO_LABEL: Record<string, string> = { superadmin: 'Super Admin', gerente: 'Gerente', vendedor: 'Vendedor', designer: 'Designer' };
+const CARGO_LABEL: Record<string, string> = { superadmin: 'Super Admin', gerente: 'Gerente', vendedor: 'Vendedor' };
 const CARGO_COLOR: Record<string, { bg: string; text: string }> = {
   superadmin: { bg: '#fef9c3', text: '#a16207' }, gerente: { bg: '#eff6ff', text: '#1d4ed8' },
-  vendedor: { bg: '#f0fdf4', text: '#15803d' }, designer: { bg: '#fdf4ff', text: '#7c3aed' },
+  vendedor: { bg: '#f0fdf4', text: '#15803d' },
 };
 const STATUS_LABEL: Record<string, string> = { pendente: 'Pendente', aprovado: 'Aprovado', rejeitado: 'Rejeitado', em_analise: 'Em Analise' };
 const STATUS_COLOR: Record<string, { bg: string; text: string }> = {
@@ -744,34 +744,6 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
   );
 }
 
-/* =========================================================
-   DESIGNER VIEW
-   ========================================================= */
-function DesignerView({ membro, token }: { membro: Membro; token: string }) {
-  return (
-    <div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, maxWidth: 700 }}>
-        <a href={`/designer/${token}?section=produtos`} style={{ textDecoration: 'none' }}>
-          <div style={{ background: '#fff', border: '2px solid #e5e7eb', borderRadius: 16, padding: 32, textAlign: 'center', cursor: 'pointer' }}>
-            <div style={{ fontSize: 40, marginBottom: 14 }}>🧪</div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: '#111827', marginBottom: 8 }}>Produtos</div>
-            <div style={{ fontSize: 13, color: '#6b7280' }}>Editar catalogo de peptideos, imagens, precos e descricoes</div>
-          </div>
-        </a>
-        <a href={`/designer/${token}?section=blog`} style={{ textDecoration: 'none' }}>
-          <div style={{ background: '#fff', border: '2px solid #e5e7eb', borderRadius: 16, padding: 32, textAlign: 'center', cursor: 'pointer' }}>
-            <div style={{ fontSize: 40, marginBottom: 14 }}>📝</div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: '#111827', marginBottom: 8 }}>Blog & Conteudo</div>
-            <div style={{ fontSize: 13, color: '#6b7280' }}>Criar artigos, banners e materiais para membros</div>
-          </div>
-        </a>
-      </div>
-      <div style={{ marginTop: 20, background: '#fdf4ff', border: '1px solid #e9d5ff', borderRadius: 10, padding: '14px 18px', fontSize: 13, color: '#7c3aed', maxWidth: 700 }}>
-        Designer: acesso exclusivo a edicao de produtos e blog. Painel administrativo completo e restrito.
-      </div>
-    </div>
-  );
-}
 
 /* =========================================================
    MAIN PORTAL
@@ -803,13 +775,11 @@ export default function PortalClient({ membro, leads, equipe, token }: Props) {
         <h1 style={{ fontSize: 22, fontWeight: 800, color: '#111827', margin: '0 0 24px' }}>
           {cargo === 'vendedor' && 'Meus Leads & Pedidos'}
           {cargo === 'gerente' && 'Dashboard — Gerente'}
-          {cargo === 'designer' && 'Ferramentas de Conteudo'}
           {cargo === 'superadmin' && 'Painel Completo'}
         </h1>
 
         {cargo === 'vendedor' && <VendedorView membro={membro} leads={leads} equipe={equipe} token={token} />}
         {cargo === 'gerente' && <GerenteView membro={membro} leads={leads} equipe={equipe} token={token} />}
-        {cargo === 'designer' && <DesignerView membro={membro} token={token} />}
         {cargo === 'superadmin' && <GerenteView membro={membro} leads={leads} equipe={equipe} token={token} />}
       </main>
     </div>

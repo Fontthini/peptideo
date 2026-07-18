@@ -48,7 +48,7 @@ export async function sbSaveConfig(cfg: Config) {
 // ── Cadastros ───────────────────────────────────────────────────────────────
 
 export async function sbSaveCadastro(c: Cadastro) {
-  await supabase.from('cadastros').upsert({
+  const { error } = await supabase.from('cadastros').upsert({
     id: c.id, nome: c.nome, sobrenome: c.sobrenome || '',
     email: c.email, whatsapp: c.whatsapp, endereco: c.endereco || '',
     crm: c.crm || '', onde_conheceu: c.onde_conheceu || '',
@@ -57,6 +57,7 @@ export async function sbSaveCadastro(c: Cadastro) {
     motivo_rejeicao: c.motivo_rejeicao || '', obs: c.obs || '',
     created_at: c.created_at,
   });
+  if (error) throw new Error(`sbSaveCadastro: ${error.message} (${error.code})`);
 }
 
 export async function sbDeleteCadastro(id: string) {
@@ -105,12 +106,13 @@ export async function sbDeleteBanner(id: string, table: 'banners' | 'banners_blo
 // ── Artigos ─────────────────────────────────────────────────────────────────
 
 export async function sbSaveArtigo(a: Artigo) {
-  await supabase.from('artigos').upsert({
+  const { error } = await supabase.from('artigos').upsert({
     id: a.id, titulo: a.titulo, conteudo: a.conteudo || '',
     imagem: a.imagem || '', video: a.video || '',
     categoria: a.categoria || '', materiais: a.materiais || [],
     publicado: a.publicado, created_at: a.created_at, updated_at: a.updated_at,
   });
+  if (error) throw new Error(`sbSaveArtigo: ${error.message} (${error.code})`);
 }
 
 export async function sbDeleteArtigo(id: string) {

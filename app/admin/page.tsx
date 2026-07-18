@@ -1474,7 +1474,7 @@ export default function AdminPage() {
                 </div>
 
                 <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '14px 18px', fontSize: 13, color: '#92400e' }}>
-                  Portal da equipe disponível em <strong>/equipe/login</strong> para vendedores, gerentes e designers.
+                  Portal da equipe disponível em <strong>/equipe/login</strong> para vendedores e gerentes.
                 </div>
               </div>
             );
@@ -1509,7 +1509,7 @@ export default function AdminPage() {
                           <tr key={m.id} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
                             <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{m.nome}</td>
                             <td style={{ padding: '11px 14px' }}>
-                              <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: m.cargo === 'superadmin' ? '#fef9c3' : m.cargo === 'gerente' ? '#eff6ff' : m.cargo === 'designer' ? '#fdf4ff' : m.cargo === 'vendedor' ? '#f0fdf4' : '#f9fafb', color: m.cargo === 'superadmin' ? '#a16207' : m.cargo === 'gerente' ? '#1d4ed8' : m.cargo === 'designer' ? '#7c3aed' : m.cargo === 'vendedor' ? '#15803d' : '#374151' }}>
+                              <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: m.cargo === 'superadmin' ? '#fef9c3' : m.cargo === 'gerente' ? '#eff6ff' : m.cargo === 'vendedor' ? '#f0fdf4' : '#f9fafb', color: m.cargo === 'superadmin' ? '#a16207' : m.cargo === 'gerente' ? '#1d4ed8' : m.cargo === 'vendedor' ? '#15803d' : '#374151' }}>
                                 {m.cargo}
                               </span>
                             </td>
@@ -1534,7 +1534,7 @@ export default function AdminPage() {
                   </div>
                 )}
                 <div style={{ marginTop: 20, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '14px 18px', fontSize: 13, color: '#92400e' }}>
-                  Portal da equipe disponível em <strong>/equipe/login</strong> para vendedores, gerentes e designers.
+                  Portal da equipe disponível em <strong>/equipe/login</strong> para vendedores e gerentes.
                 </div>
               </div>
 
@@ -1564,7 +1564,6 @@ export default function AdminPage() {
                       style={{ ...inputStyle, cursor: 'pointer' }}>
                       <option value="superadmin">Superadmin</option>
                       <option value="gerente">Gerente</option>
-                      <option value="designer">Designer</option>
                       <option value="vendedor">Vendedor</option>
                     </select>
                   </div>
