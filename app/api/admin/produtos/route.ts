@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mem_listarProdutos, mem_criarProdutoComPersistencia, mem_deletarProdutoComPersistencia, mem_editarProduto, mem_seedProdutos, mem_duplicarProduto } from '@/lib/db-memory';
 import { PRODUTOS } from '@/lib/produtos';
+import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 function checkAdmin(req: NextRequest) {
   return req.headers.get('x-admin-key') === (process.env.ADMIN_PASSWORD || 'peptidez2025');
@@ -12,12 +13,14 @@ function isSeeded(id: string) {
 
 export async function GET(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  await reloadFromSupabase();
   mem_seedProdutos(PRODUTOS);
   return NextResponse.json(mem_listarProdutos().map(p => ({ ...p, custom: !isSeeded(p.id) })));
 }
 
 export async function POST(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  await reloadFromSupabase();
   const data = await req.json();
 
   if (data.duplicar && data.id) {
@@ -44,6 +47,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  await reloadFromSupabase();
   mem_seedProdutos(PRODUTOS);
   const data = await req.json();
   if (!data.id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
@@ -64,6 +68,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  await reloadFromSupabase();
   const { id } = await req.json();
   if (isSeeded(id)) return NextResponse.json({ error: 'Produtos do catálogo não podem ser removidos' }, { status: 403 });
   const ok = mem_deletarProdutoComPersistencia(id);
