@@ -48,13 +48,47 @@ function StatCard({ label, value, sub, color }: { label: string; value: number |
     <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${color || '#111827'}` }}>
       <div style={{ fontSize: 26, fontWeight: 800, color: color || '#111827' }}>{value}</div>
       <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>{label}</div>
-      {sub && <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 1 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 10, color: '#6b7280', marginTop: 1 }}>{sub}</div>}
     </div>
   );
 }
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+
+const ABA_NAV: { key: string; icon: string; label: string; color: string }[] = [
+  { key: 'leads', icon: 'L', label: 'Leads', color: '#16a34a' },
+  { key: 'pedidos', icon: 'P', label: 'Pedidos', color: '#4f46e5' },
+  { key: 'indicacoes', icon: 'I', label: 'Indicações', color: '#0d9488' },
+];
+
+function SideNav({ aba, handlers }: { aba: string; handlers: Record<string, () => void> }) {
+  return (
+    <aside style={{ width: 180, flexShrink: 0, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 10, alignSelf: 'flex-start', position: 'sticky', top: 20 }}>
+      {ABA_NAV.map(item => {
+        const ativo = aba === item.key;
+        return (
+          <button key={item.key} onClick={handlers[item.key]}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+              padding: '9px 12px', border: 'none', borderRadius: 8, marginBottom: 2,
+              background: ativo ? `${item.color}14` : 'transparent',
+              color: ativo ? item.color : '#374151',
+              fontWeight: ativo ? 700 : 500, fontSize: 14, fontFamily: 'inherit',
+              cursor: 'pointer', textAlign: 'left',
+            }}>
+            <span style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 26, height: 26, borderRadius: 7, fontSize: 12, fontWeight: 800, flexShrink: 0,
+              background: ativo ? item.color : `${item.color}1a`, color: ativo ? '#fff' : item.color,
+            }}>{item.icon}</span>
+            {item.label}
+          </button>
+        );
+      })}
+    </aside>
+  );
 }
 
 /* =========================================================
@@ -121,7 +155,7 @@ function LeadDetail({
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <div>
             <div style={{ fontWeight: 800, fontSize: 18, color: '#111827' }}>{lead.nome} {lead.sobrenome}</div>
-            <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Lead desde {formatDate(lead.created_at)}</div>
+            <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>Lead desde {formatDate(lead.created_at)}</div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#6b7280' }}>×</button>
         </div>
@@ -148,7 +182,7 @@ function LeadDetail({
               ['Vendedor', vendNome || 'Sem vendedor'],
             ].map(([k, v]) => (
               <div key={k} style={{ display: 'flex', gap: 8 }}>
-                <span style={{ color: '#9ca3af', minWidth: 110 }}>{k}:</span>
+                <span style={{ color: '#6b7280', minWidth: 110 }}>{k}:</span>
                 <span style={{ color: '#111827', fontWeight: 500 }}>{v}</span>
               </div>
             ))}
@@ -381,7 +415,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
       {selectedLead && (
         <LeadDetail
           lead={selectedLead} equipe={equipe} token={token} cargo={membro.cargo}
@@ -390,6 +424,9 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
         />
       )}
 
+      <SideNav aba={aba} handlers={{ leads: () => setAba('leads'), pedidos: carregarPedidos, indicacoes: carregarIndicacoes }} />
+
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
         <StatCard label="Meus Leads" value={meusLeads.length} color="#16a34a" />
@@ -400,27 +437,11 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
 
       {msg && <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '10px 16px', fontSize: 13, color: '#15803d' }}>{msg}</div>}
 
-      {/* Tabs: Leads / Pedidos / Indicacoes */}
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button onClick={() => setAba('leads')}
-          style={{ padding: '8px 20px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: aba === 'leads' ? 700 : 500, background: aba === 'leads' ? '#111827' : '#f3f4f6', color: aba === 'leads' ? '#fff' : '#374151', fontSize: 13 }}>
-          Leads
-        </button>
-        <button onClick={carregarPedidos}
-          style={{ padding: '8px 20px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: aba === 'pedidos' ? 700 : 500, background: aba === 'pedidos' ? '#111827' : '#f3f4f6', color: aba === 'pedidos' ? '#fff' : '#374151', fontSize: 13 }}>
-          Meus Pedidos
-        </button>
-        <button onClick={carregarIndicacoes}
-          style={{ padding: '8px 20px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: aba === 'indicacoes' ? 700 : 500, background: aba === 'indicacoes' ? '#111827' : '#f3f4f6', color: aba === 'indicacoes' ? '#fff' : '#374151', fontSize: 13 }}>
-          Indicações
-        </button>
-      </div>
-
       {/* ABA PEDIDOS */}
       {aba === 'pedidos' && (
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
           <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Pedidos dos meus Clientes</div>
-          {pedidos.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>Nenhum pedido ainda. Os pedidos aparecem quando seus clientes finalizam o carrinho.</div>}
+          {pedidos.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Nenhum pedido ainda. Os pedidos aparecem quando seus clientes finalizam o carrinho.</div>}
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -436,7 +457,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
                   <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                     <td style={{ padding: '10px 14px' }}>
                       <div style={{ fontWeight: 600, color: '#111827' }}>{p.cadastro_nome}</div>
-                      <div style={{ fontSize: 11, color: '#9ca3af' }}>{p.cadastro_email}</div>
+                      <div style={{ fontSize: 11, color: '#6b7280' }}>{p.cadastro_email}</div>
                       {p.cadastro_whatsapp && (
                         <a href={`https://wa.me/${p.cadastro_whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
                           style={{ fontSize: 11, color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>
@@ -453,7 +474,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
                         {p.status === 'em_aberto' ? 'Em Aberto' : p.status === 'vendido' ? 'Vendido' : 'Cancelado'}
                       </span>
                     </td>
-                    <td style={{ padding: '10px 14px', color: '#9ca3af', fontSize: 12 }}>{formatDate(p.created_at)}</td>
+                    <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{formatDate(p.created_at)}</td>
                     <td style={{ padding: '10px 14px' }}>
                       {p.status === 'em_aberto' && (
                         <div style={{ display: 'flex', gap: 5 }}>
@@ -480,7 +501,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
       {aba === 'indicacoes' && (
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
           <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Pacientes Indicados pelos meus Médicos</div>
-          {indicacoes.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>Nenhuma indicação ainda. Copie o link de indicação de um médico aprovado para começar.</div>}
+          {indicacoes.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Nenhuma indicação ainda. Copie o link de indicação de um médico aprovado para começar.</div>}
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -494,7 +515,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
                 <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <td style={{ padding: '10px 14px' }}>
                     <div style={{ fontWeight: 600, color: '#111827' }}>{i.nome} {i.sobrenome}</div>
-                    <div style={{ fontSize: 11, color: '#9ca3af' }}>{i.email || '—'}</div>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>{i.email || '—'}</div>
                   </td>
                   <td style={{ padding: '10px 14px' }}>
                     {i.whatsapp && (
@@ -505,7 +526,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
                     )}
                   </td>
                   <td style={{ padding: '10px 14px', color: '#7c3aed', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
-                  <td style={{ padding: '10px 14px', color: '#9ca3af', fontSize: 12 }}>{formatDate(i.created_at)}</td>
+                  <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{formatDate(i.created_at)}</td>
                 </tr>
               ))}
             </tbody>
@@ -534,14 +555,14 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
             </thead>
             <tbody>
               {visivel.length === 0 && (
-                <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>Nenhum lead neste filtro.</td></tr>
+                <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Nenhum lead neste filtro.</td></tr>
               )}
               {visivel.map(l => (
                 <tr key={l.id} style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}
                   onClick={() => setSelectedLead(l)}>
                   <td style={{ padding: '11px 14px' }}>
                     <div style={{ fontWeight: 700, color: '#111827' }}>{l.nome} {l.sobrenome}</div>
-                    <div style={{ fontSize: 11, color: '#9ca3af' }}>{l.email}</div>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>{l.email}</div>
                     {l.obs && <div style={{ fontSize: 11, color: '#7c3aed', marginTop: 2 }}>📝 Com anotacao</div>}
                   </td>
                   <td style={{ padding: '11px 14px' }}>
@@ -556,9 +577,9 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
                   </td>
                   <td style={{ padding: '11px 14px' }}>
                     <div style={{ fontSize: 12, color: '#374151' }}>{l.whatsapp}</div>
-                    <div style={{ fontSize: 11, color: '#9ca3af' }}>{l.crm || 'Sem CRM'}</div>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>{l.crm || 'Sem CRM'}</div>
                   </td>
-                  <td style={{ padding: '11px 14px', color: '#9ca3af', fontSize: 12 }}>{formatDate(l.created_at)}</td>
+                  <td style={{ padding: '11px 14px', color: '#6b7280', fontSize: 12 }}>{formatDate(l.created_at)}</td>
                   <td style={{ padding: '11px 14px' }} onClick={e => e.stopPropagation()}>
                     <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                       {!l.vendedor_id && l.status === 'pendente' && (
@@ -579,6 +600,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
           </table>
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -632,7 +654,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
   const pedidosVendidos = pedidos.filter(p => p.status === 'vendido');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
       {selectedLead && (
         <LeadDetail
           lead={selectedLead} equipe={equipe} token={token} cargo={membro.cargo}
@@ -641,6 +663,9 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
         />
       )}
 
+      <SideNav aba={aba} handlers={{ leads: () => setAba('leads'), pedidos: carregarPedidos, indicacoes: carregarIndicacoes }} />
+
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14 }}>
         <StatCard label="Total Leads" value={lista.length} color="#111827" />
@@ -648,22 +673,6 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
         <StatCard label="Em Analise" value={emAnalise.length} sub="solicitacoes" color="#3b82f6" />
         <StatCard label="Aprovados" value={aprovados.length} color="#16a34a" />
         <StatCard label="Rejeitados" value={rejeitados.length} color="#dc2626" />
-      </div>
-
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button onClick={() => setAba('leads')}
-          style={{ padding: '8px 20px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: aba === 'leads' ? 700 : 500, background: aba === 'leads' ? '#111827' : '#f3f4f6', color: aba === 'leads' ? '#fff' : '#374151', fontSize: 13 }}>
-          Leads
-        </button>
-        <button onClick={carregarPedidos}
-          style={{ padding: '8px 20px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: aba === 'pedidos' ? 700 : 500, background: aba === 'pedidos' ? '#111827' : '#f3f4f6', color: aba === 'pedidos' ? '#fff' : '#374151', fontSize: 13 }}>
-          Pedidos & Vendas
-        </button>
-        <button onClick={carregarIndicacoes}
-          style={{ padding: '8px 20px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: aba === 'indicacoes' ? 700 : 500, background: aba === 'indicacoes' ? '#111827' : '#f3f4f6', color: aba === 'indicacoes' ? '#fff' : '#374151', fontSize: 13 }}>
-          Indicações
-        </button>
       </div>
 
       {/* ABA PEDIDOS */}
@@ -706,7 +715,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
           {/* Tabela pedidos */}
           <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Todos os Pedidos</div>
-            {pedidos.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>Nenhum pedido ainda.</div>}
+            {pedidos.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Nenhum pedido ainda.</div>}
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -738,7 +747,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
                           {p.status === 'em_aberto' ? 'Em Aberto' : p.status === 'vendido' ? 'Vendido' : 'Cancelado'}
                         </span>
                       </td>
-                      <td style={{ padding: '10px 14px', color: '#9ca3af', fontSize: 12 }}>{formatDate(p.created_at)}</td>
+                      <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{formatDate(p.created_at)}</td>
                     </tr>
                   );
                 })}
@@ -752,7 +761,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
       {aba === 'indicacoes' && (
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
           <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Todas as Indicações de Pacientes</div>
-          {indicacoes.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>Nenhuma indicação ainda.</div>}
+          {indicacoes.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Nenhuma indicação ainda.</div>}
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -766,7 +775,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
                 <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <td style={{ padding: '10px 14px' }}>
                     <div style={{ fontWeight: 600, color: '#111827' }}>{i.nome} {i.sobrenome}</div>
-                    <div style={{ fontSize: 11, color: '#9ca3af' }}>{i.email || '—'}</div>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>{i.email || '—'}</div>
                   </td>
                   <td style={{ padding: '10px 14px' }}>
                     {i.whatsapp && (
@@ -777,7 +786,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
                     )}
                   </td>
                   <td style={{ padding: '10px 14px', color: '#7c3aed', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
-                  <td style={{ padding: '10px 14px', color: '#9ca3af', fontSize: 12 }}>{formatDate(i.created_at)}</td>
+                  <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{formatDate(i.created_at)}</td>
                 </tr>
               ))}
             </tbody>
@@ -806,7 +815,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
                       <td style={{ padding: '10px 14px', color: '#374151' }}>{v.leads}</td>
                       <td style={{ padding: '10px 14px' }}>
                         {v.analise > 0 ? <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{v.analise}</span>
-                          : <span style={{ color: '#d1d5db' }}>—</span>}
+                          : <span style={{ color: '#6b7280' }}>—</span>}
                       </td>
                       <td style={{ padding: '10px 14px', color: '#15803d', fontWeight: 700 }}>{v.aprovados}</td>
                       <td style={{ padding: '10px 14px', color: '#374151' }}>{v.leads > 0 ? `${Math.round((v.aprovados / v.leads) * 100)}%` : '—'}</td>
@@ -835,7 +844,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {visivel.length === 0 && <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>Nenhum lead.</td></tr>}
+                {visivel.length === 0 && <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Nenhum lead.</td></tr>}
                 {visivel.map(l => {
                   const vendNome = equipe.find(e => e.id === l.vendedor_id)?.nome;
                   return (
@@ -843,7 +852,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
                       style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: l.solicitacao ? '#fffbeb' : '#fff' }}>
                       <td style={{ padding: '11px 14px' }}>
                         <div style={{ fontWeight: 700, color: '#111827' }}>{l.nome} {l.sobrenome}</div>
-                        <div style={{ fontSize: 11, color: '#9ca3af' }}>{l.email}</div>
+                        <div style={{ fontSize: 11, color: '#6b7280' }}>{l.email}</div>
                       </td>
                       <td style={{ padding: '11px 14px' }}><Badge status={l.status} map={STATUS_COLOR} /></td>
                       <td style={{ padding: '11px 14px', color: '#111827', fontSize: 12 }}>{vendNome || <span style={{ color: '#6b7280' }}>Livre</span>}</td>
@@ -863,6 +872,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
