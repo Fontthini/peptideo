@@ -171,7 +171,7 @@ export async function sbDeleteCategoriaBlog(nome: string) {
 export async function loadAllFromSupabase() {
   try {
     const [
-      { data: cadastros },
+      { data: cadastros, error: cadErr },
       { data: produtos },
       { data: configRow },
       { data: banners },
@@ -216,7 +216,8 @@ export async function loadAllFromSupabase() {
       };
     }) as Pedido[];
 
-    console.log('[SUPABASE] Dados carregados com sucesso');
+    if (cadErr) console.error('[SUPABASE] Erro na leitura (cadastros):', cadErr.message);
+    else console.log('[SUPABASE] Dados carregados com sucesso');
   } catch (err) {
     console.error('[SUPABASE] Erro ao carregar dados:', err);
   }
