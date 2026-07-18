@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
+import { supabase } from '@/lib/supabase-client';
 
 function checkAdmin(req: NextRequest) {
   return req.headers.get('x-admin-key') === (process.env.ADMIN_PASSWORD || 'peptidez2025');
@@ -25,14 +24,17 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const uploadsDir = join(process.cwd(), 'public', 'uploads');
-    await mkdir(uploadsDir, { recursive: true });
-
     const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    await writeFile(join(uploadsDir, filename), buffer);
 
-    return NextResponse.json({ url: `/uploads/${filename}` });
+    const { error } = await supabase.storage.from('uploads').upload(filename, buffer, {
+      contentType: file.type,
+      cacheControl: '31536000',
+    });
+    if (error) throw new Error(error.message);
+
+    const { data } = supabase.storage.from('uploads').getPublicUrl(filename);
+    return NextResponse.json({ url: data.publicUrl });
   } catch (err) {
     console.error('[UPLOAD]', err);
     return NextResponse.json({ error: 'Erro ao salvar arquivo' }, { status: 500 });

@@ -117,7 +117,8 @@ export async function sbSaveArtigo(a: Artigo) {
 }
 
 export async function sbDeleteArtigo(id: string) {
-  await supabase.from('artigos').delete().eq('id', id);
+  const { error } = await supabase.from('artigos').delete().eq('id', id);
+  if (error) throw new Error(`sbDeleteArtigo: ${error.message} (${error.code})`);
 }
 
 // ── Equipe ───────────────────────────────────────────────────────────────────

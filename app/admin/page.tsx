@@ -348,12 +348,13 @@ export default function AdminPage() {
       body: JSON.stringify(editandoArtigo ? editandoArtigo : novoArtigo),
     });
     if (r.ok) { showMsg(editandoArtigo ? 'OK: Artigo atualizado!' : 'OK: Artigo criado!'); setEditandoArtigo(null); setNovoArtigo({ titulo: '', conteudo: '', imagem: '', video: '', categoria: '', materiais: [], publicado: false }); carregarArtigos(); }
-    else showMsg('R Erro ao salvar artigo');
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao salvar artigo')); }
   };
   const deletarArtigo = async (id: string) => {
     if (!confirm('Excluir este artigo?')) return;
     const r = await fetch('/api/admin/artigos', { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() }, body: JSON.stringify({ id }) });
     if (r.ok) { showMsg('Artigo excluído.'); carregarArtigos(); }
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao excluir')); }
   };
   const togglePublicar = async (a: Artigo) => {
     await fetch('/api/admin/artigos', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() }, body: JSON.stringify({ ...a, publicado: !a.publicado }) });
