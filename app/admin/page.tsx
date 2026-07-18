@@ -228,7 +228,7 @@ export default function AdminPage() {
       body: JSON.stringify({ id }),
     });
     if (r.ok) { showMsg('Cadastro excluido.'); carregarCadastros(); }
-    else showMsg('R Erro ao excluir');
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao excluir')); }
   };
 
   const adicionarProduto = async (e: React.FormEvent) => {

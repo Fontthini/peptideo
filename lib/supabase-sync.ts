@@ -61,7 +61,8 @@ export async function sbSaveCadastro(c: Cadastro) {
 }
 
 export async function sbDeleteCadastro(id: string) {
-  await supabase.from('cadastros').delete().eq('id', id);
+  const { error } = await supabase.from('cadastros').delete().eq('id', id);
+  if (error) throw new Error(`sbDeleteCadastro: ${error.message} (${error.code})`);
 }
 
 // ── Produtos ────────────────────────────────────────────────────────────────
