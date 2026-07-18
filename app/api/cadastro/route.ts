@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu } = body;
 
-    if (!nome || !sobrenome || !email || !whatsapp || !endereco) {
+    if (!nome || !sobrenome || !email || !whatsapp || !endereco || !crm) {
       return NextResponse.json({ error: 'Preencha todos os campos obrigatórios.' }, { status: 400 });
     }
 

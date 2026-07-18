@@ -183,8 +183,8 @@ export default function LandingPage() {
           </div>
 
           <div>
-            <label style={labelStyle}>CRM Médico <span style={{ color: '#9ca3af', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
-            <input name="crm" type="text" placeholder="CRM/SP 123456" value={form.crm} onChange={handle} style={inputStyle} />
+            <label style={labelStyle}>CRM Médico *</label>
+            <input name="crm" type="text" placeholder="CRM/SP 123456" value={form.crm} onChange={handle} required style={inputStyle} />
           </div>
 
           <div>
