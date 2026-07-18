@@ -101,6 +101,7 @@ export type MembroEquipe = {
   created_at: string;
   senha?: string;
   token_acesso?: string;
+  last_seen?: string | null;
 };
 
 export type Indicacao = {
@@ -549,6 +550,13 @@ export function mem_editarMembro(id: string, data: Partial<Omit<MembroEquipe, 'i
   const m = getEquipeStore().find(m => m.id === id);
   if (!m) return null;
   Object.assign(m, data); salvarEquipe(); sb()?.sbSaveMembro(m)?.catch(console.error);
+  return m;
+}
+export function mem_registrarAcesso(id: string): MembroEquipe | null {
+  const m = getEquipeStore().find(m => m.id === id);
+  if (!m) return null;
+  m.last_seen = new Date().toISOString();
+  salvarEquipe();
   return m;
 }
 export function mem_deletarMembro(id: string): boolean {

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 type Cadastro = {
@@ -885,6 +885,13 @@ export default function PortalClient({ membro, leads, equipe, token }: Props) {
   const router = useRouter();
   const cargo = membro.cargo;
   const cc = CARGO_COLOR[cargo] || { bg: '#f3f4f6', text: '#374151' };
+
+  useEffect(() => {
+    const enviar = () => fetch('/api/portal/heartbeat', { method: 'POST', headers: { 'x-member-token': token } }).catch(() => {});
+    enviar();
+    const id = setInterval(enviar, 45000);
+    return () => clearInterval(id);
+  }, [token]);
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>

@@ -124,12 +124,14 @@ export async function sbDeleteArtigo(id: string) {
 // ── Equipe ───────────────────────────────────────────────────────────────────
 
 export async function sbSaveMembro(m: MembroEquipe) {
-  await supabase.from('equipe').upsert({
+  const { error } = await supabase.from('equipe').upsert({
     id: m.id, nome: m.nome, email: m.email, cargo: m.cargo,
     token: m.token_acesso || m.id,
     senha: m.senha || null,
     ativo: m.ativo, created_at: m.created_at,
+    last_seen: m.last_seen || null,
   });
+  if (error) throw new Error(`sbSaveMembro: ${error.message} (${error.code})`);
 }
 
 export async function sbDeleteMembro(id: string) {

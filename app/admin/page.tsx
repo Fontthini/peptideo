@@ -18,14 +18,20 @@ type Config = { mercadopago_token: string; resend_api_key: string; whatsapp_nume
 type BannerItem = { id: string; imagem: string; titulo: string; subtitulo: string; ativo: boolean; ordem: number; };
 type Material = { nome: string; url: string };
 type Artigo = { id: string; titulo: string; conteudo: string; imagem?: string; video?: string; categoria?: string; materiais: Material[]; publicado: boolean; created_at: string; updated_at: string; };
-type Membro = { id: string; nome: string; email: string; cargo: string; ativo: boolean; created_at: string; senha?: string; token_acesso?: string; };
+type Membro = { id: string; nome: string; email: string; cargo: string; ativo: boolean; created_at: string; senha?: string; token_acesso?: string; last_seen?: string | null; };
 type Pedido = { id: string; cadastro_nome: string; cadastro_email: string; produto_nome: string; preco: number; status: string; created_at: string; };
 type Indicacao = { id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string; status: string; created_at: string; };
 
 const ADMIN_KEY_LOCAL = 'admin_key';
+const ONLINE_THRESHOLD_MS = 90 * 1000;
 
 function getKey() {
   return typeof window !== 'undefined' ? localStorage.getItem(ADMIN_KEY_LOCAL) || '' : '';
+}
+
+function estaOnline(lastSeen?: string | null) {
+  if (!lastSeen) return false;
+  return Date.now() - new Date(lastSeen).getTime() < ONLINE_THRESHOLD_MS;
 }
 
 const inputStyle: React.CSSProperties = {
@@ -95,6 +101,12 @@ export default function AdminPage() {
     const k = getKey();
     if (k) { setLogado(true); carregarCadastros(k); carregarConfig(); }
   }, []);
+
+  useEffect(() => {
+    if (aba !== 'equipe' || !logado) return;
+    const id = setInterval(() => { carregarEquipe(); }, 20000);
+    return () => clearInterval(id);
+  }, [aba, logado]);
 
   const login = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1520,8 +1532,12 @@ export default function AdminPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 28, alignItems: 'start' }}>
               {/* Lista */}
               <div>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 20, marginTop: 0 }}>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 20, marginTop: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
                   Equipe <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({equipe.filter(m => m.ativo).length} ativos)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
+                    {equipe.filter(m => estaOnline(m.last_seen)).length} online agora
+                  </span>
                 </h2>
                 {loadingEquipe ? (
                   <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
@@ -1534,7 +1550,7 @@ export default function AdminPage() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-                          {['Nome', 'Cargo', 'E-mail', 'Status', 'Ações'].map(h => (
+                          {['Nome', 'Cargo', 'E-mail', 'Status', 'Online', 'Ações'].map(h => (
                             <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                           ))}
                         </tr>
@@ -1553,6 +1569,19 @@ export default function AdminPage() {
                               <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: m.ativo ? '#dcfce7' : '#f3f4f6', color: m.ativo ? '#15803d' : '#6b7280' }}>
                                 {m.ativo ? 'Ativo' : 'Inativo'}
                               </span>
+                            </td>
+                            <td style={{ padding: '11px 14px' }}>
+                              {estaOnline(m.last_seen) ? (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: '#15803d' }}>
+                                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
+                                  Online
+                                </span>
+                              ) : (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#9ca3af' }}>
+                                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#d1d5db', display: 'inline-block' }} />
+                                  {m.last_seen ? `Visto ${new Date(m.last_seen).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : 'Nunca acessou'}
+                                </span>
+                              )}
                             </td>
                             <td style={{ padding: '11px 14px' }}>
                               <div style={{ display: 'flex', gap: 6 }}>
