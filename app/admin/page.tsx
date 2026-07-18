@@ -553,12 +553,12 @@ export default function AdminPage() {
                 ) : filtrados.length === 0 ? (
                   <div style={{ padding: 60, textAlign: 'center', color: '#9ca3af' }}>Nenhum cadastro encontrado</div>
                 ) : (
-                  <div style={{ overflowX: 'auto' }}>
+                  <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 360px)' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
                           {['Nome','Sobrenome','E-mail','WhatsApp','CRM','Onde Conheceu','Endereço','Status','Data','Ações'].map(h => (
-                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>{h}</th>
+                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', position: 'sticky', top: 0, background: '#f9fafb', zIndex: 1 }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
