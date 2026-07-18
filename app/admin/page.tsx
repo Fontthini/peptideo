@@ -441,40 +441,55 @@ export default function AdminPage() {
     rejeitado: cadastros.filter(c => c.status === 'rejeitado').length,
   };
 
-  const navItem = (key: typeof aba, icon: string, label: string) => (
-    <button
-      key={key}
-      onClick={() => mudarAba(key)}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        width: '100%', padding: '11px 16px', border: 'none', borderRadius: 8,
-        background: aba === key ? '#f0fdf4' : 'transparent',
-        color: aba === key ? '#15803d' : '#374151',
-        fontWeight: aba === key ? 700 : 500, fontSize: 14, fontFamily: 'inherit',
-        cursor: 'pointer', textAlign: 'left', marginBottom: 2,
-        borderLeft: `3px solid ${aba === key ? '#16a34a' : 'transparent'}`,
-      }}
-    >
-      <span style={{ fontSize: 16 }}>{icon}</span> {label}
-    </button>
-  );
+  const NAV_COLOR: Record<string, string> = {
+    dashboard: '#4f46e5', leads: '#16a34a', produtos: '#7c3aed', banners: '#f59e0b',
+    blog: '#db2777', equipe: '#2563eb', indicacoes: '#0d9488', config: '#64748b',
+  };
+
+  const navItem = (key: typeof aba, icon: string, label: string) => {
+    const cor = NAV_COLOR[key] || '#374151';
+    const ativo = aba === key;
+    return (
+      <button
+        key={key}
+        onClick={() => mudarAba(key)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          width: '100%', padding: '9px 12px', border: 'none', borderRadius: 8,
+          background: ativo ? `${cor}14` : 'transparent',
+          color: ativo ? cor : '#374151',
+          fontWeight: ativo ? 700 : 500, fontSize: 14, fontFamily: 'inherit',
+          cursor: 'pointer', textAlign: 'left', marginBottom: 2,
+        }}
+      >
+        <span style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 26, height: 26, borderRadius: 7, fontSize: 13, fontWeight: 800, flexShrink: 0,
+          background: ativo ? cor : `${cor}1a`, color: ativo ? '#fff' : cor,
+        }}>{icon}</span>
+        {label}
+      </button>
+    );
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
 
       {/* Header */}
-      <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+      <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, boxShadow: '0 1px 0 rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src={config.logo || 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg'}
-            alt="PeptideZ" style={{ height: 36, maxWidth: 140, objectFit: 'contain' }} />
+          <div style={{ padding: 3, borderRadius: 10, background: 'linear-gradient(135deg, #16a34a, #4f46e5)' }}>
+            <img src={config.logo || 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg'}
+              alt="PeptideZ" style={{ height: 32, maxWidth: 132, objectFit: 'contain', display: 'block', borderRadius: 7, background: '#fff', padding: '2px 6px' }} />
+          </div>
           <div>
             <div style={{ fontWeight: 800, fontSize: 15, color: '#111827' }}>Admin CRM</div>
-            <div style={{ fontSize: 10, color: '#16a34a', letterSpacing: 1 }}>PEPTIDEZ HEALTH</div>
+            <div style={{ fontSize: 10, color: '#16a34a', letterSpacing: 1, fontWeight: 700 }}>PEPTIDEZ HEALTH</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={() => { carregarCadastros(); showMsg('Atualizado!'); }}
-            style={{ background: '#f9fafb', color: '#374151', border: '1px solid #e5e7eb', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
+            style={{ background: '#eef2ff', color: '#4f46e5', border: '1px solid #c7d2fe', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 600 }}>
             Atualizar
           </button>
           <button onClick={sair}
@@ -524,23 +539,23 @@ export default function AdminPage() {
               {/* Stats */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
                 {[
-                  { label: 'Total', val: counts.todos, cor: '#111827', bg: '#f9fafb' },
+                  { label: 'Total', val: counts.todos, cor: '#4f46e5', bg: '#eef2ff' },
                   { label: 'Pendentes', val: counts.pendente, cor: '#d97706', bg: '#fffbeb' },
                   { label: 'Aprovados', val: counts.aprovado, cor: '#15803d', bg: '#f0fdf4' },
                   { label: 'Rejeitados', val: counts.rejeitado, cor: '#dc2626', bg: '#fef2f2' },
                 ].map(s => (
-                  <div key={s.label} style={{ background: s.bg, border: '1px solid #e5e7eb', borderRadius: 10, padding: '16px 20px' }}>
+                  <div key={s.label} style={{ background: s.bg, border: `1px solid ${s.cor}33`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${s.cor}` }}>
                     <div style={{ fontSize: 32, fontWeight: 900, color: s.cor }}>{s.val}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>{s.label}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>{s.label}</div>
                   </div>
                 ))}
               </div>
 
               {/* Filtros */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                {[['todos', 'Todos'], ['pendente', 'Pendentes'], ['aprovado', 'Aprovados'], ['rejeitado', 'Rejeitados']].map(([val, label]) => (
+                {[['todos', 'Todos', '#4f46e5'], ['pendente', 'Pendentes', '#d97706'], ['aprovado', 'Aprovados', '#15803d'], ['rejeitado', 'Rejeitados', '#dc2626']].map(([val, label, cor]) => (
                   <button key={val} onClick={() => setFiltro(val)}
-                    style={{ background: filtro === val ? '#111827' : '#fff', color: filtro === val ? '#fff' : '#374151', border: `1px solid ${filtro === val ? '#111827' : '#d1d5db'}`, padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: filtro === val ? 700 : 400, fontFamily: 'inherit', fontSize: 13 }}>
+                    style={{ background: filtro === val ? cor : '#fff', color: filtro === val ? '#fff' : '#374151', border: `1px solid ${filtro === val ? cor : '#d1d5db'}`, padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: filtro === val ? 700 : 400, fontFamily: 'inherit', fontSize: 13 }}>
                     {label} ({counts[val as keyof typeof counts]})
                   </button>
                 ))}
@@ -1297,18 +1312,18 @@ export default function AdminPage() {
 
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>x"` Dashboard Geral</h2>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>Dashboard Geral</h2>
 
                 {/* KPIs */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14 }}>
                   {[
-                    { label: 'Total Leads', value: total, color: '#111827' },
+                    { label: 'Total Leads', value: total, color: '#4f46e5' },
                     { label: 'Aprovados', value: aprovados, color: '#16a34a' },
                     { label: 'Pendentes', value: pendentes, color: '#f59e0b' },
                     { label: 'Em Análise', value: emAnalise, color: '#3b82f6' },
                     { label: 'Tempo Médio', value: tempoLabel, color: '#7c3aed', sub: 'de aprovação' },
                   ].map(k => (
-                    <div key={k.label} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${k.color}` }}>
+                    <div key={k.label} style={{ background: `${k.color}0d`, border: `1px solid ${k.color}33`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${k.color}` }}>
                       <div style={{ fontSize: 26, fontWeight: 800, color: k.color }}>{k.value}</div>
                       <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>{k.label}</div>
                       {(k as any).sub && <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 1 }}>{(k as any).sub}</div>}
@@ -1398,12 +1413,12 @@ export default function AdminPage() {
                   <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Pedidos</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
                     {[
-                      { label: 'Total Pedidos', value: totalPedidos, color: '#111827' },
-                      { label: 'Valor Total', value: `R$ ${valorTotalPedidos.toFixed(2)}`, color: '#6b7280' },
+                      { label: 'Total Pedidos', value: totalPedidos, color: '#4f46e5' },
+                      { label: 'Valor Total', value: `R$ ${valorTotalPedidos.toFixed(2)}`, color: '#0d9488' },
                       { label: 'Vendidos', value: pedidosVendidos, color: '#16a34a' },
                       { label: 'Valor Vendido', value: `R$ ${valorVendido.toFixed(2)}`, color: '#16a34a' },
                     ].map(k => (
-                      <div key={k.label} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${k.color}` }}>
+                      <div key={k.label} style={{ background: `${k.color}0d`, border: `1px solid ${k.color}33`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${k.color}` }}>
                         <div style={{ fontSize: 22, fontWeight: 800, color: k.color }}>{k.value}</div>
                         <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>{k.label}</div>
                       </div>

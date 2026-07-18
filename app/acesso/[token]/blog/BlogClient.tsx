@@ -113,7 +113,7 @@ export default function BlogClient({ token, nomeUsuario, artigos, banners }: {
             <div style={{ fontSize: 10, color: '#16a34a', letterSpacing: 1.5, marginTop: 2 }}>ÁREA DE MEMBROS</div>
           </div>
         </div>
-        <div style={{ fontSize: 13, color: '#6b7280' }}>👤 {nomeUsuario.split(' ')[0]}</div>
+        <div style={{ fontSize: 13, color: '#6b7280', fontWeight: 600 }}>{nomeUsuario.split(' ')[0]}</div>
       </header>
 
       {/* Nav */}

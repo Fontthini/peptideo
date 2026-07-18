@@ -280,7 +280,7 @@ export default function LojaClient({
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ fontSize: 13, color: '#6b7280' }}>👤 {nomeUsuario.split(' ')[0]}</div>
+          <div style={{ fontSize: 13, color: '#6b7280', fontWeight: 600 }}>{nomeUsuario.split(' ')[0]}</div>
           <button onClick={() => setCartOpen(true)} style={{ position: 'relative', background: '#111827', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
             🛒 Carrinho
             {cartCount > 0 && (

@@ -41,7 +41,7 @@ export default async function AcessoPage({ params }: { params: Promise<{ token: 
             <div style={{ fontSize: 10, color: '#16a34a', letterSpacing: 1.5 }}>ÁREA DE MEMBROS</div>
           </div>
         </div>
-        <div style={{ fontSize: 14, color: '#6b7280' }}>👤 {usuario.nome}</div>
+        <div style={{ fontSize: 14, color: '#6b7280', fontWeight: 600 }}>{usuario.nome}</div>
       </header>
 
       <nav style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '0 24px', display: 'flex' }}>
