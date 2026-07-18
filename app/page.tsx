@@ -50,7 +50,7 @@ export default function LandingPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao cadastrar');
       if (data.whatsapp_numero) {
-        const msg = `🔔 *Novo Cadastro — PeptideZ Health*\n\n👤 *Nome:* ${form.nome} ${form.sobrenome}\n📱 *WhatsApp:* ${form.whatsapp}\n📧 *E-mail:* ${form.email}\n🏠 *Endereço:* ${form.endereco}${form.crm ? `\n🩺 *CRM:* ${form.crm}` : ''}${form.onde_conheceu ? `\n📍 *Como conheceu:* ${form.onde_conheceu}` : ''}`;
+        const msg = `✅ *Obrigado pelo seu cadastro — PeptideZ Health*\n\n👤 *Nome:* ${form.nome} ${form.sobrenome}\n📱 *WhatsApp:* ${form.whatsapp}\n📧 *E-mail:* ${form.email}\n🏠 *Endereço:* ${form.endereco}${form.crm ? `\n🩺 *CRM:* ${form.crm}` : ''}${form.onde_conheceu ? `\n📍 *Como conheceu:* ${form.onde_conheceu}` : ''}`;
         window.open(`https://wa.me/${data.whatsapp_numero}?text=${encodeURIComponent(msg)}`, '_blank');
       }
       router.push('/obrigado');
