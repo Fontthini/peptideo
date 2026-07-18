@@ -24,9 +24,10 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     SUPABASE_SERVICE_ROLE_KEY: inspect('SUPABASE_SERVICE_ROLE_KEY'),
+    SUPABASE_KEY: inspect('SUPABASE_KEY'),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: inspect('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
     NEXT_PUBLIC_SUPABASE_URL: inspect('NEXT_PUBLIC_SUPABASE_URL'),
-    // tamanho esperado da service key correta: 219
+    // tamanho esperado da service key correta: 219, partes_jwt: 3
     tamanho_esperado_service_key: 219,
   });
 }
