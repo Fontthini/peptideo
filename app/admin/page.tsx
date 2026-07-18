@@ -10,7 +10,7 @@ type Cadastro = {
 };
 type Produto = {
   id: string; nome: string; dose: string; preco: number;
-  categoria: string; descricao: string; imagem: string;
+  categoria: string; categoria2?: string | null; descricao: string; imagem: string;
   video?: string; galeria?: string[];
   custom: boolean;
 };
@@ -56,7 +56,7 @@ export default function AdminPage() {
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loadingProd, setLoadingProd] = useState(false);
-  const [novoProd, setNovoProd] = useState({ nome: '', dose: '', preco: '', categoria: 'Emagrecimento', descricao: '', imagem: '', video: '' });
+  const [novoProd, setNovoProd] = useState({ nome: '', dose: '', preco: '', categoria: 'Emagrecimento', categoria2: '', descricao: '', imagem: '', video: '' });
   const [editando, setEditando] = useState<Produto | null>(null);
   const [galeriaUrls, setGaleriaUrls] = useState<string[]>([]);
   const [mostrarGaleria, setMostrarGaleria] = useState(false);
@@ -263,7 +263,7 @@ export default function AdminPage() {
     });
     if (r.ok) {
       showMsg('OK: Produto adicionado!');
-      setNovoProd({ nome: '', dose: '', preco: '', categoria: 'Emagrecimento', descricao: '', imagem: '', video: '' });
+      setNovoProd({ nome: '', dose: '', preco: '', categoria: 'Emagrecimento', categoria2: '', descricao: '', imagem: '', video: '' });
       carregarProdutos();
     }
   };
@@ -664,7 +664,7 @@ export default function AdminPage() {
                 {loadingProd ? (
                   <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
                     {produtos.map(p => (
                       <div key={p.id} style={{ background: '#fff', border: `1px solid ${p.custom ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                         <div style={{ background: '#f9fafb', height: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
@@ -675,7 +675,12 @@ export default function AdminPage() {
                           )}
                         </div>
                         <div style={{ padding: '11px 13px' }}>
-                          <div style={{ fontSize: 9, fontWeight: 700, color: '#16a34a', letterSpacing: 1, marginBottom: 3, textTransform: 'uppercase' }}>{p.categoria}</div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 3 }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: '#16a34a', letterSpacing: 0.5, textTransform: 'uppercase' }}>{p.categoria}</span>
+                            {p.categoria2 && (
+                              <span style={{ fontSize: 9, fontWeight: 700, color: '#7c3aed', letterSpacing: 0.5, textTransform: 'uppercase' }}>+ {p.categoria2}</span>
+                            )}
+                          </div>
                           <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', lineHeight: 1.3 }}>{p.nome}</div>
                           <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{p.dose}</div>
                           <div style={{ fontSize: 15, fontWeight: 900, color: '#111827', marginTop: 6 }}>
@@ -757,12 +762,22 @@ export default function AdminPage() {
                         <label style={labelStyle}>Nome do produto *</label>
                         <input value={editando.nome} onChange={e => setEditando(p => p && ({ ...p, nome: e.target.value }))} required style={inputStyle} />
                       </div>
-                      <div>
-                        <label style={labelStyle}>Categoria</label>
-                        <select value={editando.categoria} onChange={e => setEditando(p => p && ({ ...p, categoria: e.target.value }))}
-                          style={{ ...inputStyle, cursor: 'pointer' }}>
-                          {[...CATEGORIAS, ...categoriasCustom].map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        <div>
+                          <label style={labelStyle}>Categoria</label>
+                          <select value={editando.categoria} onChange={e => setEditando(p => p && ({ ...p, categoria: e.target.value }))}
+                            style={{ ...inputStyle, cursor: 'pointer' }}>
+                            {[...CATEGORIAS, ...categoriasCustom].map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label style={labelStyle}>2ª Categoria <span style={{ color: '#6b7280', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
+                          <select value={editando.categoria2 || ''} onChange={e => setEditando(p => p && ({ ...p, categoria2: e.target.value || null }))}
+                            style={{ ...inputStyle, cursor: 'pointer' }}>
+                            <option value="">Nenhuma</option>
+                            {[...CATEGORIAS, ...categoriasCustom].filter(c => c !== editando.categoria).map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                         <div>
@@ -890,12 +905,22 @@ export default function AdminPage() {
                         <label style={labelStyle}>Nome do produto *</label>
                         <input value={novoProd.nome} onChange={e => setNovoProd(p => ({ ...p, nome: e.target.value }))} required placeholder="Ex: BPC-157" style={inputStyle} />
                       </div>
-                      <div>
-                        <label style={labelStyle}>Categoria</label>
-                        <select value={novoProd.categoria} onChange={e => setNovoProd(p => ({ ...p, categoria: e.target.value }))}
-                          style={{ ...inputStyle, cursor: 'pointer' }}>
-                          {[...CATEGORIAS, ...categoriasCustom].map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        <div>
+                          <label style={labelStyle}>Categoria</label>
+                          <select value={novoProd.categoria} onChange={e => setNovoProd(p => ({ ...p, categoria: e.target.value }))}
+                            style={{ ...inputStyle, cursor: 'pointer' }}>
+                            {[...CATEGORIAS, ...categoriasCustom].map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label style={labelStyle}>2ª Categoria <span style={{ color: '#6b7280', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
+                          <select value={novoProd.categoria2} onChange={e => setNovoProd(p => ({ ...p, categoria2: e.target.value }))}
+                            style={{ ...inputStyle, cursor: 'pointer' }}>
+                            <option value="">Nenhuma</option>
+                            {[...CATEGORIAS, ...categoriasCustom].filter(c => c !== novoProd.categoria).map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                         <div>

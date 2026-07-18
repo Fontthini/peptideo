@@ -42,6 +42,7 @@ export type ProdutoMemory = {
   dose: string;
   preco: number;
   categoria: string;
+  categoria2?: string | null;
   descricao: string;
   imagem: string;
   video?: string;
@@ -262,14 +263,14 @@ export function mem_deletarProduto(id: string): boolean {
   return true;
 }
 
-export function mem_seedProdutos(items: Array<{ id: number | string; nome: string; dose: string; preco: number; categoria: string; descricao: string; imagem: string }>): void {
+export function mem_seedProdutos(items: Array<{ id: number | string; nome: string; dose: string; preco: number; categoria: string; categoria2?: string | null; descricao: string; imagem: string }>): void {
   const store = getProdutosStore();
   if (store.length > 0) return;
 
   // JSON vazio ou inexistente — semear do array estático
   const novos = items.map(p => ({
     id: String(p.id), nome: p.nome, dose: p.dose || '',
-    preco: p.preco, categoria: p.categoria, descricao: p.descricao,
+    preco: p.preco, categoria: p.categoria, categoria2: p.categoria2 || null, descricao: p.descricao,
     imagem: p.imagem || '', created_at: new Date().toISOString(),
   }));
   global.__produtos__ = novos;

@@ -15,6 +15,7 @@ export type ProdutoUnificado = {
   dose: string;
   preco: number;
   categoria: string;
+  categoria2?: string | null;
   descricao: string;
   imagem: string;
   video?: string;
@@ -42,7 +43,8 @@ export default async function LojaPage({ params }: { params: Promise<{ token: st
     ...p,
     imagem: p.imagem === '/produtos/frasco.png' ? '/produtos/frasco.svg' : (p.imagem || '/produtos/frasco.svg'),
   }));
-  const todasCategorias = [...CATEGORIAS, ...Array.from(new Set(todosProdutos.map(p => p.categoria))).filter(c => !CATEGORIAS.includes(c))];
+  const categoriasUsadas = new Set(todosProdutos.flatMap(p => [p.categoria, p.categoria2].filter(Boolean) as string[]));
+  const todasCategorias = [...CATEGORIAS, ...Array.from(categoriasUsadas).filter(c => !CATEGORIAS.includes(c))];
 
   const cfg = mem_getConfig();
   const banners = mem_listarBanners();

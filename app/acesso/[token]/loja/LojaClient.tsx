@@ -224,7 +224,7 @@ export default function LojaClient({
                 {/* Direita: detalhes */}
                 <div style={{ padding: '28px 28px 24px', display: 'flex', flexDirection: 'column', overflowY: 'auto', maxHeight: '85vh' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
-                    {produtoDetalhe.categoria}
+                    {produtoDetalhe.categoria}{produtoDetalhe.categoria2 ? ` · ${produtoDetalhe.categoria2}` : ''}
                   </div>
                   <h2 style={{ fontSize: 22, fontWeight: 900, color: '#111827', margin: '0 0 4px', lineHeight: 1.2 }}>
                     {produtoDetalhe.nome}
@@ -349,7 +349,7 @@ export default function LojaClient({
               style={{ padding: '5px 14px', borderRadius: 20, border: `1px solid ${!categoriaAtiva && !busca ? '#111827' : '#d1d5db'}`, background: !categoriaAtiva && !busca ? '#111827' : '#fff', color: !categoriaAtiva && !busca ? '#fff' : '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
               Todos
             </button>
-            {categorias.filter(cat => produtos.some(p => p.categoria === cat)).map(cat => (
+            {categorias.filter(cat => produtos.some(p => p.categoria === cat || p.categoria2 === cat)).map(cat => (
               <button key={cat}
                 onClick={() => { setCategoriaAtiva(cat); setBusca(''); }}
                 style={{ padding: '5px 14px', borderRadius: 20, border: `1px solid ${categoriaAtiva === cat ? '#16a34a' : '#d1d5db'}`, background: categoriaAtiva === cat ? '#16a34a' : '#fff', color: categoriaAtiva === cat ? '#fff' : '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -367,7 +367,7 @@ export default function LojaClient({
           const categsFiltradas = categoriaAtiva ? [categoriaAtiva] : categorias;
 
           return categsFiltradas.map(cat => {
-            let prods = produtos.filter(p => p.categoria === cat);
+            let prods = produtos.filter(p => p.categoria === cat || p.categoria2 === cat);
             if (termoBusca) prods = prods.filter(p =>
               p.nome.toLowerCase().includes(termoBusca) ||
               p.descricao.toLowerCase().includes(termoBusca) ||

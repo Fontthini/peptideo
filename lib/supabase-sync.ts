@@ -68,19 +68,20 @@ export async function sbDeleteCadastro(id: string) {
 // ── Produtos ────────────────────────────────────────────────────────────────
 
 export async function sbSaveProduto(p: ProdutoMemory) {
-  await supabase.from('produtos').upsert({
+  const { error } = await supabase.from('produtos').upsert({
     id: p.id, nome: p.nome, dose: p.dose || '', preco: p.preco,
-    categoria: p.categoria || '', descricao: p.descricao || '',
+    categoria: p.categoria || '', categoria2: p.categoria2 || null, descricao: p.descricao || '',
     imagem: p.imagem || '', video: p.video || '',
     galeria: p.galeria || [], created_at: p.created_at,
   });
+  if (error) throw new Error(`sbSaveProduto: ${error.message} (${error.code})`);
 }
 
 export async function sbSaveProdutos(produtos: ProdutoMemory[]) {
   if (!produtos.length) return;
   await supabase.from('produtos').upsert(produtos.map(p => ({
     id: p.id, nome: p.nome, dose: p.dose || '', preco: p.preco,
-    categoria: p.categoria || '', descricao: p.descricao || '',
+    categoria: p.categoria || '', categoria2: p.categoria2 || null, descricao: p.descricao || '',
     imagem: p.imagem || '', video: p.video || '',
     galeria: p.galeria || [], created_at: p.created_at,
   })));
