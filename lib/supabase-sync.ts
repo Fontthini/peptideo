@@ -4,7 +4,7 @@
  * and provides async functions to write back.
  */
 import { supabase } from './supabase-client';
-import type { Cadastro, ProdutoMemory, Config, BannerItem, Artigo, MembroEquipe, Pedido } from './db-memory';
+import type { Cadastro, ProdutoMemory, Config, BannerItem, Artigo, MembroEquipe, Pedido, Indicacao } from './db-memory';
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
@@ -148,6 +148,18 @@ export async function sbSavePedido(p: Pedido) {
   });
 }
 
+// ── Indicações ──────────────────────────────────────────────────────────────
+
+export async function sbSaveIndicacao(i: Indicacao) {
+  const { error } = await supabase.from('indicacoes').upsert({
+    id: i.id, medico_id: i.medico_id, medico_nome: i.medico_nome,
+    nome: i.nome, sobrenome: i.sobrenome || '', whatsapp: i.whatsapp,
+    email: i.email || '', endereco: i.endereco || '',
+    status: i.status, obs: i.obs || '', created_at: i.created_at,
+  });
+  if (error) throw new Error(`sbSaveIndicacao: ${error.message} (${error.code})`);
+}
+
 // ── Categorias ───────────────────────────────────────────────────────────────
 
 export async function sbSaveCategorias(nomes: string[]) {
@@ -183,6 +195,7 @@ export async function loadAllFromSupabase() {
       { data: categorias },
       { data: categoriasBlog },
       { data: pedidos },
+      { data: indicacoes },
     ] = await Promise.all([
       supabase.from('cadastros').select('*').order('created_at', { ascending: false }),
       supabase.from('produtos').select('*').order('created_at', { ascending: true }),
@@ -194,6 +207,7 @@ export async function loadAllFromSupabase() {
       supabase.from('categorias').select('nome'),
       supabase.from('categorias_blog').select('nome'),
       supabase.from('pedidos').select('*').order('created_at', { ascending: false }),
+      supabase.from('indicacoes').select('*').order('created_at', { ascending: false }),
     ]);
 
     if (cadastros) global.__cadastros__ = cadastros as Cadastro[];
@@ -217,6 +231,7 @@ export async function loadAllFromSupabase() {
         produto_nome: Array.isArray(p.itens) && p.itens.length ? (p.itens[0] as { nome: string }).nome : '',
       };
     }) as Pedido[];
+    if (indicacoes) global.__indicacoes__ = indicacoes as Indicacao[];
 
     if (cadErr) console.error('[SUPABASE] Erro na leitura (cadastros):', cadErr.message);
     else console.log('[SUPABASE] Dados carregados com sucesso');

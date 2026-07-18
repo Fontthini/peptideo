@@ -74,6 +74,7 @@ declare global {
   var __categorias__: string[] | undefined;
   var __categorias_blog__: string[] | undefined;
   var __pedidos__: Pedido[] | undefined;
+  var __indicacoes__: Indicacao[] | undefined;
 }
 
 export type Material = { nome: string; url: string };
@@ -100,6 +101,20 @@ export type MembroEquipe = {
   created_at: string;
   senha?: string;
   token_acesso?: string;
+};
+
+export type Indicacao = {
+  id: string;
+  medico_id: string;
+  medico_nome: string;
+  nome: string;
+  sobrenome: string;
+  whatsapp: string;
+  email: string;
+  endereco: string;
+  status: 'novo' | 'contatado' | 'convertido';
+  obs?: string;
+  created_at: string;
 };
 
 export type PedidoItem = { nome: string; preco: number; quantidade: number };
@@ -605,4 +620,31 @@ export function mem_totalPedidos(): { total: number; valor: number; vendidos: nu
     vendidos: vendidos.length,
     valorVendido: vendidos.reduce((s, p) => s + p.preco, 0),
   };
+}
+
+// ---- Indicações (pacientes indicados por médicos) ----
+function getIndicacoesStore(): Indicacao[] {
+  if (global.__indicacoes__ === undefined) {
+    global.__indicacoes__ = carregarJSON<Indicacao[]>('indicacoes.json') ?? [];
+  }
+  return global.__indicacoes__;
+}
+function salvarIndicacoes() { salvarJSON('indicacoes.json', getIndicacoesStore()); }
+
+export function mem_criarIndicacao(data: Omit<Indicacao, 'id' | 'status' | 'created_at'>): Indicacao {
+  const store = getIndicacoesStore();
+  const i: Indicacao = { ...data, id: randomUUID(), status: 'novo', created_at: new Date().toISOString() };
+  store.push(i); salvarIndicacoes(); sb()?.sbSaveIndicacao(i)?.catch(console.error);
+  return i;
+}
+
+export function mem_listarIndicacoes(): Indicacao[] {
+  return [...getIndicacoesStore()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
+export function mem_listarIndicacoesPorMedicos(medicoIds: string[]): Indicacao[] {
+  const set = new Set(medicoIds);
+  return getIndicacoesStore()
+    .filter(i => set.has(i.medico_id))
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }

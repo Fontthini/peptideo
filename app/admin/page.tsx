@@ -20,6 +20,7 @@ type Material = { nome: string; url: string };
 type Artigo = { id: string; titulo: string; conteudo: string; imagem?: string; video?: string; categoria?: string; materiais: Material[]; publicado: boolean; created_at: string; updated_at: string; };
 type Membro = { id: string; nome: string; email: string; cargo: string; ativo: boolean; created_at: string; senha?: string; token_acesso?: string; };
 type Pedido = { id: string; cadastro_nome: string; cadastro_email: string; produto_nome: string; preco: number; status: string; created_at: string; };
+type Indicacao = { id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string; status: string; created_at: string; };
 
 const ADMIN_KEY_LOCAL = 'admin_key';
 
@@ -40,7 +41,7 @@ const labelStyle: React.CSSProperties = {
 export default function AdminPage() {
   const [senha, setSenha] = useState('');
   const [logado, setLogado] = useState(false);
-  const [aba, setAba] = useState<'leads' | 'produtos' | 'banners' | 'blog' | 'equipe' | 'config' | 'dashboard'>('leads');
+  const [aba, setAba] = useState<'leads' | 'produtos' | 'banners' | 'blog' | 'equipe' | 'indicacoes' | 'config' | 'dashboard'>('leads');
   const [msg, setMsg] = useState('');
 
   const [cadastros, setCadastros] = useState<Cadastro[]>([]);
@@ -87,6 +88,8 @@ export default function AdminPage() {
   const [mostrarBannersBlog, setMostrarBannersBlog] = useState(false);
 
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [indicacoes, setIndicacoes] = useState<Indicacao[]>([]);
+  const [loadingIndicacoes, setLoadingIndicacoes] = useState(false);
 
   useEffect(() => {
     const k = getKey();
@@ -180,6 +183,14 @@ export default function AdminPage() {
     } catch {}
   };
 
+  const carregarIndicacoes = async () => {
+    setLoadingIndicacoes(true);
+    try {
+      const r = await fetch('/api/admin/indicacoes', { headers: { 'x-admin-key': getKey() } });
+      if (r.ok) setIndicacoes(await r.json());
+    } finally { setLoadingIndicacoes(false); }
+  };
+
   const mudarAba = (a: typeof aba) => {
     setAba(a);
     if (a === 'produtos') { if (produtos.length === 0) carregarProdutos(); carregarCategorias(); }
@@ -187,6 +198,7 @@ export default function AdminPage() {
     if (a === 'banners') carregarBanners();
     if (a === 'blog') { carregarArtigos(); carregarCategoriasBlog(); carregarBannersBlog(); }
     if (a === 'equipe') carregarEquipe();
+    if (a === 'indicacoes') carregarIndicacoes();
     if (a === 'dashboard') { carregarCadastros(); carregarEquipe(); carregarPedidos(); }
   };
 
@@ -483,6 +495,7 @@ export default function AdminPage() {
           {navItem('banners', '*', 'Banners')}
           {navItem('blog', '~', 'Blog')}
           {navItem('equipe', '@', 'Equipe')}
+          {navItem('indicacoes', '>', 'Indicações')}
           {navItem('config', '=', 'Config')}
 
           <div style={{ marginTop: 'auto', paddingTop: 20, borderTop: '1px solid #f3f4f6' }}>
@@ -584,10 +597,16 @@ export default function AdminPage() {
                                   </>
                                 )}
                                 {c.status === 'aprovado' && c.token && (
-                                  <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/acesso/${c.token}`); showMsg('Link copiado!'); }}
-                                    style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
-                                    Copiar Link
-                                  </button>
+                                  <>
+                                    <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/acesso/${c.token}`); showMsg('Link copiado!'); }}
+                                      style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                                      Copiar Link
+                                    </button>
+                                    <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/indicar/${c.token}`); showMsg('Link de indicação copiado!'); }}
+                                      style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                                      Link Indicação
+                                    </button>
+                                  </>
                                 )}
                                 <button onClick={() => excluirCadastro(c.id, c.nome)}
                                   style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 13 }}
@@ -1610,6 +1629,56 @@ export default function AdminPage() {
                   </div>
                 </form>
               </div>
+            </div>
+          )}
+
+          {/* ======== ABA INDICAÇÕES ======== */}
+          {aba === 'indicacoes' && (
+            <div>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>
+                Indicações <span style={{ color: '#9ca3af', fontSize: 14, fontWeight: 400 }}>({indicacoes.length})</span>
+              </h2>
+              <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>
+                Pacientes cadastrados pelo link de indicação de um médico aprovado, com vínculo automático.
+              </p>
+              {loadingIndicacoes ? (
+                <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>Carregando...</div>
+              ) : indicacoes.length === 0 ? (
+                <div style={{ padding: 60, textAlign: 'center', color: '#9ca3af', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                  Nenhuma indicação ainda. O botão &quot;Copiar Link de Indicação&quot; aparece na aba Leads para médicos aprovados.
+                </div>
+              ) : (
+                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                        {['Paciente', 'WhatsApp', 'E-mail', 'Endereço', 'Médico Indicador', 'Data'].map(h => (
+                          <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {indicacoes.map((i, idx) => (
+                        <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                          <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{i.nome} {i.sobrenome}</td>
+                          <td style={{ padding: '11px 14px' }}>
+                            {i.whatsapp && (
+                              <a href={`https://wa.me/${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                                style={{ color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>{i.whatsapp}</a>
+                            )}
+                          </td>
+                          <td style={{ padding: '11px 14px', color: '#9ca3af' }}>{i.email || '—'}</td>
+                          <td style={{ padding: '11px 14px', color: '#9ca3af', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.endereco}</td>
+                          <td style={{ padding: '11px 14px', color: '#7c3aed', fontWeight: 700 }}>{i.medico_nome}</td>
+                          <td style={{ padding: '11px 14px', color: '#9ca3af', whiteSpace: 'nowrap', fontSize: 12 }}>
+                            {new Date(i.created_at).toLocaleDateString('pt-BR')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 

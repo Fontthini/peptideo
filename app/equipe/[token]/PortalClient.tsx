@@ -16,6 +16,11 @@ type Pedido = {
   produto_nome: string; preco: number; itens?: PedidoItem[];
   status: string; obs?: string; created_at: string; vendedor_id?: string;
 };
+type Indicacao = {
+  id: string; medico_id: string; medico_nome: string;
+  nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string;
+  status: string; created_at: string;
+};
 
 type Props = { membro: Membro; leads: Cadastro[]; equipe: Membro[]; token: string; };
 
@@ -68,6 +73,7 @@ function LeadDetail({
   const [msg, setMsg] = useState('');
   const [waLink, setWaLink] = useState('');
   const [emailEnviado, setEmailEnviado] = useState<boolean | null>(null);
+  const [linkCopiado, setLinkCopiado] = useState(false);
 
   const vendNome = equipe.find(e => e.id === lead.vendedor_id)?.nome;
 
@@ -175,6 +181,27 @@ function LeadDetail({
                 <div style={{ fontSize: 11, color: '#6b7280', wordBreak: 'break-all' }}>{lojaUrl}</div>
               </div>
             ) : null;
+          })()}
+
+          {/* Link de indicacao para pacientes (medico ja aprovado) */}
+          {lead.status === 'aprovado' && lead.token && (() => {
+            const base = typeof window !== 'undefined' ? window.location.origin : '';
+            const indicarUrl = `${base}/indicar/${lead.token}`;
+            const copiarIndicacao = () => {
+              navigator.clipboard.writeText(indicarUrl);
+              setLinkCopiado(true);
+              setTimeout(() => setLinkCopiado(false), 2500);
+            };
+            return (
+              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8' }}>🔗 Link de indicação para pacientes deste médico:</div>
+                <button onClick={copiarIndicacao}
+                  style={{ background: linkCopiado ? '#dbeafe' : '#fff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 0', cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
+                  {linkCopiado ? '✓ Link copiado!' : 'Copiar Link de Indicação'}
+                </button>
+                <div style={{ fontSize: 11, color: '#6b7280', wordBreak: 'break-all' }}>{indicarUrl}</div>
+              </div>
+            );
           })()}
 
           {/* Motivo de rejeicao (se houver) */}
@@ -296,7 +323,8 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
   const [filtro, setFiltro] = useState('meus');
   const [selectedLead, setSelectedLead] = useState<Cadastro | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [abaPedidos, setAbaPedidos] = useState(false);
+  const [indicacoes, setIndicacoes] = useState<Indicacao[]>([]);
+  const [aba, setAba] = useState<'leads' | 'pedidos' | 'indicacoes'>('leads');
   const [loadingPedido, setLoadingPedido] = useState('');
   const [msg, setMsg] = useState('');
 
@@ -314,7 +342,13 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
   async function carregarPedidos() {
     const r = await fetch('/api/portal/pedidos', { headers: { 'x-member-token': token } });
     if (r.ok) setPedidos(await r.json());
-    setAbaPedidos(true);
+    setAba('pedidos');
+  }
+
+  async function carregarIndicacoes() {
+    const r = await fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } });
+    if (r.ok) setIndicacoes(await r.json());
+    setAba('indicacoes');
   }
 
   async function marcarPedido(id: string, status: string) {
@@ -366,20 +400,24 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
 
       {msg && <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '10px 16px', fontSize: 13, color: '#15803d' }}>{msg}</div>}
 
-      {/* Tabs: Leads / Pedidos */}
+      {/* Tabs: Leads / Pedidos / Indicacoes */}
       <div style={{ display: 'flex', gap: 8 }}>
-        <button onClick={() => setAbaPedidos(false)}
-          style={{ padding: '8px 20px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: !abaPedidos ? 700 : 500, background: !abaPedidos ? '#111827' : '#f3f4f6', color: !abaPedidos ? '#fff' : '#374151', fontSize: 13 }}>
+        <button onClick={() => setAba('leads')}
+          style={{ padding: '8px 20px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: aba === 'leads' ? 700 : 500, background: aba === 'leads' ? '#111827' : '#f3f4f6', color: aba === 'leads' ? '#fff' : '#374151', fontSize: 13 }}>
           Leads
         </button>
         <button onClick={carregarPedidos}
-          style={{ padding: '8px 20px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: abaPedidos ? 700 : 500, background: abaPedidos ? '#111827' : '#f3f4f6', color: abaPedidos ? '#fff' : '#374151', fontSize: 13 }}>
+          style={{ padding: '8px 20px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: aba === 'pedidos' ? 700 : 500, background: aba === 'pedidos' ? '#111827' : '#f3f4f6', color: aba === 'pedidos' ? '#fff' : '#374151', fontSize: 13 }}>
           Meus Pedidos
+        </button>
+        <button onClick={carregarIndicacoes}
+          style={{ padding: '8px 20px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: aba === 'indicacoes' ? 700 : 500, background: aba === 'indicacoes' ? '#111827' : '#f3f4f6', color: aba === 'indicacoes' ? '#fff' : '#374151', fontSize: 13 }}>
+          Indicações
         </button>
       </div>
 
       {/* ABA PEDIDOS */}
-      {abaPedidos && (
+      {aba === 'pedidos' && (
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
           <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Pedidos dos meus Clientes</div>
           {pedidos.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>Nenhum pedido ainda. Os pedidos aparecem quando seus clientes finalizam o carrinho.</div>}
@@ -438,8 +476,45 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
         </div>
       )}
 
+      {/* ABA INDICACOES */}
+      {aba === 'indicacoes' && (
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Pacientes Indicados pelos meus Médicos</div>
+          {indicacoes.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>Nenhuma indicação ainda. Copie o link de indicação de um médico aprovado para começar.</div>}
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                {['Paciente', 'Contato', 'Médico Indicador', 'Data'].map(h => (
+                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {indicacoes.map(i => (
+                <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                  <td style={{ padding: '10px 14px' }}>
+                    <div style={{ fontWeight: 600, color: '#111827' }}>{i.nome} {i.sobrenome}</div>
+                    <div style={{ fontSize: 11, color: '#9ca3af' }}>{i.email || '—'}</div>
+                  </td>
+                  <td style={{ padding: '10px 14px' }}>
+                    {i.whatsapp && (
+                      <a href={`https://wa.me/${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                        style={{ fontSize: 12, color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>
+                        {i.whatsapp}
+                      </a>
+                    )}
+                  </td>
+                  <td style={{ padding: '10px 14px', color: '#7c3aed', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
+                  <td style={{ padding: '10px 14px', color: '#9ca3af', fontSize: 12 }}>{formatDate(i.created_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {/* ABA LEADS */}
-      {!abaPedidos && (
+      {aba === 'leads' && (
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {[['meus', `Meus (${meusLeads.length})`], ['livres', `Livres (${semVendedor.length})`], ['analise', `Em Analise (${emAnalise.length})`], ['aprovados', 'Aprovados']].map(([v, l]) => (
@@ -516,7 +591,8 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
   const [filtro, setFiltro] = useState('todos');
   const [selectedLead, setSelectedLead] = useState<Cadastro | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [abaPedidos, setAbaPedidos] = useState(false);
+  const [indicacoes, setIndicacoes] = useState<Indicacao[]>([]);
+  const [aba, setAba] = useState<'leads' | 'pedidos' | 'indicacoes'>('leads');
 
   const pendentes = lista.filter(l => l.status === 'pendente');
   const emAnalise = lista.filter(l => l.status === 'em_analise');
@@ -542,7 +618,13 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
   async function carregarPedidos() {
     const r = await fetch('/api/portal/pedidos', { headers: { 'x-member-token': token } });
     if (r.ok) setPedidos(await r.json());
-    setAbaPedidos(true);
+    setAba('pedidos');
+  }
+
+  async function carregarIndicacoes() {
+    const r = await fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } });
+    if (r.ok) setIndicacoes(await r.json());
+    setAba('indicacoes');
   }
 
   const totalPedidos = pedidos.length;
@@ -570,18 +652,22 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 8 }}>
-        <button onClick={() => setAbaPedidos(false)}
-          style={{ padding: '8px 20px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: !abaPedidos ? 700 : 500, background: !abaPedidos ? '#111827' : '#f3f4f6', color: !abaPedidos ? '#fff' : '#374151', fontSize: 13 }}>
+        <button onClick={() => setAba('leads')}
+          style={{ padding: '8px 20px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: aba === 'leads' ? 700 : 500, background: aba === 'leads' ? '#111827' : '#f3f4f6', color: aba === 'leads' ? '#fff' : '#374151', fontSize: 13 }}>
           Leads
         </button>
         <button onClick={carregarPedidos}
-          style={{ padding: '8px 20px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: abaPedidos ? 700 : 500, background: abaPedidos ? '#111827' : '#f3f4f6', color: abaPedidos ? '#fff' : '#374151', fontSize: 13 }}>
+          style={{ padding: '8px 20px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: aba === 'pedidos' ? 700 : 500, background: aba === 'pedidos' ? '#111827' : '#f3f4f6', color: aba === 'pedidos' ? '#fff' : '#374151', fontSize: 13 }}>
           Pedidos & Vendas
+        </button>
+        <button onClick={carregarIndicacoes}
+          style={{ padding: '8px 20px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: aba === 'indicacoes' ? 700 : 500, background: aba === 'indicacoes' ? '#111827' : '#f3f4f6', color: aba === 'indicacoes' ? '#fff' : '#374151', fontSize: 13 }}>
+          Indicações
         </button>
       </div>
 
       {/* ABA PEDIDOS */}
-      {abaPedidos && (
+      {aba === 'pedidos' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
             <StatCard label="Total Pedidos" value={totalPedidos} color="#111827" />
@@ -662,8 +748,45 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
         </div>
       )}
 
+      {/* ABA INDICACOES */}
+      {aba === 'indicacoes' && (
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Todas as Indicações de Pacientes</div>
+          {indicacoes.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>Nenhuma indicação ainda.</div>}
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                {['Paciente', 'Contato', 'Médico Indicador', 'Data'].map(h => (
+                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {indicacoes.map(i => (
+                <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                  <td style={{ padding: '10px 14px' }}>
+                    <div style={{ fontWeight: 600, color: '#111827' }}>{i.nome} {i.sobrenome}</div>
+                    <div style={{ fontSize: 11, color: '#9ca3af' }}>{i.email || '—'}</div>
+                  </td>
+                  <td style={{ padding: '10px 14px' }}>
+                    {i.whatsapp && (
+                      <a href={`https://wa.me/${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                        style={{ fontSize: 12, color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>
+                        {i.whatsapp}
+                      </a>
+                    )}
+                  </td>
+                  <td style={{ padding: '10px 14px', color: '#7c3aed', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
+                  <td style={{ padding: '10px 14px', color: '#9ca3af', fontSize: 12 }}>{formatDate(i.created_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {/* ABA LEADS */}
-      {!abaPedidos && (
+      {aba === 'leads' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {perf.length > 0 && (
             <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>

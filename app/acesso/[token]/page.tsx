@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { mem_buscarToken, mem_getConfig } from '@/lib/db-memory';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
+import IndicarLinkCard from './IndicarLinkCard';
 
 async function getUsuario(token: string) {
   await reloadFromSupabase();
@@ -95,6 +96,8 @@ export default async function AcessoPage({ params }: { params: Promise<{ token: 
               <span style={{ color: '#16a34a', fontWeight: 700, fontSize: 14 }}>Ler artigos →</span>
             </div>
           </Link>
+
+          <IndicarLinkCard token={token} />
 
           <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 28, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
             <div style={{ fontSize: 42, marginBottom: 14 }}>💬</div>
