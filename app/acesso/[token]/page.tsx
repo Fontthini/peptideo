@@ -32,7 +32,19 @@ export default async function AcessoPage({ params }: { params: Promise<{ token: 
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
-      <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '14px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <style>{`
+        .acesso-header { padding: 14px 24px; }
+        @media (max-width: 480px) { .acesso-header { padding: 10px 14px; } }
+
+        .acesso-nav { padding: 0 24px; overflow-x: auto; }
+        .acesso-nav-link { padding: 13px 22px; }
+        @media (max-width: 480px) { .acesso-nav { padding: 0 8px; } .acesso-nav-link { padding: 10px 10px !important; font-size: 12px !important; white-space: nowrap; } }
+
+        .acesso-container { padding: 40px 24px; }
+        @media (max-width: 480px) { .acesso-container { padding: 24px 14px; } }
+      `}</style>
+
+      <header className="acesso-header" style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <img src={cfg.logo || 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg'}
             alt="PeptideZ" style={{ height: 40, maxWidth: 160, objectFit: 'contain' }} />
@@ -44,19 +56,19 @@ export default async function AcessoPage({ params }: { params: Promise<{ token: 
         <div style={{ fontSize: 14, color: '#6b7280', fontWeight: 600 }}>{usuario.nome}</div>
       </header>
 
-      <nav style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '0 24px', display: 'flex' }}>
+      <nav className="acesso-nav" style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex' }}>
         {[
           { href: `/acesso/${token}`, label: '🏠 Início' },
           { href: `/acesso/${token}/loja`, label: '🛒 Loja' },
           { href: `/acesso/${token}/blog`, label: '📚 Blog' },
         ].map(item => (
-          <Link key={item.href} href={item.href} style={{ padding: '13px 22px', color: '#6b7280', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+          <Link key={item.href} href={item.href} className="acesso-nav-link" style={{ color: '#6b7280', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
             {item.label}
           </Link>
         ))}
       </nav>
 
-      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 24px' }}>
+      <div className="acesso-container" style={{ maxWidth: 1000, margin: '0 auto' }}>
         {/* Welcome banner */}
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: '32px 36px', marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
           <div>

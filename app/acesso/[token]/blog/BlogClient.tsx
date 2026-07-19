@@ -45,6 +45,24 @@ export default function BlogClient({ token, nomeUsuario, artigos, banners }: {
   return (
     <div style={{ minHeight: '100vh', background: '#fff', color: '#111827' }}>
 
+      <style>{`
+        .blog-header { padding: 14px 24px; }
+        @media (max-width: 480px) { .blog-header { padding: 10px 14px; } }
+
+        .blog-nav { padding: 0 24px; overflow-x: auto; }
+        .blog-nav-link { padding: 12px 20px; }
+        @media (max-width: 480px) { .blog-nav { padding: 0 8px; } .blog-nav-link { padding: 10px 10px !important; font-size: 12px !important; white-space: nowrap; } }
+
+        .blog-pills { padding: 14px 24px; }
+        @media (max-width: 480px) { .blog-pills { padding: 12px 14px; } }
+
+        .blog-container { padding: 40px 24px; }
+        @media (max-width: 480px) { .blog-container { padding: 24px 14px; } }
+
+        .blog-modal-body { padding: 32px 36px 36px; }
+        @media (max-width: 480px) { .blog-modal-body { padding: 20px 18px 24px; } }
+      `}</style>
+
       {/* Modal artigo */}
       {artigoAberto && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 700, overflowY: 'auto', padding: '24px 16px' }}>
@@ -56,7 +74,7 @@ export default function BlogClient({ token, nomeUsuario, artigos, banners }: {
                 <img src={artigoAberto.imagem} alt={artigoAberto.titulo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
             )}
-            <div style={{ padding: '32px 36px 36px' }}>
+            <div className="blog-modal-body">
               {artigoAberto.categoria && (
                 <div style={{ display: 'inline-block', background: '#dcfce7', color: '#15803d', fontSize: 11, fontWeight: 700, padding: '3px 12px', borderRadius: 20, marginBottom: 12, letterSpacing: 0.5, textTransform: 'uppercase' }}>
                   {artigoAberto.categoria}
@@ -104,7 +122,7 @@ export default function BlogClient({ token, nomeUsuario, artigos, banners }: {
       )}
 
       {/* Header */}
-      <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '14px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100 }}>
+      <header className="blog-header" style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <img src={siteLogo}
             alt="PeptideZ" style={{ height: 40, maxWidth: 160, objectFit: 'contain' }} />
@@ -117,13 +135,13 @@ export default function BlogClient({ token, nomeUsuario, artigos, banners }: {
       </header>
 
       {/* Nav */}
-      <nav style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb', padding: '0 24px', display: 'flex' }}>
+      <nav className="blog-nav" style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb', display: 'flex' }}>
         {[
           { href: `/acesso/${token}`, label: '🏠 Início' },
           { href: `/acesso/${token}/loja`, label: '🛒 Loja' },
           { href: `/acesso/${token}/blog`, label: '📚 Blog' },
         ].map(item => (
-          <Link key={item.href} href={item.href} style={{ padding: '12px 20px', color: item.href.endsWith('/blog') ? '#15803d' : '#6b7280', textDecoration: 'none', fontSize: 13, fontWeight: item.href.endsWith('/blog') ? 700 : 600, borderBottom: item.href.endsWith('/blog') ? '2px solid #16a34a' : '2px solid transparent' }}>
+          <Link key={item.href} href={item.href} className="blog-nav-link" style={{ color: item.href.endsWith('/blog') ? '#15803d' : '#6b7280', textDecoration: 'none', fontSize: 13, fontWeight: item.href.endsWith('/blog') ? 700 : 600, borderBottom: item.href.endsWith('/blog') ? '2px solid #16a34a' : '2px solid transparent' }}>
             {item.label}
           </Link>
         ))}
@@ -162,7 +180,7 @@ export default function BlogClient({ token, nomeUsuario, artigos, banners }: {
 
       {/* Pills de categoria */}
       {categorias.length > 0 && (
-        <div style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb', padding: '14px 24px' }}>
+        <div className="blog-pills" style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
           <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 4 }}>Filtrar:</span>
             <button
@@ -185,7 +203,7 @@ export default function BlogClient({ token, nomeUsuario, artigos, banners }: {
       )}
 
       {/* Grade de artigos */}
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px' }}>
+      <div className="blog-container" style={{ maxWidth: 1100, margin: '0 auto' }}>
         {categoriaAtiva && (
           <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
             <h2 style={{ fontSize: 16, fontWeight: 800, color: '#111827', margin: 0 }}>{categoriaAtiva}</h2>
