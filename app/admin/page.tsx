@@ -1626,10 +1626,6 @@ export default function AdminPage() {
 
                 {/* E-mails enviados (Resend) */}
                 <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>E-mails Enviados (Resend)</div>
-                    <a href="https://resend.com/emails" target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: '#6b7280', textDecoration: 'underline' }}>ver no Resend →</a>
-                  </div>
                   <div className="admin-grid-auto" style={{ display: 'grid', gap: 20 }}>
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
