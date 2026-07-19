@@ -1782,7 +1782,7 @@ export default function AdminPage() {
                           <td style={{ padding: '11px 14px', color: '#7c3aed', fontWeight: 700 }}>{i.medico_nome}</td>
                           <td style={{ padding: '11px 14px' }}>
                             <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                              style={{ background: '#fff', border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 8px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                              style={{ background: '#fff', color: '#111827', border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
                               <option value="novo">Novo</option>
                               <option value="contatado">Contatado</option>
                               <option value="convertido">Convertido</option>
@@ -1842,7 +1842,7 @@ export default function AdminPage() {
                           <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a' }}>R$ {p.preco.toFixed(2)}</td>
                           <td style={{ padding: '11px 14px' }}>
                             <select value={p.status} onChange={e => atualizarStatusPedido(p.id, e.target.value)}
-                              style={{ background: '#fff', border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 8px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                              style={{ background: '#fff', color: '#111827', border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
                               <option value="em_aberto">Em Aberto</option>
                               <option value="vendido">Vendido</option>
                               <option value="cancelado">Cancelado</option>

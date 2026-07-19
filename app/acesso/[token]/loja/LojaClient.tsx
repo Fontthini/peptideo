@@ -451,7 +451,7 @@ export default function LojaClient({
 
         <div style={{ marginTop: 40, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: 24, textAlign: 'center' }}>
           <p style={{ color: '#15803d', fontWeight: 700, margin: '0 0 4px' }}>🔒 Compra 100% Segura via WhatsApp</p>
-          <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>Adicione produtos ao carrinho · Finalize pelo WhatsApp · Cadeia de frio garantida</p>
+          <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>Adicione produtos ao carrinho · Finalize pelo WhatsApp</p>
         </div>
       </div>
 
