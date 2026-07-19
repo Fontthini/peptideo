@@ -471,9 +471,7 @@ export default function AdminPage() {
         <form onSubmit={login} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 40, width: 360, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <img src={config.logo || 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg'}
-              alt="PeptideZ" style={{ height: 52, maxWidth: 200, objectFit: 'contain', marginBottom: 12 }} />
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: '#111827', margin: 0 }}>Admin CRM</h1>
-            <p style={{ color: '#6b7280', fontSize: 13, margin: '6px 0 0' }}>PeptideZ Health</p>
+              alt="PeptideZ" style={{ height: 60, maxWidth: 220, objectFit: 'contain' }} />
           </div>
           <label style={labelStyle}>Senha</label>
           <input type="password" value={senha} onChange={e => setSenha(e.target.value)} placeholder="Digite a senha admin" autoFocus style={inputStyle} />
@@ -532,11 +530,7 @@ export default function AdminPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ padding: 3, borderRadius: 10, background: 'linear-gradient(135deg, #16a34a, #4f46e5)' }}>
             <img src={config.logo || 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg'}
-              alt="PeptideZ" style={{ height: 32, maxWidth: 132, objectFit: 'contain', display: 'block', borderRadius: 7, background: '#fff', padding: '2px 6px' }} />
-          </div>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 15, color: '#111827' }}>Admin CRM</div>
-            <div style={{ fontSize: 10, color: '#16a34a', letterSpacing: 1, fontWeight: 700 }}>PEPTIDEZ HEALTH</div>
+              alt="PeptideZ" style={{ height: 36, maxWidth: 150, objectFit: 'contain', display: 'block', borderRadius: 7, background: '#fff', padding: '2px 6px' }} />
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
