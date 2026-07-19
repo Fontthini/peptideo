@@ -536,9 +536,9 @@ export default function AdminPage() {
         .admin-main { padding: 24px 28px; }
         @media (max-width: 860px) {
           .admin-shell { flex-direction: column; }
-          .admin-sidebar { width: auto; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid #e5e7eb; padding: 8px 10px; align-items: center; gap: 4px; }
+          .admin-sidebar { width: auto; flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid #e5e7eb; padding: 8px 10px; align-items: center; gap: 6px; }
           .admin-sidebar-title, .admin-sidebar-extra { display: none; }
-          .admin-navitem { width: auto; margin-bottom: 0; white-space: nowrap; flex-shrink: 0; }
+          .admin-navitem { width: auto; margin-bottom: 0; white-space: nowrap; }
           .admin-main { padding: 16px 14px; }
         }
         .admin-grid-auto { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }

@@ -922,10 +922,10 @@ export default function PortalClient({ membro, leads, equipe, token, logo }: Pro
         .portal-sidenav { width: 180px; flex-direction: column; position: sticky; top: 20px; }
         @media (max-width: 760px) {
           .portal-shell { flex-direction: column; }
-          .portal-sidenav { width: 100%; flex-direction: row; overflow-x: auto; position: static; gap: 4px; }
+          .portal-sidenav { width: 100%; flex-direction: row; flex-wrap: wrap; position: static; gap: 6px; }
         }
         .portal-navitem { width: 100%; }
-        @media (max-width: 760px) { .portal-navitem { width: auto; white-space: nowrap; flex-shrink: 0; } }
+        @media (max-width: 760px) { .portal-navitem { width: auto; white-space: nowrap; } }
 
         .portal-grid-auto { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
         .portal-table-scroll { overflow-x: auto; }
