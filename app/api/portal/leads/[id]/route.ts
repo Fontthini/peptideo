@@ -7,6 +7,7 @@ import {
 } from '@/lib/db-memory';
 import { randomUUID } from 'crypto';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
+import { cleanSecret } from '@/lib/sanitize';
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   await reloadFromSupabase();
@@ -67,14 +68,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
       // Enviar email via Resend
       let emailEnviado = false;
-      const resendKey = process.env.RESEND_API_KEY || cfg.resend_api_key;
+      const resendKey = cleanSecret(process.env.RESEND_API_KEY || cfg.resend_api_key);
       if (resendKey && c.email) {
         try {
           const emailRes = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${resendKey}` },
             body: JSON.stringify({
-              from: 'PeptideZ Health <onboarding@resend.dev>',
+              from: 'PeptideZ Health <contato@peptidezhealth.com.br>',
               to: c.email,
               subject: '✅ Seu acesso foi aprovado — PeptideZ Health',
               html: `<div style="font-family:Arial,sans-serif;background:#000;color:#fff;padding:40px;max-width:600px;margin:0 auto;">

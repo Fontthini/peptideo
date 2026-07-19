@@ -1,8 +1,10 @@
+import { cleanSecret } from './sanitize';
+
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://peptidez-mvp.vercel.app';
 
 export async function enviarEmailAprovacao(nome: string, email: string, token: string) {
   const link = `${BASE_URL}/acesso/${token}`;
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = cleanSecret(process.env.RESEND_API_KEY);
 
   if (!apiKey) {
     console.warn('[EMAIL] RESEND_API_KEY não configurada - email não enviado');
@@ -14,7 +16,7 @@ export async function enviarEmailAprovacao(nome: string, email: string, token: s
     const resend = new Resend(apiKey);
 
     await resend.emails.send({
-      from: 'PeptideZ Health <onboarding@resend.dev>',
+      from: 'PeptideZ Health <contato@peptidezhealth.com.br>',
       to: email,
       subject: '✅ Seu acesso ao PeptideZ Health foi aprovado!',
       html: `
@@ -46,14 +48,14 @@ export async function enviarEmailAprovacao(nome: string, email: string, token: s
 }
 
 export async function enviarEmailRejeicao(nome: string, email: string) {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = cleanSecret(process.env.RESEND_API_KEY);
   if (!apiKey) return { ok: false };
 
   try {
     const { Resend } = await import('resend');
     const resend = new Resend(apiKey);
     await resend.emails.send({
-      from: 'PeptideZ Health <onboarding@resend.dev>',
+      from: 'PeptideZ Health <contato@peptidezhealth.com.br>',
       to: email,
       subject: 'Atualização sobre seu cadastro PeptideZ Health',
       html: `<div style="font-family:Arial,sans-serif;background:#000;color:#fff;padding:40px;max-width:600px;margin:0 auto;"><h1 style="color:#8AE152;">PeptideZ Health</h1><p>Olá, ${nome}.</p><p style="color:#ccc;">Infelizmente seu cadastro não pôde ser aprovado. Entre em contato para mais informações.</p></div>`,
