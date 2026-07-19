@@ -65,13 +65,13 @@ const ABA_NAV: { key: string; icon: string; label: string; color: string }[] = [
 
 function SideNav({ aba, handlers }: { aba: string; handlers: Record<string, () => void> }) {
   return (
-    <aside style={{ width: 180, flexShrink: 0, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 10, alignSelf: 'flex-start', position: 'sticky', top: 20 }}>
+    <aside className="portal-sidenav" style={{ flexShrink: 0, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 10, alignSelf: 'flex-start', display: 'flex' }}>
       {ABA_NAV.map(item => {
         const ativo = aba === item.key;
         return (
-          <button key={item.key} onClick={handlers[item.key]}
+          <button key={item.key} className="portal-navitem" onClick={handlers[item.key]}
             style={{
-              display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+              display: 'flex', alignItems: 'center', gap: 10,
               padding: '9px 12px', border: 'none', borderRadius: 8, marginBottom: 2,
               background: ativo ? `${item.color}14` : 'transparent',
               color: ativo ? item.color : '#374151',
@@ -415,7 +415,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
   }
 
   return (
-    <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+    <div className="portal-shell">
       {selectedLead && (
         <LeadDetail
           lead={selectedLead} equipe={equipe} token={token} cargo={membro.cargo}
@@ -428,7 +428,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
 
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+      <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
         <StatCard label="Meus Leads" value={meusLeads.length} color="#16a34a" />
         <StatCard label="Em Analise" value={emAnalise.length} sub="aguardando gerente" color="#3b82f6" />
         <StatCard label="Aprovados" value={aprovados.length} color="#7c3aed" />
@@ -442,6 +442,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
           <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Pedidos dos meus Clientes</div>
           {pedidos.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Nenhum pedido ainda. Os pedidos aparecem quando seus clientes finalizam o carrinho.</div>}
+          <div className="portal-table-scroll">
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -494,6 +495,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -502,6 +504,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
           <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Pacientes Indicados pelos meus Médicos</div>
           {indicacoes.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Nenhuma indicação ainda. Copie o link de indicação de um médico aprovado para começar.</div>}
+          <div className="portal-table-scroll">
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -531,6 +534,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -545,6 +549,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
               </button>
             ))}
           </div>
+          <div className="portal-table-scroll">
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -598,6 +603,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
       </div>
@@ -654,7 +660,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
   const pedidosVendidos = pedidos.filter(p => p.status === 'vendido');
 
   return (
-    <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+    <div className="portal-shell">
       {selectedLead && (
         <LeadDetail
           lead={selectedLead} equipe={equipe} token={token} cargo={membro.cargo}
@@ -667,7 +673,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
 
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14 }}>
+      <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
         <StatCard label="Total Leads" value={lista.length} color="#111827" />
         <StatCard label="Pendentes" value={pendentes.length} color="#f59e0b" />
         <StatCard label="Em Analise" value={emAnalise.length} sub="solicitacoes" color="#3b82f6" />
@@ -678,7 +684,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
       {/* ABA PEDIDOS */}
       {aba === 'pedidos' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+          <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
             <StatCard label="Total Pedidos" value={totalPedidos} color="#111827" />
             <StatCard label="Valor Total" value={`R$ ${valorPedidos.toFixed(2)}`} color="#6b7280" />
             <StatCard label="Vendidos" value={pedidosVendidos.length} color="#16a34a" />
@@ -689,6 +695,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
           {perf.length > 0 && (
             <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
               <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Performance por Vendedor</div>
+              <div className="portal-table-scroll">
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -709,6 +716,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 
@@ -716,6 +724,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
           <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Todos os Pedidos</div>
             {pedidos.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Nenhum pedido ainda.</div>}
+            <div className="portal-table-scroll">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -753,6 +762,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -762,6 +772,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
           <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Todas as Indicações de Pacientes</div>
           {indicacoes.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Nenhuma indicação ainda.</div>}
+          <div className="portal-table-scroll">
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -791,6 +802,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -800,6 +812,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
           {perf.length > 0 && (
             <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
               <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Performance Vendedores</div>
+              <div className="portal-table-scroll">
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -823,6 +836,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 
@@ -835,6 +849,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
                 </button>
               ))}
             </div>
+            <div className="portal-table-scroll">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -869,6 +884,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -895,7 +911,26 @@ export default function PortalClient({ membro, leads, equipe, token, logo }: Pro
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
-      <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <style>{`
+        .portal-header { padding: 14px 28px; }
+        @media (max-width: 480px) { .portal-header { padding: 10px 14px; } }
+
+        .portal-main { padding: 32px 24px; }
+        @media (max-width: 480px) { .portal-main { padding: 16px 14px; } }
+
+        .portal-shell { display: flex; flex-direction: row; gap: 20px; align-items: flex-start; }
+        .portal-sidenav { width: 180px; flex-direction: column; position: sticky; top: 20px; }
+        @media (max-width: 760px) {
+          .portal-shell { flex-direction: column; }
+          .portal-sidenav { width: 100%; flex-direction: row; overflow-x: auto; position: static; gap: 4px; }
+        }
+        .portal-navitem { width: 100%; }
+        @media (max-width: 760px) { .portal-navitem { width: auto; white-space: nowrap; flex-shrink: 0; } }
+
+        .portal-grid-auto { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+        .portal-table-scroll { overflow-x: auto; }
+      `}</style>
+      <header className="portal-header" style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <img src={logo || 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg'}
             alt="PeptideZ" style={{ height: 40, maxWidth: 160, objectFit: 'contain' }} />
@@ -912,7 +947,7 @@ export default function PortalClient({ membro, leads, equipe, token, logo }: Pro
         </div>
       </header>
 
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px' }}>
+      <main className="portal-main" style={{ maxWidth: 1200, margin: '0 auto' }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: '#111827', margin: '0 0 24px' }}>
           {cargo === 'vendedor' && 'Meus Leads & Pedidos'}
           {cargo === 'gerente' && 'Dashboard — Gerente'}

@@ -504,14 +504,15 @@ export default function AdminPage() {
     return (
       <button
         key={key}
+        className="admin-navitem"
         onClick={() => mudarAba(key)}
         style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          width: '100%', padding: '9px 12px', border: 'none', borderRadius: 8,
+          padding: '9px 12px', border: 'none', borderRadius: 8,
           background: ativo ? `${cor}14` : 'transparent',
           color: ativo ? cor : '#374151',
           fontWeight: ativo ? 700 : 500, fontSize: 14, fontFamily: 'inherit',
-          cursor: 'pointer', textAlign: 'left', marginBottom: 2,
+          cursor: 'pointer', textAlign: 'left',
         }}
       >
         <span style={{
@@ -527,8 +528,32 @@ export default function AdminPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
 
+      <style>{`
+        .admin-shell { display: flex; flex-direction: row; }
+        .admin-sidebar { width: 220px; flex-direction: column; border-right: 1px solid #e5e7eb; padding: 20px 12px; }
+        .admin-sidebar-extra { display: block; }
+        .admin-navitem { width: 100%; margin-bottom: 2px; }
+        .admin-main { padding: 24px 28px; }
+        @media (max-width: 860px) {
+          .admin-shell { flex-direction: column; }
+          .admin-sidebar { width: auto; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid #e5e7eb; padding: 8px 10px; align-items: center; gap: 4px; }
+          .admin-sidebar-title, .admin-sidebar-extra { display: none; }
+          .admin-navitem { width: auto; margin-bottom: 0; white-space: nowrap; flex-shrink: 0; }
+          .admin-main { padding: 16px 14px; }
+        }
+        .admin-grid-auto { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+        .admin-grid-thumbs { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); }
+        .admin-split-360 { grid-template-columns: 1fr 360px; }
+        .admin-split-340 { grid-template-columns: 1fr 340px; }
+        .admin-split-380 { grid-template-columns: 1fr 380px; }
+        @media (max-width: 900px) {
+          .admin-split-360, .admin-split-340, .admin-split-380 { grid-template-columns: 1fr; }
+        }
+        .admin-table-scroll { overflow-x: auto; }
+      `}</style>
+
       {/* Header */}
-      <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, boxShadow: '0 1px 0 rgba(0,0,0,0.02)' }}>
+      <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, flexShrink: 0, boxShadow: '0 1px 0 rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ padding: 3, borderRadius: 10, background: 'linear-gradient(135deg, #16a34a, #4f46e5)' }}>
             <img src={config.logo || 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg'}
@@ -547,11 +572,11 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div className="admin-shell" style={{ flex: 1, overflow: 'hidden' }}>
 
         {/* Sidebar */}
-        <aside style={{ width: 220, background: '#fff', borderRight: '1px solid #e5e7eb', padding: '20px 12px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', letterSpacing: 1, marginBottom: 10, paddingLeft: 6, textTransform: 'uppercase' }}>Menu</div>
+        <aside className="admin-sidebar" style={{ background: '#fff', flexShrink: 0, display: 'flex' }}>
+          <div className="admin-sidebar-title" style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', letterSpacing: 1, marginBottom: 10, paddingLeft: 6, textTransform: 'uppercase' }}>Menu</div>
           {navItem('dashboard', '#', 'Dashboard')}
           {navItem('leads', '-', 'Leads')}
           {navItem('produtos', '+', 'Produtos')}
@@ -562,7 +587,7 @@ export default function AdminPage() {
           {navItem('pedidos', '$', 'Pedidos')}
           {navItem('config', '=', 'Config')}
 
-          <div style={{ marginTop: 'auto', paddingTop: 20, borderTop: '1px solid #f3f4f6' }}>
+          <div className="admin-sidebar-extra" style={{ marginTop: 'auto', paddingTop: 20, borderTop: '1px solid #f3f4f6' }}>
             <div style={{ fontSize: 11, color: '#6b7280', textAlign: 'center', lineHeight: 1.5 }}>
               {counts.aprovado} aprovados<br />{counts.pendente} pendentes
             </div>
@@ -570,7 +595,7 @@ export default function AdminPage() {
         </aside>
 
         {/* Main content */}
-        <main style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
+        <main className="admin-main" style={{ flex: 1, overflowY: 'auto' }}>
 
           {/* Mensagem global */}
           {msg && (
@@ -586,7 +611,7 @@ export default function AdminPage() {
               <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 20, marginTop: 0 }}>Leads</h2>
 
               {/* Stats */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+              <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 24 }}>
                 {[
                   { label: 'Total', val: counts.todos, cor: '#4f46e5', bg: '#eef2ff' },
                   { label: 'Pendentes', val: counts.pendente, cor: '#d97706', bg: '#fffbeb' },
@@ -691,7 +716,7 @@ export default function AdminPage() {
 
           {/* ======== ABA PRODUTOS ======== */}
           {aba === 'produtos' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 28, alignItems: 'start' }}>
+            <div className="admin-split-360" style={{ display: 'grid', gap: 28, alignItems: 'start' }}>
 
               {/* Lista de produtos */}
               <div>
@@ -701,7 +726,7 @@ export default function AdminPage() {
                 {loadingProd ? (
                   <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+                  <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
                     {produtos.map(p => (
                       <div key={p.id} style={{ background: '#fff', border: `1px solid ${p.custom ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                         <div style={{ background: '#f9fafb', height: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
@@ -799,7 +824,7 @@ export default function AdminPage() {
                         <label style={labelStyle}>Nome do produto *</label>
                         <input value={editando.nome} onChange={e => setEditando(p => p && ({ ...p, nome: e.target.value }))} required style={inputStyle} />
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      <div className="admin-grid-auto" style={{ display: 'grid', gap: 10 }}>
                         <div>
                           <label style={labelStyle}>Categoria</label>
                           <select value={editando.categoria} onChange={e => setEditando(p => p && ({ ...p, categoria: e.target.value }))}
@@ -816,7 +841,7 @@ export default function AdminPage() {
                           </select>
                         </div>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      <div className="admin-grid-auto" style={{ display: 'grid', gap: 10 }}>
                         <div>
                           <label style={labelStyle}>Dose</label>
                           <input value={editando.dose} onChange={e => setEditando(p => p && ({ ...p, dose: e.target.value }))} placeholder="Ex: 5mg" style={inputStyle} />
@@ -850,7 +875,7 @@ export default function AdminPage() {
                               <span style={{ fontSize: 11, fontWeight: 700, color: '#374151' }}>SEUS UPLOADS ({galeriaUrls.length})</span>
                               <button type="button" onClick={() => setMostrarGaleria(false)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 16 }}>-</button>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+                            <div className="admin-grid-thumbs" style={{ display: 'grid', gap: 6 }}>
                               {galeriaUrls.map(url => (
                                 <div key={url} onClick={() => { setEditando(p => p && ({ ...p, imagem: url })); setMostrarGaleria(false); }}
                                   style={{ cursor: 'pointer', background: editando.imagem === url ? '#dcfce7' : '#fff', border: `2px solid ${editando.imagem === url ? '#16a34a' : '#e5e7eb'}`, borderRadius: 6, overflow: 'hidden', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -891,7 +916,7 @@ export default function AdminPage() {
                               <span style={{ fontSize: 11, fontWeight: 700, color: '#374151' }}>CLIQUE PARA ADICIONAR / REMOVER</span>
                               <button type="button" onClick={() => setMostrarGaleria(false)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 16 }}>-</button>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, maxHeight: 160, overflowY: 'auto' }}>
+                            <div className="admin-grid-thumbs" style={{ display: 'grid', gap: 6, maxHeight: 160, overflowY: 'auto' }}>
                               {galeriaUrls.map(url => {
                                 const sel = (editando.galeria || []).includes(url);
                                 return (
@@ -942,7 +967,7 @@ export default function AdminPage() {
                         <label style={labelStyle}>Nome do produto *</label>
                         <input value={novoProd.nome} onChange={e => setNovoProd(p => ({ ...p, nome: e.target.value }))} required placeholder="Ex: BPC-157" style={inputStyle} />
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      <div className="admin-grid-auto" style={{ display: 'grid', gap: 10 }}>
                         <div>
                           <label style={labelStyle}>Categoria</label>
                           <select value={novoProd.categoria} onChange={e => setNovoProd(p => ({ ...p, categoria: e.target.value }))}
@@ -959,7 +984,7 @@ export default function AdminPage() {
                           </select>
                         </div>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      <div className="admin-grid-auto" style={{ display: 'grid', gap: 10 }}>
                         <div>
                           <label style={labelStyle}>Dose</label>
                           <input value={novoProd.dose} onChange={e => setNovoProd(p => ({ ...p, dose: e.target.value }))} placeholder="Ex: 5mg" style={inputStyle} />
@@ -1004,7 +1029,7 @@ export default function AdminPage() {
 
           {/* ======== ABA BANNERS ======== */}
           {aba === 'banners' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 28, alignItems: 'start' }}>
+            <div className="admin-split-340" style={{ display: 'grid', gap: 28, alignItems: 'start' }}>
 
               {/* Lista de banners */}
               <div>
@@ -1126,7 +1151,7 @@ export default function AdminPage() {
                     {bannersBlog.length === 0 && <div style={{ color: '#6b7280', fontSize: 13, fontStyle: 'italic', paddingTop: 4 }}>Nenhum banner cadastrado.</div>}
                   </div>
                   {/* Formulário novo banner */}
-                  <form onSubmit={adicionarBannerBlog} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 16, paddingTop: 16, borderTop: '1px solid #f3f4f6' }}>
+                  <form onSubmit={adicionarBannerBlog} className="admin-grid-auto" style={{ display: 'grid', gap: 8, marginTop: 16, paddingTop: 16, borderTop: '1px solid #f3f4f6' }}>
                     <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8 }}>
                       <input value={novoBannerBlog.imagem} onChange={e => setNovoBannerBlog(b => ({ ...b, imagem: e.target.value }))} placeholder="URL da imagem *" required style={{ ...inputStyle, flex: 1, fontSize: 13 }} />
                       <label style={{ background: uploadando === 'banner-blog' ? '#e5e7eb' : '#f9fafb', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
@@ -1145,7 +1170,7 @@ export default function AdminPage() {
             </div>
 
             {/* ---- Artigos + Formulário ---- */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 28, alignItems: 'start' }}>
+            <div className="admin-split-380" style={{ display: 'grid', gap: 28, alignItems: 'start' }}>
               {/* Lista de artigos */}
               <div>
                 <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 20, marginTop: 0 }}>
@@ -1395,7 +1420,7 @@ export default function AdminPage() {
                 <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>Dashboard Geral</h2>
 
                 {/* KPIs */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14 }}>
+                <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
                   {[
                     { label: 'Total Leads', value: total, color: '#4f46e5' },
                     { label: 'Aprovados', value: aprovados, color: '#16a34a' },
@@ -1411,7 +1436,7 @@ export default function AdminPage() {
                   ))}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
                   {/* Gráfico 30 dias */}
                   <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Leads — últimos 30 dias</div>
@@ -1472,7 +1497,7 @@ export default function AdminPage() {
                 {/* Engajamento na Loja/Blog */}
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Engajamento</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+                  <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
                     {[
                       { label: 'Online na Loja Agora', value: onlineLoja, color: '#16a34a', live: onlineLoja > 0 },
                       { label: 'Já Acessaram o Blog', value: acessaramBlog, color: '#db2777' },
@@ -1516,6 +1541,7 @@ export default function AdminPage() {
                     <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>
                       Performance Vendedores
                     </div>
+                    <div className="admin-table-scroll">
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -1547,13 +1573,14 @@ export default function AdminPage() {
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 )}
 
                 {/* KPIs Pedidos */}
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Pedidos</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+                  <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
                     {[
                       { label: 'Total Pedidos', value: totalPedidos, color: '#4f46e5' },
                       { label: 'Valor Total', value: `R$ ${valorTotalPedidos.toFixed(2)}`, color: '#0d9488' },
@@ -1574,6 +1601,7 @@ export default function AdminPage() {
                     <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>
                       Pedidos Recentes
                     </div>
+                    <div className="admin-table-scroll">
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -1609,6 +1637,7 @@ export default function AdminPage() {
                         })}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 )}
 
@@ -1618,6 +1647,7 @@ export default function AdminPage() {
                     <span style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>Ultimos Leads</span>
                     <button onClick={() => mudarAba('leads')} style={{ background: 'none', border: 'none', color: '#16a34a', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Ver todos</button>
                   </div>
+                  <div className="admin-table-scroll">
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -1648,6 +1678,7 @@ export default function AdminPage() {
                       {cadastros.length === 0 && <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Nenhum lead ainda.</td></tr>}
                     </tbody>
                   </table>
+                  </div>
                 </div>
 
                 <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '14px 18px', fontSize: 13, color: '#92400e' }}>
@@ -1659,7 +1690,7 @@ export default function AdminPage() {
 
           {/* ======== ABA EQUIPE ======== */}
           {aba === 'equipe' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 28, alignItems: 'start' }}>
+            <div className="admin-split-340" style={{ display: 'grid', gap: 28, alignItems: 'start' }}>
               {/* Lista */}
               <div>
                 <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 20, marginTop: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1677,6 +1708,7 @@ export default function AdminPage() {
                   </div>
                 ) : (
                   <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                    <div className="admin-table-scroll">
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
@@ -1725,6 +1757,7 @@ export default function AdminPage() {
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 )}
                 <div style={{ marginTop: 20, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '14px 18px', fontSize: 13, color: '#92400e' }}>
@@ -1823,6 +1856,7 @@ export default function AdminPage() {
                 </div>
               ) : (
                 <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                  <div className="admin-table-scroll">
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
@@ -1865,6 +1899,7 @@ export default function AdminPage() {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               )}
             </div>
@@ -1885,6 +1920,7 @@ export default function AdminPage() {
                 </div>
               ) : (
                 <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                  <div className="admin-table-scroll">
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
@@ -1925,6 +1961,7 @@ export default function AdminPage() {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               )}
             </div>
@@ -1965,7 +2002,7 @@ export default function AdminPage() {
                       )}
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div className="admin-grid-auto" style={{ display: 'grid', gap: 16 }}>
                       <div>
                         <label style={labelStyle}>Cor Principal (botões, textos)</label>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
