@@ -1624,8 +1624,9 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* E-mails enviados (Resend) */}
+                {/* E-mails enviados */}
                 <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>E-mails Enviados</div>
                   <div className="admin-grid-auto" style={{ display: 'grid', gap: 20 }}>
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
