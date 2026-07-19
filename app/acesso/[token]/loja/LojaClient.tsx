@@ -98,9 +98,38 @@ export default function LojaClient({
   return (
     <div style={{ minHeight: '100vh', background: '#fff', color: '#111827' }}>
 
+      <style>{`
+        .loja-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+        @media (max-width: 980px) { .loja-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 700px) { .loja-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
+        @media (max-width: 420px) { .loja-grid { grid-template-columns: 1fr; } }
+
+        .loja-modal-grid { display: grid; grid-template-columns: 1fr 1fr; min-height: 480px; }
+        @media (max-width: 720px) { .loja-modal-grid { grid-template-columns: 1fr; min-height: auto; } }
+
+        .loja-modal-media { border-right: 1px solid #e5e7eb; }
+        @media (max-width: 720px) { .loja-modal-media { border-right: none; border-bottom: 1px solid #e5e7eb; } }
+
+        .loja-modal-details { max-height: 85vh; overflow-y: auto; }
+        @media (max-width: 720px) { .loja-modal-details { max-height: none; overflow-y: visible; } }
+
+        .loja-header { padding: 14px 24px; }
+        @media (max-width: 480px) { .loja-header { padding: 10px 14px; } }
+
+        .loja-nav { padding: 0 24px; overflow-x: auto; }
+        .loja-nav-link { padding: 12px 20px; }
+        @media (max-width: 480px) { .loja-nav { padding: 0 8px; } .loja-nav-link { padding: 10px 10px !important; font-size: 12px !important; white-space: nowrap; } }
+
+        .loja-searchbar { padding: 16px 24px; }
+        @media (max-width: 480px) { .loja-searchbar { padding: 12px 14px; } }
+
+        .loja-container { padding: 32px 24px; }
+        @media (max-width: 480px) { .loja-container { padding: 20px 14px; } }
+      `}</style>
+
       {/* Toast notification */}
       {toast && (
-        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#111827', color: '#fff', padding: '12px 24px', borderRadius: 8, fontWeight: 600, fontSize: 14, zIndex: 1000, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', whiteSpace: 'nowrap' }}>
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', maxWidth: 'calc(100vw - 32px)', background: '#111827', color: '#fff', padding: '12px 24px', borderRadius: 8, fontWeight: 600, fontSize: 14, zIndex: 1000, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', textAlign: 'center' }}>
           ✅ {toast} adicionado ao carrinho!
         </div>
       )}
@@ -109,7 +138,7 @@ export default function LojaClient({
       {cartOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 500 }}>
           <div onClick={() => setCartOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} />
-          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 380, background: '#fff', boxShadow: '-4px 0 24px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 'min(380px, 100vw)', background: '#fff', boxShadow: '-4px 0 24px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
               <div style={{ fontWeight: 800, fontSize: 18, color: '#111827' }}>🛒 Carrinho ({cartCount})</div>
               <button onClick={() => setCartOpen(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#6b7280' }}>×</button>
@@ -177,10 +206,10 @@ export default function LojaClient({
             <div onClick={() => setProdutoDetalhe(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
             <div style={{ position: 'relative', maxWidth: 860, margin: '0 auto', background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
               <button onClick={() => setProdutoDetalhe(null)} style={{ position: 'absolute', top: 14, right: 14, background: '#f3f4f6', border: 'none', borderRadius: '50%', width: 36, height: 36, fontSize: 20, cursor: 'pointer', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151' }}>×</button>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: 480 }}>
+              <div className="loja-modal-grid">
 
                 {/* Esquerda: carrossel */}
-                <div style={{ background: '#f9fafb', padding: 24, display: 'flex', flexDirection: 'column', gap: 14, borderRight: '1px solid #e5e7eb' }}>
+                <div className="loja-modal-media" style={{ background: '#f9fafb', padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
                   {/* Slide */}
                   <div style={{ flex: 1, position: 'relative', minHeight: 280, background: '#fff', borderRadius: 10, overflow: 'hidden', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {currentSlide.type === 'image' ? (
@@ -222,7 +251,7 @@ export default function LojaClient({
                 </div>
 
                 {/* Direita: detalhes */}
-                <div style={{ padding: '28px 28px 24px', display: 'flex', flexDirection: 'column', overflowY: 'auto', maxHeight: '85vh' }}>
+                <div className="loja-modal-details" style={{ padding: '28px 28px 24px', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
                     {produtoDetalhe.categoria}{produtoDetalhe.categoria2 ? ` · ${produtoDetalhe.categoria2}` : ''}
                   </div>
@@ -270,7 +299,7 @@ export default function LojaClient({
       })()}
 
       {/* Header */}
-      <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '14px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100 }}>
+      <header className="loja-header" style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <img src={siteLogo}
             alt="PeptideZ" style={{ height: 40, maxWidth: 160, objectFit: 'contain' }} />
@@ -291,13 +320,13 @@ export default function LojaClient({
       </header>
 
       {/* Nav */}
-      <nav style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb', padding: '0 24px', display: 'flex' }}>
+      <nav className="loja-nav" style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb', display: 'flex' }}>
         {[
           { href: `/acesso/${token}`, label: '🏠 Início' },
           { href: `/acesso/${token}/loja`, label: '🛒 Loja' },
           { href: `/acesso/${token}/blog`, label: '📚 Blog' },
         ].map(item => (
-          <Link key={item.href} href={item.href} style={{ padding: '12px 20px', color: '#6b7280', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+          <Link key={item.href} href={item.href} className="loja-nav-link" style={{ color: '#6b7280', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
             {item.label}
           </Link>
         ))}
@@ -326,7 +355,7 @@ export default function LojaClient({
       </section>
 
       {/* Barra de busca + filtros */}
-      <div style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb', padding: '16px 24px' }}>
+      <div className="loja-searchbar" style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Campo de busca */}
           <div style={{ position: 'relative', maxWidth: 420 }}>
@@ -360,7 +389,7 @@ export default function LojaClient({
         </div>
       </div>
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
+      <div className="loja-container" style={{ maxWidth: 1100, margin: '0 auto' }}>
 
         {(() => {
           const termoBusca = busca.toLowerCase().trim();
@@ -382,7 +411,7 @@ export default function LojaClient({
                   <span style={{ color: '#9ca3af', fontSize: 12 }}>{prods.length} {prods.length === 1 ? 'produto' : 'produtos'}</span>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+                <div className="loja-grid">
                   {prods.map(prod => (
                     <div key={prod.id}
                       onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)')}
@@ -429,9 +458,6 @@ export default function LojaClient({
                         </div>
                       </div>
                     </div>
-                  ))}
-                  {!termoBusca && !categoriaAtiva && Array.from({ length: prods.length % 4 === 0 ? 0 : 4 - (prods.length % 4) }).map((_, i) => (
-                    <div key={`spacer-${i}`} style={{ visibility: 'hidden', borderRadius: 12 }} />
                   ))}
                 </div>
               </section>
