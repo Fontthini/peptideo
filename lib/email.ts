@@ -20,7 +20,7 @@ export async function enviarEmailAprovacao(nome: string, email: string, token: s
     const { Resend } = await import('resend');
     const resend = new Resend(apiKey);
 
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: 'PeptideZ Health <contato@peptidezhealth.com.br>',
       to: email,
       subject: '✅ Seu acesso ao PeptideZ Health foi aprovado!',
@@ -45,10 +45,14 @@ export async function enviarEmailAprovacao(nome: string, email: string, token: s
         </div>
       `,
     });
-    return { ok: true };
+    if (result.error) {
+      console.error('[EMAIL] Resend recusou o envio:', result.error);
+      return { ok: false, error: result.error };
+    }
+    return { ok: true, id: result.data?.id };
   } catch (err) {
     console.error('[EMAIL] Erro ao enviar:', err);
-    return { ok: false };
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
@@ -59,14 +63,19 @@ export async function enviarEmailRejeicao(nome: string, email: string) {
   try {
     const { Resend } = await import('resend');
     const resend = new Resend(apiKey);
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: 'PeptideZ Health <contato@peptidezhealth.com.br>',
       to: email,
       subject: 'Atualização sobre seu cadastro PeptideZ Health',
       html: `<div style="font-family:Arial,sans-serif;background:#000;color:#fff;padding:40px;max-width:600px;margin:0 auto;"><h1 style="color:#8AE152;">PeptideZ Health</h1><p>Olá, ${nome}.</p><p style="color:#ccc;">Infelizmente seu cadastro não pôde ser aprovado. Entre em contato para mais informações.</p></div>`,
     });
-    return { ok: true };
-  } catch {
-    return { ok: false };
+    if (result.error) {
+      console.error('[EMAIL] Resend recusou o envio:', result.error);
+      return { ok: false, error: result.error };
+    }
+    return { ok: true, id: result.data?.id };
+  } catch (err) {
+    console.error('[EMAIL] Erro ao enviar:', err);
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
