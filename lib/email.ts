@@ -1,10 +1,15 @@
 import { cleanSecret } from './sanitize';
+import { mem_getConfig } from './db-memory';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://peptidez-mvp.vercel.app';
 
+function getResendKey(): string {
+  return cleanSecret(process.env.RESEND_API_KEY || mem_getConfig().resend_api_key);
+}
+
 export async function enviarEmailAprovacao(nome: string, email: string, token: string) {
   const link = `${BASE_URL}/acesso/${token}`;
-  const apiKey = cleanSecret(process.env.RESEND_API_KEY);
+  const apiKey = getResendKey();
 
   if (!apiKey) {
     console.warn('[EMAIL] RESEND_API_KEY não configurada - email não enviado');
@@ -48,7 +53,7 @@ export async function enviarEmailAprovacao(nome: string, email: string, token: s
 }
 
 export async function enviarEmailRejeicao(nome: string, email: string) {
-  const apiKey = cleanSecret(process.env.RESEND_API_KEY);
+  const apiKey = getResendKey();
   if (!apiKey) return { ok: false };
 
   try {
