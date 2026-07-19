@@ -4,7 +4,7 @@ import { PRODUTOS } from '@/lib/produtos';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 function checkAdmin(req: NextRequest) {
-  return req.headers.get('x-admin-key') === (process.env.ADMIN_PASSWORD || 'peptidez2025');
+  return req.headers.get('x-admin-key') === (process.env.ADMIN_PASSWORD || '48139148');
 }
 
 function isSeeded(id: string) {

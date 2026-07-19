@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
   const membro = mem_buscarMembroPorEmail(email);
   if (!membro || !membro.ativo) return NextResponse.json({ error: 'Usuário não encontrado ou inativo' }, { status: 401 });
-  const senhaEsperada = membro.senha || (process.env.ADMIN_PASSWORD || 'peptidez2025');
+  const senhaEsperada = membro.senha || (process.env.ADMIN_PASSWORD || '48139148');
   if (senha !== senhaEsperada) return NextResponse.json({ error: 'Senha incorreta' }, { status: 401 });
   const token = mem_gerarTokenMembro(membro.id);
   return NextResponse.json({ token, cargo: membro.cargo, nome: membro.nome, id: membro.id });

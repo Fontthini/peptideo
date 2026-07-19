@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 function checkAdmin(req: NextRequest) {
   const key = req.headers.get('x-admin-key');
-  return key === (process.env.ADMIN_PASSWORD || 'peptidez2025');
+  return key === (process.env.ADMIN_PASSWORD || '48139148');
 }
 
 export async function POST(req: NextRequest) {

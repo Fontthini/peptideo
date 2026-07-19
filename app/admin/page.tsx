@@ -48,6 +48,7 @@ const labelStyle: React.CSSProperties = {
 };
 
 export default function AdminPage() {
+  const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [logado, setLogado] = useState(false);
   const [aba, setAba] = useState<'leads' | 'produtos' | 'banners' | 'blog' | 'equipe' | 'indicacoes' | 'pedidos' | 'config' | 'dashboard'>('leads');
@@ -475,8 +476,10 @@ export default function AdminPage() {
             <img src={config.logo || 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg'}
               alt="PeptideZ" style={{ height: 60, maxWidth: 220, objectFit: 'contain' }} />
           </div>
+          <label style={labelStyle}>E-mail</label>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" autoFocus style={{ ...inputStyle, marginBottom: 16 }} />
           <label style={labelStyle}>Senha</label>
-          <input type="password" value={senha} onChange={e => setSenha(e.target.value)} placeholder="Digite a senha admin" autoFocus style={inputStyle} />
+          <input type="password" value={senha} onChange={e => setSenha(e.target.value)} placeholder="Digite a senha admin" style={inputStyle} />
           <button type="submit" style={{ marginTop: 20, width: '100%', background: '#111827', color: '#fff', fontWeight: 700, padding: 14, borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 15, fontFamily: 'inherit' }}>
             Entrar
           </button>
