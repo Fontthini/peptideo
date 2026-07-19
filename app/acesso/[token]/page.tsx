@@ -45,14 +45,8 @@ export default async function AcessoPage({ params }: { params: Promise<{ token: 
       `}</style>
 
       <header className="acesso-header" style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src={cfg.logo || 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg'}
-            alt="PeptideZ" style={{ height: 40, maxWidth: 160, objectFit: 'contain' }} />
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 17, color: '#111827' }}>PeptideZ Health</div>
-            <div style={{ fontSize: 10, color: '#16a34a', letterSpacing: 1.5 }}>ÁREA DE MEMBROS</div>
-          </div>
-        </div>
+        <img src={cfg.logo || 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg'}
+          alt="PeptideZ" style={{ height: 40, maxWidth: 160, objectFit: 'contain' }} />
         <div style={{ fontSize: 14, color: '#6b7280', fontWeight: 600 }}>{usuario.nome}</div>
       </header>
 

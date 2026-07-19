@@ -22,7 +22,7 @@ type Indicacao = {
   status: string; created_at: string;
 };
 
-type Props = { membro: Membro; leads: Cadastro[]; equipe: Membro[]; token: string; };
+type Props = { membro: Membro; leads: Cadastro[]; equipe: Membro[]; token: string; logo?: string; };
 
 const CARGO_LABEL: Record<string, string> = { superadmin: 'Super Admin', gerente: 'Gerente', vendedor: 'Vendedor' };
 const CARGO_COLOR: Record<string, { bg: string; text: string }> = {
@@ -881,7 +881,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
 /* =========================================================
    MAIN PORTAL
    ========================================================= */
-export default function PortalClient({ membro, leads, equipe, token }: Props) {
+export default function PortalClient({ membro, leads, equipe, token, logo }: Props) {
   const router = useRouter();
   const cargo = membro.cargo;
   const cc = CARGO_COLOR[cargo] || { bg: '#f3f4f6', text: '#374151' };
@@ -897,7 +897,8 @@ export default function PortalClient({ membro, leads, equipe, token }: Props) {
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
       <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ fontSize: 24, fontWeight: 900, color: '#111827', letterSpacing: -1 }}>PeptideZ</div>
+          <img src={logo || 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg'}
+            alt="PeptideZ" style={{ height: 40, maxWidth: 160, objectFit: 'contain' }} />
           <span style={{ background: cc.bg, color: cc.text, padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
             {CARGO_LABEL[cargo] || cargo}
           </span>

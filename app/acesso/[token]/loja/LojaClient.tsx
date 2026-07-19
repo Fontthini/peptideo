@@ -300,14 +300,8 @@ export default function LojaClient({
 
       {/* Header */}
       <header className="loja-header" style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, position: 'sticky', top: 0, zIndex: 100 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src={siteLogo}
-            alt="PeptideZ" style={{ height: 40, maxWidth: 160, objectFit: 'contain' }} />
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 16, color: '#111827', lineHeight: 1 }}>PeptideZ Health</div>
-            <div style={{ fontSize: 10, color: '#16a34a', letterSpacing: 1.5, marginTop: 2 }}>LOJA EXCLUSIVA</div>
-          </div>
-        </div>
+        <img src={siteLogo}
+          alt="PeptideZ" style={{ height: 40, maxWidth: 160, objectFit: 'contain' }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ fontSize: 13, color: '#6b7280', fontWeight: 600 }}>{nomeUsuario.split(' ')[0]}</div>
           <button onClick={() => setCartOpen(true)} style={{ position: 'relative', background: '#111827', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>

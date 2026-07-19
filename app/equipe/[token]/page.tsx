@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { mem_buscarMembroPorToken, mem_listar, mem_listarEquipe } from '@/lib/db-memory';
+import { mem_buscarMembroPorToken, mem_listar, mem_listarEquipe, mem_getConfig } from '@/lib/db-memory';
 import PortalClient from './PortalClient';
 
 export default async function PortalPage({ params }: { params: Promise<{ token: string }> }) {
@@ -10,6 +10,7 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
 
   const leads = mem_listar();
   const equipe = mem_listarEquipe();
+  const logo = mem_getConfig().logo;
 
-  return <PortalClient membro={membro} leads={leads} equipe={equipe} token={token} />;
+  return <PortalClient membro={membro} leads={leads} equipe={equipe} token={token} logo={logo} />;
 }

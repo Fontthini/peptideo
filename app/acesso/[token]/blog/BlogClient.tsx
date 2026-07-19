@@ -123,14 +123,8 @@ export default function BlogClient({ token, nomeUsuario, artigos, banners }: {
 
       {/* Header */}
       <header className="blog-header" style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, position: 'sticky', top: 0, zIndex: 100 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src={siteLogo}
-            alt="PeptideZ" style={{ height: 40, maxWidth: 160, objectFit: 'contain' }} />
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 16, color: '#111827', lineHeight: 1 }}>PeptideZ Health</div>
-            <div style={{ fontSize: 10, color: '#16a34a', letterSpacing: 1.5, marginTop: 2 }}>ÁREA DE MEMBROS</div>
-          </div>
-        </div>
+        <img src={siteLogo}
+          alt="PeptideZ" style={{ height: 40, maxWidth: 160, objectFit: 'contain' }} />
         <div style={{ fontSize: 13, color: '#6b7280', fontWeight: 600 }}>{nomeUsuario.split(' ')[0]}</div>
       </header>
 
