@@ -30,6 +30,11 @@ export async function POST(req: NextRequest) {
       await sbSaveCadastro({ ...c, vendedor_id: vendedorId || undefined });
     } catch (e) {
       console.error('[CADASTRO] Supabase save error:', e);
+      const msg = e instanceof Error ? e.message : String(e);
+      // Corrida: outra requisicao com o mesmo email venceu entre a checagem e o insert.
+      if (msg.includes('cadastros_email_key') || msg.includes('23505')) {
+        return NextResponse.json({ error: 'E-mail já cadastrado.' }, { status: 409 });
+      }
     }
 
     const cfg = mem_getConfig();
