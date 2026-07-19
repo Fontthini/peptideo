@@ -63,6 +63,8 @@ export default function AdminPage() {
   const [cadastros, setCadastros] = useState<Cadastro[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
   const [filtro, setFiltro] = useState('todos');
+  const [editandoLead, setEditandoLead] = useState<Cadastro | null>(null);
+  const [salvandoLead, setSalvandoLead] = useState(false);
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loadingProd, setLoadingProd] = useState(false);
@@ -302,6 +304,19 @@ export default function AdminPage() {
     });
     if (r.ok) { showMsg('Cadastro excluido.'); carregarCadastros(); }
     else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao excluir')); }
+  };
+
+  const salvarEdicaoLead = async () => {
+    if (!editandoLead) return;
+    setSalvandoLead(true);
+    const { id, nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu } = editandoLead;
+    const r = await fetch('/api/admin/cadastros', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify({ id, nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu }),
+    });
+    setSalvandoLead(false);
+    if (r.ok) { showMsg('OK: Cadastro atualizado!'); setEditandoLead(null); carregarCadastros(); }
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao salvar')); }
   };
 
   const adicionarProduto = async (e: React.FormEvent) => {
@@ -706,6 +721,11 @@ export default function AdminPage() {
                                     </button>
                                   </>
                                 )}
+                                <button onClick={() => setEditandoLead(c)}
+                                  style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}
+                                  title="Editar dados do cadastro">
+                                  Editar
+                                </button>
                                 <button onClick={() => excluirCadastro(c.id, c.nome)}
                                   style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 13 }}
                                   title="Excluir cadastro">
@@ -720,6 +740,61 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
+
+              {/* Modal: editar cadastro */}
+              {editandoLead && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 700, overflowY: 'auto', padding: '24px 16px' }}>
+                  <div onClick={() => setEditandoLead(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
+                  <div style={{ position: 'relative', maxWidth: 520, margin: '0 auto', background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
+                    <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontWeight: 800, fontSize: 17, color: '#111827' }}>Editar Cadastro</div>
+                      <button onClick={() => setEditandoLead(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#6b7280' }}>×</button>
+                    </div>
+                    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                        <div>
+                          <label style={labelStyle}>Nome</label>
+                          <input value={editandoLead.nome} onChange={e => setEditandoLead(l => l && { ...l, nome: e.target.value })} style={inputStyle} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Sobrenome</label>
+                          <input value={editandoLead.sobrenome || ''} onChange={e => setEditandoLead(l => l && { ...l, sobrenome: e.target.value })} style={inputStyle} />
+                        </div>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>E-mail</label>
+                        <input type="email" value={editandoLead.email} onChange={e => setEditandoLead(l => l && { ...l, email: e.target.value })} style={inputStyle} />
+                      </div>
+                      <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                        <div>
+                          <label style={labelStyle}>WhatsApp</label>
+                          <input value={editandoLead.whatsapp} onChange={e => setEditandoLead(l => l && { ...l, whatsapp: e.target.value })} style={inputStyle} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>CRM</label>
+                          <input value={editandoLead.crm || ''} onChange={e => setEditandoLead(l => l && { ...l, crm: e.target.value })} style={inputStyle} />
+                        </div>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Endereço</label>
+                        <input value={editandoLead.endereco} onChange={e => setEditandoLead(l => l && { ...l, endereco: e.target.value })} style={inputStyle} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Onde Conheceu</label>
+                        <input value={editandoLead.onde_conheceu || ''} onChange={e => setEditandoLead(l => l && { ...l, onde_conheceu: e.target.value })} style={inputStyle} />
+                      </div>
+                    </div>
+                    <div style={{ padding: '16px 24px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                      <button onClick={() => setEditandoLead(null)} style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                        Cancelar
+                      </button>
+                      <button onClick={salvarEdicaoLead} disabled={salvandoLead} style={{ background: '#111827', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoLead ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoLead ? 0.6 : 1 }}>
+                        {salvandoLead ? 'Salvando...' : 'Salvar'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
 

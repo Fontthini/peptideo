@@ -227,6 +227,15 @@ export function mem_adicionarObs(cadastroId: string, obs: string): Cadastro | nu
   return c;
 }
 
+export function mem_editarCadastro(id: string, data: Partial<Pick<Cadastro, 'nome' | 'sobrenome' | 'email' | 'whatsapp' | 'endereco' | 'crm' | 'onde_conheceu'>>): Cadastro | null {
+  const c = getStore().find(c => c.id === id);
+  if (!c) return null;
+  Object.assign(c, data);
+  c.updated_at = new Date().toISOString();
+  salvarCadastros(); sb()?.sbSaveCadastro(c)?.catch(console.error);
+  return c;
+}
+
 export function mem_proximoVendedor(): string | null {
   const vendedores = getEquipeStore().filter(m => m.cargo === 'vendedor' && m.ativo);
   if (!vendedores.length) return null;

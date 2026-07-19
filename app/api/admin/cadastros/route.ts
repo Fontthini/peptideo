@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mem_listar, mem_deletarCadastro } from '@/lib/db-memory';
+import { mem_listar, mem_deletarCadastro, mem_editarCadastro } from '@/lib/db-memory';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 function checkAdmin(req: NextRequest) {
@@ -13,6 +13,16 @@ export async function GET(req: NextRequest) {
   }
   await reloadFromSupabase();
   return NextResponse.json(mem_listar());
+}
+
+export async function PUT(req: NextRequest) {
+  if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  await reloadFromSupabase();
+  const { id, nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu } = await req.json();
+  if (!id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
+  const c = mem_editarCadastro(id, { nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu });
+  if (!c) return NextResponse.json({ error: 'Cadastro não encontrado' }, { status: 404 });
+  return NextResponse.json(c);
 }
 
 export async function DELETE(req: NextRequest) {
