@@ -28,6 +28,13 @@ export default function BlogClient({ token, nomeUsuario, artigos, banners }: {
   }, []);
 
   useEffect(() => {
+    fetch('/api/acesso/heartbeat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, area: 'blog' }),
+    }).catch(() => {});
+  }, [token]);
+
+  useEffect(() => {
     if (slideBanners.length <= 1) return;
     const t = setInterval(() => setSlide(s => (s + 1) % slideBanners.length), 5000);
     return () => clearInterval(t);

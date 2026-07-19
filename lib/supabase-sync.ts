@@ -56,6 +56,7 @@ export async function sbSaveCadastro(c: Cadastro) {
     vendedor_id: c.vendedor_id || '', solicitacao: c.solicitacao || '',
     motivo_rejeicao: c.motivo_rejeicao || '', obs: c.obs || '',
     created_at: c.created_at,
+    last_seen_loja: c.last_seen_loja || null, last_seen_blog: c.last_seen_blog || null,
   });
   if (error) throw new Error(`sbSaveCadastro: ${error.message} (${error.code})`);
 }
@@ -73,6 +74,7 @@ export async function sbSaveProduto(p: ProdutoMemory) {
     categoria: p.categoria || '', categoria2: p.categoria2 || null, descricao: p.descricao || '',
     imagem: p.imagem || '', video: p.video || '',
     galeria: p.galeria || [], created_at: p.created_at,
+    views: p.views || 0, cart_adds: p.cart_adds || 0,
   });
   if (error) throw new Error(`sbSaveProduto: ${error.message} (${error.code})`);
 }
@@ -84,6 +86,7 @@ export async function sbSaveProdutos(produtos: ProdutoMemory[]) {
     categoria: p.categoria || '', categoria2: p.categoria2 || null, descricao: p.descricao || '',
     imagem: p.imagem || '', video: p.video || '',
     galeria: p.galeria || [], created_at: p.created_at,
+    views: p.views || 0, cart_adds: p.cart_adds || 0,
   })));
 }
 

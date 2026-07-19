@@ -34,6 +34,8 @@ export type Cadastro = {
   solicitacao?: 'aprovar' | 'rejeitar' | null;
   obs?: string;
   motivo_rejeicao?: string;
+  last_seen_loja?: string | null;
+  last_seen_blog?: string | null;
 };
 
 export type ProdutoMemory = {
@@ -48,6 +50,8 @@ export type ProdutoMemory = {
   video?: string;
   galeria?: string[];
   created_at: string;
+  views?: number;
+  cart_adds?: number;
 };
 
 export type Config = {
@@ -236,6 +240,22 @@ export function mem_deletarCadastro(id: string): boolean {
   return true;
 }
 
+export function mem_registrarAcessoLoja(id: string): Cadastro | null {
+  const c = getStore().find(c => c.id === id);
+  if (!c) return null;
+  c.last_seen_loja = new Date().toISOString();
+  salvarCadastros();
+  return c;
+}
+
+export function mem_registrarAcessoBlog(id: string): Cadastro | null {
+  const c = getStore().find(c => c.id === id);
+  if (!c) return null;
+  c.last_seen_blog = new Date().toISOString();
+  salvarCadastros();
+  return c;
+}
+
 // ---- Produtos ----
 function getProdutosStore(): ProdutoMemory[] {
   if (global.__produtos__ === undefined) {
@@ -307,11 +327,29 @@ export function mem_duplicarProduto(id: string): ProdutoMemory | null {
   const store = getProdutosStore();
   const original = store.find(p => p.id === id);
   if (!original) return null;
-  const copia: ProdutoMemory = { ...original, id: randomUUID(), nome: original.nome + ' (cópia)', created_at: new Date().toISOString() };
+  const copia: ProdutoMemory = { ...original, id: randomUUID(), nome: original.nome + ' (cópia)', created_at: new Date().toISOString(), views: 0, cart_adds: 0 };
   store.push(copia);
   salvarJSON('produtos.json', store);
   sb()?.sbSaveProduto(copia)?.catch(console.error);
   return copia;
+}
+
+export function mem_incrementarViewProduto(id: string): ProdutoMemory | null {
+  const store = getProdutosStore();
+  const p = store.find(p => p.id === id);
+  if (!p) return null;
+  p.views = (p.views || 0) + 1;
+  salvarJSON('produtos.json', store);
+  return p;
+}
+
+export function mem_incrementarCartAddProduto(id: string): ProdutoMemory | null {
+  const store = getProdutosStore();
+  const p = store.find(p => p.id === id);
+  if (!p) return null;
+  p.cart_adds = (p.cart_adds || 0) + 1;
+  salvarJSON('produtos.json', store);
+  return p;
 }
 
 // ---- Configuração ----

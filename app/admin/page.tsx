@@ -7,12 +7,14 @@ type Cadastro = {
   endereco: string; crm: string | null; onde_conheceu: string | null;
   status: string; token: string | null; created_at: string;
   updated_at?: string; vendedor_id?: string | null; solicitacao?: string | null;
+  last_seen_loja?: string | null; last_seen_blog?: string | null;
 };
 type Produto = {
   id: string; nome: string; dose: string; preco: number;
   categoria: string; categoria2?: string | null; descricao: string; imagem: string;
   video?: string; galeria?: string[];
   custom: boolean;
+  views?: number; cart_adds?: number;
 };
 type Config = { mercadopago_token: string; resend_api_key: string; whatsapp_numero: string; base_url: string; banner_titulo: string; banner_subtitulo: string; banner_imagem: string; logo?: string; corPrimaria?: string; corAcento?: string; };
 type BannerItem = { id: string; imagem: string; titulo: string; subtitulo: string; ativo: boolean; ordem: number; };
@@ -251,7 +253,7 @@ export default function AdminPage() {
     if (a === 'equipe') carregarEquipe();
     if (a === 'indicacoes') carregarIndicacoes();
     if (a === 'pedidos') carregarPedidos();
-    if (a === 'dashboard') { carregarCadastros(); carregarEquipe(); carregarPedidos(); }
+    if (a === 'dashboard') { carregarCadastros(); carregarEquipe(); carregarPedidos(); if (produtos.length === 0) carregarProdutos(); }
   };
 
   const aprovar = async (id: string) => {
@@ -1382,6 +1384,12 @@ export default function AdminPage() {
               analise: (cadastros as any[]).filter(c => c.vendedor_id === v.id && c.status === 'em_analise').length,
             }));
 
+            const onlineLoja = cadastros.filter((c: Cadastro) => estaOnline(c.last_seen_loja)).length;
+            const acessaramBlog = cadastros.filter((c: Cadastro) => !!c.last_seen_blog).length;
+            const produtosOrdenados = [...produtos].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 8);
+            const maxViews = Math.max(...produtosOrdenados.map(p => p.views || 0), 1);
+            const totalCartAdds = produtos.reduce((s, p) => s + (p.cart_adds || 0), 0);
+
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                 <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>Dashboard Geral</h2>
@@ -1407,13 +1415,34 @@ export default function AdminPage() {
                   {/* Gráfico 30 dias */}
                   <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Leads — últimos 30 dias</div>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 100 }}>
-                      {ultimos30.map(([dia, qtd]) => (
-                        <div key={dia} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                          <div title={`${dia}: ${qtd}`} style={{ width: '100%', background: qtd > 0 ? '#16a34a' : '#f3f4f6', borderRadius: '2px 2px 0 0', height: `${Math.max((qtd / maxDia) * 88, qtd > 0 ? 4 : 0)}px`, minHeight: 2 }} />
-                        </div>
-                      ))}
-                    </div>
+                    {(() => {
+                      const w = 600, h = 100;
+                      const n = ultimos30.length;
+                      const stepX = n > 1 ? w / (n - 1) : w;
+                      const pts = ultimos30.map(([, v], i) => [i * stepX, h - (v / maxDia) * (h - 16) - 4] as const);
+                      const linePath = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+                      const areaPath = `${linePath} L${((n - 1) * stepX).toFixed(1)},${h} L0,${h} Z`;
+                      return (
+                        <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: '100%', height: 100, display: 'block' }}>
+                          <defs>
+                            <linearGradient id="leadsGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#16a34a" stopOpacity="0.35" />
+                              <stop offset="100%" stopColor="#16a34a" stopOpacity="0" />
+                            </linearGradient>
+                          </defs>
+                          {[0.25, 0.5, 0.75].map(f => (
+                            <line key={f} x1={0} x2={w} y1={h * f} y2={h * f} stroke="#f3f4f6" strokeWidth={1} />
+                          ))}
+                          <path d={areaPath} fill="url(#leadsGrad)" stroke="none" />
+                          <path d={linePath} fill="none" stroke="#16a34a" strokeWidth={2} />
+                          {pts.map(([x, y], i) => ultimos30[i][1] > 0 && (
+                            <circle key={i} cx={x} cy={y} r={2.5} fill="#16a34a">
+                              <title>{`${ultimos30[i][0]}: ${ultimos30[i][1]}`}</title>
+                            </circle>
+                          ))}
+                        </svg>
+                      );
+                    })()}
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 10, color: '#6b7280' }}>
                       <span>{ultimos30[0]?.[0]}</span>
                       <span>{ultimos30[ultimos30.length - 1]?.[0]}</span>
@@ -1437,6 +1466,47 @@ export default function AdminPage() {
                       ))}
                       {origensSort.length === 0 && <div style={{ color: '#6b7280', fontSize: 13 }}>Sem dados ainda.</div>}
                     </div>
+                  </div>
+                </div>
+
+                {/* Engajamento na Loja/Blog */}
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Engajamento</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+                    {[
+                      { label: 'Online na Loja Agora', value: onlineLoja, color: '#16a34a', live: onlineLoja > 0 },
+                      { label: 'Já Acessaram o Blog', value: acessaramBlog, color: '#db2777' },
+                      { label: 'Adições ao Carrinho', value: totalCartAdds, color: '#7c3aed' },
+                    ].map(k => (
+                      <div key={k.label} style={{ background: `${k.color}0d`, border: `1px solid ${k.color}33`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${k.color}`, position: 'relative' }}>
+                        {k.live && (
+                          <span style={{ position: 'absolute', top: 16, right: 16, width: 8, height: 8, borderRadius: '50%', background: '#16a34a', boxShadow: '0 0 0 3px #16a34a33' }} />
+                        )}
+                        <div style={{ fontSize: 26, fontWeight: 800, color: k.color }}>{k.value}</div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>{k.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Produtos mais vistos */}
+                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Produtos Mais Vistos</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {produtosOrdenados.filter(p => (p.views || 0) > 0).map(p => (
+                      <div key={p.id}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                          <span style={{ color: '#374151', fontWeight: 600 }}>{p.nome}</span>
+                          <span style={{ color: '#6b7280' }}>{p.views || 0} vistos · {p.cart_adds || 0} no carrinho</span>
+                        </div>
+                        <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
+                          <div style={{ background: '#7c3aed', borderRadius: 4, height: '100%', width: `${((p.views || 0) / maxViews) * 100}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                    {produtosOrdenados.filter(p => (p.views || 0) > 0).length === 0 && (
+                      <div style={{ color: '#6b7280', fontSize: 13 }}>Sem dados ainda.</div>
+                    )}
                   </div>
                 </div>
 

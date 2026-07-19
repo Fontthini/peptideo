@@ -38,6 +38,16 @@ export default function LojaClient({
     setCarouselIdx(0);
   }, [produtoDetalhe?.id]);
 
+  useEffect(() => {
+    const enviar = () => fetch('/api/acesso/heartbeat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, area: 'loja' }),
+    }).catch(() => {});
+    enviar();
+    const id = setInterval(enviar, 45000);
+    return () => clearInterval(id);
+  }, [token]);
+
   const slideBanners = banners.length > 0 ? banners : [
     { imagem: '/banners/banner1.svg', titulo: '', subtitulo: '' },
   ];
@@ -59,6 +69,18 @@ export default function LojaClient({
     }));
     setToast(prod.nome);
     setTimeout(() => setToast(''), 2200);
+    fetch('/api/produtos/track', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: prod.id, tipo: 'cart' }),
+    }).catch(() => {});
+  };
+
+  const abrirDetalhe = (prod: ProdutoUnificado) => {
+    setProdutoDetalhe(prod);
+    fetch('/api/produtos/track', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: prod.id, tipo: 'view' }),
+    }).catch(() => {});
   };
 
   const changeQty = (id: string, delta: number) => {
@@ -411,7 +433,7 @@ export default function LojaClient({
                       onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)')}
                       onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)')}
                       style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', transition: 'box-shadow 0.2s' }}>
-                      <div onClick={() => setProdutoDetalhe(prod)} style={{ background: '#f9fafb', height: 190, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #e5e7eb', overflow: 'hidden', position: 'relative', cursor: 'pointer' }}>
+                      <div onClick={() => abrirDetalhe(prod)} style={{ background: '#f9fafb', height: 190, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #e5e7eb', overflow: 'hidden', position: 'relative', cursor: 'pointer' }}>
                         <img src={prod.imagem || '/produtos/frasco.svg'} alt={prod.nome}
                           style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 12 }}
                           onError={e => { (e.target as HTMLImageElement).src = '/produtos/frasco.svg'; }} />
@@ -430,10 +452,10 @@ export default function LojaClient({
                         )}
                       </div>
                       <div style={{ padding: '14px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                        <h3 onClick={() => setProdutoDetalhe(prod)} style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: '0 0 3px', lineHeight: 1.3, cursor: 'pointer' }}>{prod.nome}</h3>
+                        <h3 onClick={() => abrirDetalhe(prod)} style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: '0 0 3px', lineHeight: 1.3, cursor: 'pointer' }}>{prod.nome}</h3>
                         {prod.dose && <p style={{ color: '#9ca3af', fontSize: 11, margin: '0 0 4px' }}>{prod.dose}</p>}
                         <p style={{ color: '#6b7280', fontSize: 12, lineHeight: 1.5, flex: 1, margin: '0 0 8px', overflow: 'hidden', maxHeight: '3.6em' }}>{prod.descricao}</p>
-                        <button onClick={() => setProdutoDetalhe(prod)} style={{ background: 'none', border: 'none', color: '#16a34a', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: '0 0 10px', fontFamily: 'inherit', textAlign: 'left', textDecoration: 'underline' }}>
+                        <button onClick={() => abrirDetalhe(prod)} style={{ background: 'none', border: 'none', color: '#16a34a', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: '0 0 10px', fontFamily: 'inherit', textAlign: 'left', textDecoration: 'underline' }}>
                           Ver detalhes →
                         </button>
                         <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 12 }}>
