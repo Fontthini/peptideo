@@ -26,7 +26,7 @@ function emailShell(logo: string, bodyHtml: string): string {
   `;
 }
 
-export async function enviarEmailAprovacao(nome: string, email: string, token: string) {
+export async function enviarEmailAprovacao(nome: string, email: string, token: string, fromOverride?: string) {
   const link = `${BASE_URL}/acesso/${token}`;
   const apiKey = getResendKey();
 
@@ -57,7 +57,7 @@ export async function enviarEmailAprovacao(nome: string, email: string, token: s
     const resend = new Resend(apiKey);
 
     const result = await resend.emails.send({
-      from: 'PeptideZ Health <contato@peptidezhealth.com.br>',
+      from: fromOverride || 'PeptideZ Health <contato@peptidezhealth.com.br>',
       to: email,
       subject: '✅ Seu acesso ao PeptideZ Health foi aprovado!',
       html: emailShell(logo, body),
