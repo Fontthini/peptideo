@@ -21,6 +21,12 @@ function rowToConfig(row: Record<string, unknown>): Config {
     corPrimaria: (row.cor_primaria as string) || '#111827',
     corAcento: (row.cor_acento as string) || '#16a34a',
     roundRobinIdx: (row.round_robin_idx as number) || 0,
+    emails_enviados_hoje: (row.emails_enviados_hoje as number) || 0,
+    emails_dia_referencia: (row.emails_dia_referencia as string) || '',
+    emails_enviados_mes: (row.emails_enviados_mes as number) || 0,
+    emails_mes_referencia: (row.emails_mes_referencia as string) || '',
+    limite_emails_dia: (row.limite_emails_dia as number) || 100,
+    limite_emails_mes: (row.limite_emails_mes as number) || 3000,
   };
 }
 
@@ -38,6 +44,12 @@ function configToRow(cfg: Config) {
     cor_primaria: cfg.corPrimaria || '#111827',
     cor_acento: cfg.corAcento || '#16a34a',
     round_robin_idx: cfg.roundRobinIdx || 0,
+    emails_enviados_hoje: cfg.emails_enviados_hoje || 0,
+    emails_dia_referencia: cfg.emails_dia_referencia || '',
+    emails_enviados_mes: cfg.emails_enviados_mes || 0,
+    emails_mes_referencia: cfg.emails_mes_referencia || '',
+    limite_emails_dia: cfg.limite_emails_dia || 100,
+    limite_emails_mes: cfg.limite_emails_mes || 3000,
   };
 }
 

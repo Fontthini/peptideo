@@ -3,7 +3,7 @@ import {
   mem_buscarMembroPorToken, mem_buscarId,
   mem_atribuirVendedor, mem_solicitarAcao,
   mem_aprovar, mem_rejeitar, mem_adicionarObs,
-  mem_getConfig,
+  mem_getConfig, mem_registrarEnvioEmail,
 } from '@/lib/db-memory';
 import { randomUUID } from 'crypto';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
@@ -101,7 +101,9 @@ ${whatsappNumero ? `<p style="color:#9ca3af;font-size:12px;text-align:center;mar
             }),
           });
           emailEnviado = emailRes.ok;
-          if (!emailRes.ok) {
+          if (emailRes.ok) {
+            mem_registrarEnvioEmail();
+          } else {
             const errBody = await emailRes.text();
             console.error('[APROVAR] Resend erro:', emailRes.status, errBody);
           }

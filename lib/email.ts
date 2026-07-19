@@ -1,5 +1,5 @@
 import { cleanSecret } from './sanitize';
-import { mem_getConfig } from './db-memory';
+import { mem_getConfig, mem_registrarEnvioEmail } from './db-memory';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://peptidez-mvp.vercel.app';
 const LOGO_FALLBACK = 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg';
@@ -66,6 +66,7 @@ export async function enviarEmailAprovacao(nome: string, email: string, token: s
       console.error('[EMAIL] Resend recusou o envio:', result.error);
       return { ok: false, error: result.error };
     }
+    mem_registrarEnvioEmail();
     return { ok: true, id: result.data?.id };
   } catch (err) {
     console.error('[EMAIL] Erro ao enviar:', err);
@@ -98,6 +99,7 @@ export async function enviarEmailRejeicao(nome: string, email: string) {
       console.error('[EMAIL] Resend recusou o envio:', result.error);
       return { ok: false, error: result.error };
     }
+    mem_registrarEnvioEmail();
     return { ok: true, id: result.data?.id };
   } catch (err) {
     console.error('[EMAIL] Erro ao enviar:', err);

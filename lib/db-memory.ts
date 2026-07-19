@@ -66,6 +66,12 @@ export type Config = {
   corPrimaria?: string;
   corAcento?: string;
   roundRobinIdx?: number;
+  emails_enviados_hoje?: number;
+  emails_dia_referencia?: string;
+  emails_enviados_mes?: number;
+  emails_mes_referencia?: string;
+  limite_emails_dia?: number;
+  limite_emails_mes?: number;
 };
 
 declare global {
@@ -375,6 +381,22 @@ export function mem_setConfig(cfg: Partial<Config>): Config {
   salvarJSON('config.json', current);
   sb()?.sbSaveConfig(current)?.catch(console.error);
   return current;
+}
+
+// Chamar sempre que um email for enviado com sucesso — mantém contadores
+// diário/mensal para acompanhar o limite do plano do Resend.
+export function mem_registrarEnvioEmail(): Config {
+  const cfg = mem_getConfig();
+  const hoje = new Date().toISOString().slice(0, 10);
+  const mes = hoje.slice(0, 7);
+  const diaOk = cfg.emails_dia_referencia === hoje;
+  const mesOk = cfg.emails_mes_referencia === mes;
+  return mem_setConfig({
+    emails_dia_referencia: hoje,
+    emails_enviados_hoje: (diaOk ? (cfg.emails_enviados_hoje || 0) : 0) + 1,
+    emails_mes_referencia: mes,
+    emails_enviados_mes: (mesOk ? (cfg.emails_enviados_mes || 0) : 0) + 1,
+  });
 }
 
 // ---- Banners ----

@@ -16,7 +16,13 @@ type Produto = {
   custom: boolean;
   views?: number; cart_adds?: number;
 };
-type Config = { mercadopago_token: string; resend_api_key: string; whatsapp_numero: string; base_url: string; banner_titulo: string; banner_subtitulo: string; banner_imagem: string; logo?: string; corPrimaria?: string; corAcento?: string; };
+type Config = {
+  mercadopago_token: string; resend_api_key: string; whatsapp_numero: string; base_url: string;
+  banner_titulo: string; banner_subtitulo: string; banner_imagem: string; logo?: string; corPrimaria?: string; corAcento?: string;
+  emails_enviados_hoje?: number; emails_dia_referencia?: string;
+  emails_enviados_mes?: number; emails_mes_referencia?: string;
+  limite_emails_dia?: number; limite_emails_mes?: number;
+};
 type BannerItem = { id: string; imagem: string; titulo: string; subtitulo: string; ativo: boolean; ordem: number; };
 type Material = { nome: string; url: string };
 type Artigo = { id: string; titulo: string; conteudo: string; imagem?: string; video?: string; categoria?: string; materiais: Material[]; publicado: boolean; created_at: string; updated_at: string; };
@@ -66,7 +72,7 @@ export default function AdminPage() {
   const [mostrarGaleria, setMostrarGaleria] = useState(false);
   const [galeriaAlvo, setGaleriaAlvo] = useState<'imagem' | 'galeria'>('imagem');
 
-  const [config, setConfig] = useState<Config>({ mercadopago_token: '', resend_api_key: '', whatsapp_numero: '', base_url: '', banner_titulo: '', banner_subtitulo: '', banner_imagem: '', logo: '', corPrimaria: '#111827', corAcento: '#16a34a' });
+  const [config, setConfig] = useState<Config>({ mercadopago_token: '', resend_api_key: '', whatsapp_numero: '', base_url: '', banner_titulo: '', banner_subtitulo: '', banner_imagem: '', logo: '', corPrimaria: '#111827', corAcento: '#16a34a', limite_emails_dia: 100, limite_emails_mes: 3000 });
   const [uploadando, setUploadando] = useState<string | null>(null);
   const [loadingConfig, setLoadingConfig] = useState(false);
 
@@ -1418,6 +1424,15 @@ export default function AdminPage() {
             const maxViews = Math.max(...produtosOrdenados.map(p => p.views || 0), 1);
             const totalCartAdds = produtos.reduce((s, p) => s + (p.cart_adds || 0), 0);
 
+            const emailsHoje = config.emails_enviados_hoje || 0;
+            const limiteDia = config.limite_emails_dia || 100;
+            const emailsMes = config.emails_enviados_mes || 0;
+            const limiteMes = config.limite_emails_mes || 3000;
+            const pctDia = Math.min((emailsHoje / limiteDia) * 100, 100);
+            const pctMes = Math.min((emailsMes / limiteMes) * 100, 100);
+            const corDia = pctDia >= 90 ? '#dc2626' : pctDia >= 70 ? '#f59e0b' : '#16a34a';
+            const corMes = pctMes >= 90 ? '#dc2626' : pctMes >= 70 ? '#f59e0b' : '#16a34a';
+
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                 <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>Dashboard Geral</h2>
@@ -1515,6 +1530,41 @@ export default function AdminPage() {
                       </div>
                     ))}
                   </div>
+                </div>
+
+                {/* E-mails enviados (Resend) */}
+                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>E-mails Enviados (Resend)</div>
+                    <a href="https://resend.com/emails" target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: '#6b7280', textDecoration: 'underline' }}>ver no Resend →</a>
+                  </div>
+                  <div className="admin-grid-auto" style={{ display: 'grid', gap: 20 }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
+                        <span style={{ color: '#374151', fontWeight: 600 }}>Hoje</span>
+                        <span style={{ color: corDia, fontWeight: 700 }}>{emailsHoje} / {limiteDia}</span>
+                      </div>
+                      <div style={{ background: '#f3f4f6', borderRadius: 4, height: 8 }}>
+                        <div style={{ background: corDia, borderRadius: 4, height: '100%', width: `${pctDia}%`, transition: 'width .3s' }} />
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
+                        <span style={{ color: '#374151', fontWeight: 600 }}>Este mês</span>
+                        <span style={{ color: corMes, fontWeight: 700 }}>{emailsMes} / {limiteMes}</span>
+                      </div>
+                      <div style={{ background: '#f3f4f6', borderRadius: 4, height: 8 }}>
+                        <div style={{ background: corMes, borderRadius: 4, height: '100%', width: `${pctMes}%`, transition: 'width .3s' }} />
+                      </div>
+                    </div>
+                  </div>
+                  {(pctDia >= 90 || pctMes >= 90) && (
+                    <div style={{ marginTop: 16, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '12px 16px', fontSize: 12, color: '#991b1b', lineHeight: 1.5 }}>
+                      <strong>Atenção:</strong> você está perto do limite de e-mails do Resend. Quando o limite for atingido, os e-mails de aprovação/rejeição param de ser enviados automaticamente (mas a aprovação em si continua funcionando normalmente — use o link do WhatsApp como alternativa). Para aumentar o limite, faça upgrade do plano em{' '}
+                      <a href="https://resend.com/settings/billing" target="_blank" rel="noopener noreferrer" style={{ color: '#991b1b', fontWeight: 700 }}>resend.com/settings/billing</a>.
+                    </div>
+                  )}
+                  <p style={{ color: '#9ca3af', fontSize: 11, margin: '12px 0 0' }}>Limites ajustáveis em Configurações → Integrações.</p>
                 </div>
 
                 {/* Produtos mais vistos */}
@@ -2054,6 +2104,21 @@ export default function AdminPage() {
                         placeholder="re_..." style={inputStyle} />
                       <p style={{ color: '#6b7280', fontSize: 11, margin: '5px 0 0' }}>resend.com &gt; API Keys</p>
                     </div>
+                    <div className="admin-grid-auto" style={{ display: 'grid', gap: 16 }}>
+                      <div>
+                        <label style={labelStyle}>Limite de E-mails por Dia</label>
+                        <input type="number" min="0" value={config.limite_emails_dia ?? 100}
+                          onChange={e => setConfig(c => ({ ...c, limite_emails_dia: parseInt(e.target.value) || 0 }))}
+                          style={inputStyle} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Limite de E-mails por Mês</label>
+                        <input type="number" min="0" value={config.limite_emails_mes ?? 3000}
+                          onChange={e => setConfig(c => ({ ...c, limite_emails_mes: parseInt(e.target.value) || 0 }))}
+                          style={inputStyle} />
+                      </div>
+                    </div>
+                    <p style={{ color: '#6b7280', fontSize: 11, margin: '-8px 0 0' }}>Plano gratuito do Resend: 100/dia, 3.000/mês. Ajuste aqui se fizer upgrade.</p>
                     <div>
                       <label style={labelStyle}>WhatsApp Numero de Contato</label>
                       <input value={config.whatsapp_numero} onChange={e => setConfig(c => ({ ...c, whatsapp_numero: e.target.value }))}
