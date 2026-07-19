@@ -65,6 +65,7 @@ export default function AdminPage() {
   const [filtro, setFiltro] = useState('todos');
   const [editandoLead, setEditandoLead] = useState<Cadastro | null>(null);
   const [salvandoLead, setSalvandoLead] = useState(false);
+  const [reenviandoId, setReenviandoId] = useState<string | null>(null);
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loadingProd, setLoadingProd] = useState(false);
@@ -304,6 +305,17 @@ export default function AdminPage() {
     });
     if (r.ok) { showMsg('Cadastro excluido.'); carregarCadastros(); }
     else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao excluir')); }
+  };
+
+  const reenviarEmail = async (id: string, nome: string) => {
+    setReenviandoId(id);
+    const r = await fetch('/api/admin/reenviar-email', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify({ id }),
+    });
+    setReenviandoId(null);
+    if (r.ok) showMsg(`OK: E-mail reenviado para ${nome}!`);
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao reenviar e-mail')); }
   };
 
   const salvarEdicaoLead = async () => {
@@ -718,6 +730,11 @@ export default function AdminPage() {
                                     <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/indicar/${c.token}`); showMsg('Link de indicação copiado!'); }}
                                       style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
                                       Link Indicação
+                                    </button>
+                                    <button onClick={() => reenviarEmail(c.id, c.nome)} disabled={reenviandoId === c.id}
+                                      style={{ background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', padding: '5px 11px', borderRadius: 5, cursor: reenviandoId === c.id ? 'default' : 'pointer', fontSize: 12, fontFamily: 'inherit', opacity: reenviandoId === c.id ? 0.6 : 1 }}
+                                      title="Reenviar o e-mail de acesso para este médico">
+                                      {reenviandoId === c.id ? 'Enviando...' : 'Reenviar E-mail'}
                                     </button>
                                   </>
                                 )}
