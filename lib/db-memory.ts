@@ -1,10 +1,23 @@
 import { randomUUID } from 'crypto';
+import { after } from 'next/server';
 import { salvarJSON, carregarJSON } from './persist';
 
 // Lazy-load Supabase sync to avoid circular deps / edge-runtime issues
 function sb() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return null;
   try { return require('./supabase-sync'); } catch { return null; }
+}
+
+// Garante que a escrita no Supabase termine mesmo depois da resposta já ter
+// sido enviada — sem isso, a Vercel pode congelar a função no meio do envio
+// e a alteração (aprovação, edição, pedido etc.) nunca chega a salvar.
+function persist(p: Promise<unknown> | null | undefined) {
+  if (!p) return;
+  try {
+    after(() => p.catch(console.error));
+  } catch {
+    p.catch(console.error);
+  }
 }
 
 export type BannerItem = {
@@ -164,7 +177,7 @@ export function mem_criar(data: Omit<Cadastro, 'id' | 'status' | 'token' | 'crea
   const c: Cadastro = { ...data, id: randomUUID(), status: 'pendente', token: null, created_at: new Date().toISOString() };
   store.push(c);
   salvarCadastros();
-  sb()?.sbSaveCadastro(c)?.catch(console.error);
+  persist(sb()?.sbSaveCadastro(c));
   return c;
 }
 
@@ -189,7 +202,7 @@ export function mem_aprovar(id: string, token: string): Cadastro | null {
   if (!c) return null;
   c.status = 'aprovado'; c.token = token;
   c.updated_at = new Date().toISOString(); c.solicitacao = null;
-  salvarCadastros(); sb()?.sbSaveCadastro(c)?.catch(console.error);
+  salvarCadastros(); persist(sb()?.sbSaveCadastro(c));
   return c;
 }
 
@@ -197,7 +210,7 @@ export function mem_rejeitar(id: string): Cadastro | null {
   const c = getStore().find(c => c.id === id);
   if (!c) return null;
   c.status = 'rejeitado'; c.updated_at = new Date().toISOString(); c.solicitacao = null;
-  salvarCadastros(); sb()?.sbSaveCadastro(c)?.catch(console.error);
+  salvarCadastros(); persist(sb()?.sbSaveCadastro(c));
   return c;
 }
 
@@ -205,7 +218,7 @@ export function mem_atribuirVendedor(cadastroId: string, vendedorId: string): Ca
   const c = getStore().find(c => c.id === cadastroId);
   if (!c) return null;
   c.vendedor_id = vendedorId; c.updated_at = new Date().toISOString();
-  salvarCadastros(); sb()?.sbSaveCadastro(c)?.catch(console.error);
+  salvarCadastros(); persist(sb()?.sbSaveCadastro(c));
   return c;
 }
 
@@ -215,7 +228,7 @@ export function mem_solicitarAcao(cadastroId: string, solicitacao: 'aprovar' | '
   c.solicitacao = solicitacao; c.status = 'em_analise';
   c.updated_at = new Date().toISOString();
   if (motivo) c.motivo_rejeicao = motivo;
-  salvarCadastros(); sb()?.sbSaveCadastro(c)?.catch(console.error);
+  salvarCadastros(); persist(sb()?.sbSaveCadastro(c));
   return c;
 }
 
@@ -223,7 +236,7 @@ export function mem_adicionarObs(cadastroId: string, obs: string): Cadastro | nu
   const c = getStore().find(c => c.id === cadastroId);
   if (!c) return null;
   c.obs = obs; c.updated_at = new Date().toISOString();
-  salvarCadastros(); sb()?.sbSaveCadastro(c)?.catch(console.error);
+  salvarCadastros(); persist(sb()?.sbSaveCadastro(c));
   return c;
 }
 
@@ -232,7 +245,7 @@ export function mem_editarCadastro(id: string, data: Partial<Pick<Cadastro, 'nom
   if (!c) return null;
   Object.assign(c, data);
   c.updated_at = new Date().toISOString();
-  salvarCadastros(); sb()?.sbSaveCadastro(c)?.catch(console.error);
+  salvarCadastros(); persist(sb()?.sbSaveCadastro(c));
   return c;
 }
 
@@ -251,7 +264,7 @@ export function mem_deletarCadastro(id: string): boolean {
   const idx = store.findIndex(c => c.id === id);
   if (idx === -1) return false;
   store.splice(idx, 1);
-  salvarCadastros(); sb()?.sbDeleteCadastro(id)?.catch(console.error);
+  salvarCadastros(); persist(sb()?.sbDeleteCadastro(id));
   return true;
 }
 
@@ -321,20 +334,20 @@ export function mem_editarProduto(id: string, data: Partial<Omit<ProdutoMemory, 
   if (!p) return null;
   Object.assign(p, data);
   salvarJSON('produtos.json', store);
-  sb()?.sbSaveProduto(p)?.catch(console.error);
+  persist(sb()?.sbSaveProduto(p));
   return p;
 }
 
 export function mem_criarProdutoComPersistencia(data: Omit<ProdutoMemory, 'id' | 'created_at'>): ProdutoMemory {
   const p = mem_criarProduto(data);
   salvarJSON('produtos.json', getProdutosStore());
-  sb()?.sbSaveProduto(p)?.catch(console.error);
+  persist(sb()?.sbSaveProduto(p));
   return p;
 }
 
 export function mem_deletarProdutoComPersistencia(id: string): boolean {
   const ok = mem_deletarProduto(id);
-  if (ok) { salvarJSON('produtos.json', getProdutosStore()); sb()?.sbDeleteProduto(id)?.catch(console.error); }
+  if (ok) { salvarJSON('produtos.json', getProdutosStore()); persist(sb()?.sbDeleteProduto(id)); }
   return ok;
 }
 
@@ -345,7 +358,7 @@ export function mem_duplicarProduto(id: string): ProdutoMemory | null {
   const copia: ProdutoMemory = { ...original, id: randomUUID(), nome: original.nome + ' (cópia)', created_at: new Date().toISOString(), views: 0, cart_adds: 0 };
   store.push(copia);
   salvarJSON('produtos.json', store);
-  sb()?.sbSaveProduto(copia)?.catch(console.error);
+  persist(sb()?.sbSaveProduto(copia));
   return copia;
 }
 
@@ -388,7 +401,7 @@ export function mem_setConfig(cfg: Partial<Config>): Config {
   const current = mem_getConfig();
   Object.assign(current, cfg);
   salvarJSON('config.json', current);
-  sb()?.sbSaveConfig(current)?.catch(console.error);
+  persist(sb()?.sbSaveConfig(current));
   return current;
 }
 
@@ -481,7 +494,7 @@ export function mem_adicionarCategoria(nome: string): boolean {
   if (store.includes(nome)) return false;
   store.push(nome);
   salvarJSON('categorias.json', store);
-  sb()?.sbSaveCategorias([nome])?.catch(console.error);
+  persist(sb()?.sbSaveCategorias([nome]));
   return true;
 }
 export function mem_deletarCategoria(nome: string): boolean {
@@ -490,7 +503,7 @@ export function mem_deletarCategoria(nome: string): boolean {
   if (idx === -1) return false;
   store.splice(idx, 1);
   salvarJSON('categorias.json', store);
-  sb()?.sbDeleteCategoria(nome)?.catch(console.error);
+  persist(sb()?.sbDeleteCategoria(nome));
   return true;
 }
 
@@ -550,7 +563,7 @@ export function mem_adicionarCategoriaBlog(nome: string): boolean {
   if (store.includes(nome)) return false;
   store.push(nome);
   salvarJSON('categorias-blog.json', store);
-  sb()?.sbSaveCategoriasBlog([nome])?.catch(console.error);
+  persist(sb()?.sbSaveCategoriasBlog([nome]));
   return true;
 }
 export function mem_deletarCategoriaBlog(nome: string): boolean {
@@ -559,7 +572,7 @@ export function mem_deletarCategoriaBlog(nome: string): boolean {
   if (idx === -1) return false;
   store.splice(idx, 1);
   salvarJSON('categorias-blog.json', store);
-  sb()?.sbDeleteCategoriaBlog(nome)?.catch(console.error);
+  persist(sb()?.sbDeleteCategoriaBlog(nome));
   return true;
 }
 
@@ -580,21 +593,21 @@ export function mem_listarArtigos(apenasPublicados = false): Artigo[] {
 export function mem_criarArtigo(data: Omit<Artigo, 'id' | 'created_at' | 'updated_at'>): Artigo {
   const store = getArtigosStore();
   const a: Artigo = { ...data, id: randomUUID(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-  store.push(a); salvarArtigos(); sb()?.sbSaveArtigo(a)?.catch(console.error);
+  store.push(a); salvarArtigos(); persist(sb()?.sbSaveArtigo(a));
   return a;
 }
 export function mem_editarArtigo(id: string, data: Partial<Omit<Artigo, 'id' | 'created_at'>>): Artigo | null {
   const a = getArtigosStore().find(a => a.id === id);
   if (!a) return null;
   Object.assign(a, data, { updated_at: new Date().toISOString() });
-  salvarArtigos(); sb()?.sbSaveArtigo(a)?.catch(console.error);
+  salvarArtigos(); persist(sb()?.sbSaveArtigo(a));
   return a;
 }
 export function mem_deletarArtigo(id: string): boolean {
   const store = getArtigosStore();
   const idx = store.findIndex(a => a.id === id);
   if (idx === -1) return false;
-  store.splice(idx, 1); salvarArtigos(); sb()?.sbDeleteArtigo(id)?.catch(console.error);
+  store.splice(idx, 1); salvarArtigos(); persist(sb()?.sbDeleteArtigo(id));
   return true;
 }
 
@@ -613,13 +626,13 @@ export function mem_listarEquipe(): MembroEquipe[] {
 export function mem_criarMembro(data: Omit<MembroEquipe, 'id' | 'created_at'>): MembroEquipe {
   const store = getEquipeStore();
   const m: MembroEquipe = { ...data, id: randomUUID(), created_at: new Date().toISOString(), token_acesso: data.token_acesso || randomUUID() };
-  store.push(m); salvarEquipe(); sb()?.sbSaveMembro(m)?.catch(console.error);
+  store.push(m); salvarEquipe(); persist(sb()?.sbSaveMembro(m));
   return m;
 }
 export function mem_editarMembro(id: string, data: Partial<Omit<MembroEquipe, 'id' | 'created_at'>>): MembroEquipe | null {
   const m = getEquipeStore().find(m => m.id === id);
   if (!m) return null;
-  Object.assign(m, data); salvarEquipe(); sb()?.sbSaveMembro(m)?.catch(console.error);
+  Object.assign(m, data); salvarEquipe(); persist(sb()?.sbSaveMembro(m));
   return m;
 }
 export function mem_registrarAcesso(id: string): MembroEquipe | null {
@@ -633,7 +646,7 @@ export function mem_deletarMembro(id: string): boolean {
   const store = getEquipeStore();
   const idx = store.findIndex(m => m.id === id);
   if (idx === -1) return false;
-  store.splice(idx, 1); salvarEquipe(); sb()?.sbDeleteMembro(id)?.catch(console.error);
+  store.splice(idx, 1); salvarEquipe(); persist(sb()?.sbDeleteMembro(id));
   return true;
 }
 
@@ -648,10 +661,10 @@ export function mem_buscarMembroPorEmail(email: string): MembroEquipe | null {
 export function mem_gerarTokenMembro(id: string): string | null {
   const m = getEquipeStore().find(m => m.id === id);
   if (!m) return null;
-  if (m.token_acesso) { sb()?.sbSaveMembro(m)?.catch(console.error); return m.token_acesso; }
+  if (m.token_acesso) { persist(sb()?.sbSaveMembro(m)); return m.token_acesso; }
   const token = randomUUID();
   m.token_acesso = token;
-  salvarEquipe(); sb()?.sbSaveMembro(m)?.catch(console.error);
+  salvarEquipe(); persist(sb()?.sbSaveMembro(m));
   return token;
 }
 
@@ -671,7 +684,7 @@ export function mem_listarPedidos(): Pedido[] {
 export function mem_criarPedido(data: Omit<Pedido, 'id' | 'created_at'>): Pedido {
   const store = getPedidosStore();
   const p: Pedido = { ...data, id: randomUUID(), created_at: new Date().toISOString() };
-  store.push(p); salvarPedidos(); sb()?.sbSavePedido(p)?.catch(console.error);
+  store.push(p); salvarPedidos(); persist(sb()?.sbSavePedido(p));
   return p;
 }
 
@@ -679,7 +692,7 @@ export function mem_atualizarPedido(id: string, data: Partial<Pick<Pedido, 'stat
   const p = getPedidosStore().find(p => p.id === id);
   if (!p) return null;
   Object.assign(p, data, { updated_at: new Date().toISOString() });
-  salvarPedidos(); sb()?.sbSavePedido(p)?.catch(console.error);
+  salvarPedidos(); persist(sb()?.sbSavePedido(p));
   return p;
 }
 
@@ -721,7 +734,7 @@ function salvarIndicacoes() { salvarJSON('indicacoes.json', getIndicacoesStore()
 export function mem_criarIndicacao(data: Omit<Indicacao, 'id' | 'status' | 'created_at'>): Indicacao {
   const store = getIndicacoesStore();
   const i: Indicacao = { ...data, id: randomUUID(), status: 'novo', created_at: new Date().toISOString() };
-  store.push(i); salvarIndicacoes(); sb()?.sbSaveIndicacao(i)?.catch(console.error);
+  store.push(i); salvarIndicacoes(); persist(sb()?.sbSaveIndicacao(i));
   return i;
 }
 

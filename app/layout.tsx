@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const corPrimaria = cfg.corPrimaria || '#111827';
   const corAcento = cfg.corAcento || '#16a34a';
 
-  const scJson = JSON.stringify({ logo, corPrimaria, corAcento });
+  const scJson = JSON.stringify({ logo, corPrimaria, corAcento }).replace(/</g, '\\u003c');
 
   return (
     <html lang="pt-BR">
