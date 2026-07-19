@@ -78,15 +78,25 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
               from: 'PeptideZ Health <contato@peptidezhealth.com.br>',
               to: c.email,
               subject: '✅ Seu acesso foi aprovado — PeptideZ Health',
-              html: `<div style="font-family:Arial,sans-serif;background:#000;color:#fff;padding:40px;max-width:600px;margin:0 auto;">
-<h1 style="color:#8AE152;">PeptideZ Health</h1>
-<h2 style="color:#fff;">Olá, ${nomeCliente}! 🎉</h2>
-<p style="color:#ccc;line-height:1.6;">Seu cadastro foi <strong style="color:#8AE152;">aprovado</strong>! Acesse sua loja exclusiva de peptídeos:</p>
-<div style="text-align:center;margin:40px 0;">
-<a href="${lojaUrl}" style="background:#8AE152;color:#000;padding:16px 40px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:16px;display:inline-block">Acessar Minha Loja →</a>
+              html: `<div style="font-family:Arial,Helvetica,sans-serif;background:#f8fafc;padding:32px 16px;">
+<div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;">
+<div style="padding:28px 32px;text-align:center;border-bottom:1px solid #f3f4f6;">
+<img src="${cfg.logo || 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg'}" alt="PeptideZ Health" style="height:44px;object-fit:contain;" />
 </div>
-<p style="color:#888;font-size:12px;text-align:center;">Link direto: <a href="${lojaUrl}" style="color:#8AE152;">${lojaUrl}</a></p>
-${whatsappNumero ? `<p style="color:#888;font-size:12px;text-align:center;">Dúvidas? WhatsApp: ${whatsappNumero}</p>` : ''}
+<div style="padding:32px;">
+<div style="color:#16a34a;font-weight:700;font-size:12px;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;">Cadastro aprovado</div>
+<h1 style="color:#111827;font-size:22px;margin:0 0 16px;">Olá, ${nomeCliente}! 🎉</h1>
+<p style="color:#374151;font-size:15px;line-height:1.6;margin:0 0 28px;">Seu cadastro foi <strong style="color:#16a34a;">aprovado</strong>! Acesse sua loja exclusiva de peptídeos.</p>
+<div style="text-align:center;margin-bottom:24px;">
+<a href="${lojaUrl}" style="background:#111827;color:#fff;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;display:inline-block">Acessar Minha Loja →</a>
+</div>
+<p style="color:#9ca3af;font-size:12px;text-align:center;margin:0 0 4px;">Link direto: <a href="${lojaUrl}" style="color:#16a34a;">${lojaUrl}</a></p>
+${whatsappNumero ? `<p style="color:#9ca3af;font-size:12px;text-align:center;margin:0;">Dúvidas? WhatsApp: ${whatsappNumero}</p>` : ''}
+</div>
+<div style="padding:18px 32px;background:#f9fafb;border-top:1px solid #f3f4f6;text-align:center;">
+<p style="color:#9ca3af;font-size:11px;margin:0;">PeptideZ Health · Exclusivo para Prescrição Médica</p>
+</div>
+</div>
 </div>`,
             }),
           });
