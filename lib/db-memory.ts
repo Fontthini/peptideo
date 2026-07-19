@@ -614,6 +614,15 @@ export function mem_atualizarPedido(id: string, data: Partial<Pick<Pedido, 'stat
   return p;
 }
 
+export function mem_deletarPedido(id: string): boolean {
+  const store = getPedidosStore();
+  const idx = store.findIndex(p => p.id === id);
+  if (idx === -1) return false;
+  store.splice(idx, 1);
+  salvarPedidos();
+  return true;
+}
+
 export function mem_listarPedidosPorVendedor(vendedorId: string): Pedido[] {
   return getPedidosStore()
     .filter(p => p.vendedor_id === vendedorId)
@@ -645,6 +654,23 @@ export function mem_criarIndicacao(data: Omit<Indicacao, 'id' | 'status' | 'crea
   const i: Indicacao = { ...data, id: randomUUID(), status: 'novo', created_at: new Date().toISOString() };
   store.push(i); salvarIndicacoes(); sb()?.sbSaveIndicacao(i)?.catch(console.error);
   return i;
+}
+
+export function mem_editarIndicacao(id: string, data: Partial<Omit<Indicacao, 'id' | 'created_at'>>): Indicacao | null {
+  const i = getIndicacoesStore().find(i => i.id === id);
+  if (!i) return null;
+  Object.assign(i, data);
+  salvarIndicacoes();
+  return i;
+}
+
+export function mem_deletarIndicacao(id: string): boolean {
+  const store = getIndicacoesStore();
+  const idx = store.findIndex(i => i.id === id);
+  if (idx === -1) return false;
+  store.splice(idx, 1);
+  salvarIndicacoes();
+  return true;
 }
 
 export function mem_listarIndicacoes(): Indicacao[] {

@@ -142,13 +142,19 @@ export async function sbDeleteMembro(id: string) {
 // ── Pedidos ─────────────────────────────────────────────────────────────────
 
 export async function sbSavePedido(p: Pedido) {
-  await supabase.from('pedidos').upsert({
+  const { error } = await supabase.from('pedidos').upsert({
     id: p.id, cadastro_id: p.cadastro_id,
     vendedor_id: p.vendedor_id || '',
     itens: p.itens || [{ nome: p.produto_nome, preco: p.preco, quantidade: 1 }],
     preco: p.preco, status: p.status, obs: p.obs || '',
     created_at: p.created_at,
   });
+  if (error) throw new Error(`sbSavePedido: ${error.message} (${error.code})`);
+}
+
+export async function sbDeletePedido(id: string) {
+  const { error } = await supabase.from('pedidos').delete().eq('id', id);
+  if (error) throw new Error(`sbDeletePedido: ${error.message} (${error.code})`);
 }
 
 // ── Indicações ──────────────────────────────────────────────────────────────
@@ -161,6 +167,11 @@ export async function sbSaveIndicacao(i: Indicacao) {
     status: i.status, obs: i.obs || '', created_at: i.created_at,
   });
   if (error) throw new Error(`sbSaveIndicacao: ${error.message} (${error.code})`);
+}
+
+export async function sbDeleteIndicacao(id: string) {
+  const { error } = await supabase.from('indicacoes').delete().eq('id', id);
+  if (error) throw new Error(`sbDeleteIndicacao: ${error.message} (${error.code})`);
 }
 
 // ── Categorias ───────────────────────────────────────────────────────────────

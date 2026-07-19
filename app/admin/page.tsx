@@ -19,7 +19,8 @@ type BannerItem = { id: string; imagem: string; titulo: string; subtitulo: strin
 type Material = { nome: string; url: string };
 type Artigo = { id: string; titulo: string; conteudo: string; imagem?: string; video?: string; categoria?: string; materiais: Material[]; publicado: boolean; created_at: string; updated_at: string; };
 type Membro = { id: string; nome: string; email: string; cargo: string; ativo: boolean; created_at: string; senha?: string; token_acesso?: string; last_seen?: string | null; };
-type Pedido = { id: string; cadastro_nome: string; cadastro_email: string; produto_nome: string; preco: number; status: string; created_at: string; };
+type PedidoItem = { nome: string; preco: number; quantidade: number };
+type Pedido = { id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string; produto_nome: string; preco: number; itens?: PedidoItem[]; vendedor_id?: string; status: string; obs?: string; created_at: string; };
 type Indicacao = { id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string; status: string; created_at: string; };
 
 const ADMIN_KEY_LOCAL = 'admin_key';
@@ -47,7 +48,7 @@ const labelStyle: React.CSSProperties = {
 export default function AdminPage() {
   const [senha, setSenha] = useState('');
   const [logado, setLogado] = useState(false);
-  const [aba, setAba] = useState<'leads' | 'produtos' | 'banners' | 'blog' | 'equipe' | 'indicacoes' | 'config' | 'dashboard'>('leads');
+  const [aba, setAba] = useState<'leads' | 'produtos' | 'banners' | 'blog' | 'equipe' | 'indicacoes' | 'pedidos' | 'config' | 'dashboard'>('leads');
   const [msg, setMsg] = useState('');
 
   const [cadastros, setCadastros] = useState<Cadastro[]>([]);
@@ -203,6 +204,44 @@ export default function AdminPage() {
     } finally { setLoadingIndicacoes(false); }
   };
 
+  const atualizarStatusIndicacao = async (i: Indicacao, status: string) => {
+    const r = await fetch('/api/admin/indicacoes', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify({ ...i, status }),
+    });
+    if (r.ok) { showMsg('OK: Indicação atualizada!'); carregarIndicacoes(); }
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao atualizar')); }
+  };
+
+  const excluirIndicacao = async (id: string, nome: string) => {
+    if (!confirm(`Excluir permanentemente a indicação de ${nome}?`)) return;
+    const r = await fetch('/api/admin/indicacoes', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify({ id }),
+    });
+    if (r.ok) { showMsg('Indicação excluída.'); carregarIndicacoes(); }
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao excluir')); }
+  };
+
+  const atualizarStatusPedido = async (id: string, status: string) => {
+    const r = await fetch('/api/admin/pedidos', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify({ id, status }),
+    });
+    if (r.ok) { showMsg('OK: Pedido atualizado!'); carregarPedidos(); }
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao atualizar')); }
+  };
+
+  const excluirPedido = async (id: string, cliente: string) => {
+    if (!confirm(`Excluir permanentemente o pedido de ${cliente}?`)) return;
+    const r = await fetch('/api/admin/pedidos', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify({ id }),
+    });
+    if (r.ok) { showMsg('Pedido excluído.'); carregarPedidos(); }
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao excluir')); }
+  };
+
   const mudarAba = (a: typeof aba) => {
     setAba(a);
     if (a === 'produtos') { if (produtos.length === 0) carregarProdutos(); carregarCategorias(); }
@@ -211,6 +250,7 @@ export default function AdminPage() {
     if (a === 'blog') { carregarArtigos(); carregarCategoriasBlog(); carregarBannersBlog(); }
     if (a === 'equipe') carregarEquipe();
     if (a === 'indicacoes') carregarIndicacoes();
+    if (a === 'pedidos') carregarPedidos();
     if (a === 'dashboard') { carregarCadastros(); carregarEquipe(); carregarPedidos(); }
   };
 
@@ -455,7 +495,7 @@ export default function AdminPage() {
 
   const NAV_COLOR: Record<string, string> = {
     dashboard: '#4f46e5', leads: '#16a34a', produtos: '#7c3aed', banners: '#f59e0b',
-    blog: '#db2777', equipe: '#2563eb', indicacoes: '#0d9488', config: '#64748b',
+    blog: '#db2777', equipe: '#2563eb', indicacoes: '#0d9488', pedidos: '#ea580c', config: '#64748b',
   };
 
   const navItem = (key: typeof aba, icon: string, label: string) => {
@@ -523,6 +563,7 @@ export default function AdminPage() {
           {navItem('blog', '~', 'Blog')}
           {navItem('equipe', '@', 'Equipe')}
           {navItem('indicacoes', '>', 'Indicações')}
+          {navItem('pedidos', '$', 'Pedidos')}
           {navItem('config', '=', 'Config')}
 
           <div style={{ marginTop: 'auto', paddingTop: 20, borderTop: '1px solid #f3f4f6' }}>
@@ -1721,7 +1762,7 @@ export default function AdminPage() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-                        {['Paciente', 'WhatsApp', 'E-mail', 'Endereço', 'Médico Indicador', 'Data'].map(h => (
+                        {['Paciente', 'WhatsApp', 'E-mail', 'Endereço', 'Médico Indicador', 'Status', 'Data', 'Ações'].map(h => (
                           <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                         ))}
                       </tr>
@@ -1739,8 +1780,82 @@ export default function AdminPage() {
                           <td style={{ padding: '11px 14px', color: '#6b7280' }}>{i.email || '—'}</td>
                           <td style={{ padding: '11px 14px', color: '#6b7280', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.endereco}</td>
                           <td style={{ padding: '11px 14px', color: '#7c3aed', fontWeight: 700 }}>{i.medico_nome}</td>
+                          <td style={{ padding: '11px 14px' }}>
+                            <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
+                              style={{ background: '#fff', border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 8px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                              <option value="novo">Novo</option>
+                              <option value="contatado">Contatado</option>
+                              <option value="convertido">Convertido</option>
+                            </select>
+                          </td>
                           <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
                             {new Date(i.created_at).toLocaleDateString('pt-BR')}
+                          </td>
+                          <td style={{ padding: '11px 14px' }}>
+                            <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
+                              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
+                              Excluir
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ======== ABA PEDIDOS ======== */}
+          {aba === 'pedidos' && (
+            <div>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>
+                Pedidos <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({pedidos.length})</span>
+              </h2>
+              <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>
+                Todos os pedidos feitos na loja pelos médicos aprovados. Você pode alterar o status ou excluir pedidos de teste.
+              </p>
+              {pedidos.length === 0 ? (
+                <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                  Nenhum pedido ainda.
+                </div>
+              ) : (
+                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                        {['Cliente', 'Produto(s)', 'Valor', 'Status', 'Data', 'Ações'].map(h => (
+                          <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pedidos.map((p, idx) => (
+                        <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                          <td style={{ padding: '11px 14px' }}>
+                            <div style={{ fontWeight: 700, color: '#111827' }}>{p.cadastro_nome}</div>
+                            <div style={{ fontSize: 11, color: '#6b7280' }}>{p.cadastro_email}</div>
+                          </td>
+                          <td style={{ padding: '11px 14px', color: '#374151', maxWidth: 220, fontSize: 12 }}>
+                            {p.itens && p.itens.length > 0 ? p.itens.map(it => `${it.nome} x${it.quantidade}`).join(', ') : p.produto_nome}
+                          </td>
+                          <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a' }}>R$ {p.preco.toFixed(2)}</td>
+                          <td style={{ padding: '11px 14px' }}>
+                            <select value={p.status} onChange={e => atualizarStatusPedido(p.id, e.target.value)}
+                              style={{ background: '#fff', border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 8px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                              <option value="em_aberto">Em Aberto</option>
+                              <option value="vendido">Vendido</option>
+                              <option value="cancelado">Cancelado</option>
+                            </select>
+                          </td>
+                          <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                            {new Date(p.created_at).toLocaleDateString('pt-BR')}
+                          </td>
+                          <td style={{ padding: '11px 14px' }}>
+                            <button onClick={() => excluirPedido(p.id, p.cadastro_nome)}
+                              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
+                              Excluir
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -1754,7 +1869,7 @@ export default function AdminPage() {
           {/* ======== ABA CONFIGURA!"ES ======== */}
           {aba === 'config' && (
             <div style={{ maxWidth: 700 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 24, marginTop: 0 }}>a" Configurações da Plataforma</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 24, marginTop: 0 }}>Configurações da Plataforma</h2>
               <form onSubmit={salvarConfig} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
                 {/* Identidade Visual */}
