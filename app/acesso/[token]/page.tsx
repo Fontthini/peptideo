@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { mem_buscarToken, mem_getConfig } from '@/lib/db-memory';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
-import IndicarLinkCard from './IndicarLinkCard';
+import CardsGrid from './CardsGrid';
 
 async function getUsuario(token: string) {
   await reloadFromSupabase();
@@ -80,43 +80,7 @@ export default async function AcessoPage({ params }: { params: Promise<{ token: 
         </div>
 
         {/* Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-          <Link href={`/acesso/${token}/loja`} style={{ textDecoration: 'none' }}>
-            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 28, boxShadow: '0 1px 4px rgba(0,0,0,0.05)', height: '100%' }}>
-              <div style={{ fontSize: 42, marginBottom: 14 }}>🛒</div>
-              <h3 style={{ fontSize: 19, fontWeight: 800, color: '#111827', marginBottom: 8, marginTop: 0 }}>Loja Completa</h3>
-              <p style={{ color: '#6b7280', fontSize: 14, lineHeight: 1.6, margin: '0 0 16px' }}>
-                20+ peptídeos organizados por categoria. Emagrecimento, cognição, regeneração e mais.
-              </p>
-              <span style={{ color: '#16a34a', fontWeight: 700, fontSize: 14 }}>Acessar loja →</span>
-            </div>
-          </Link>
-
-          <Link href={`/acesso/${token}/blog`} style={{ textDecoration: 'none' }}>
-            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 28, boxShadow: '0 1px 4px rgba(0,0,0,0.05)', height: '100%' }}>
-              <div style={{ fontSize: 42, marginBottom: 14 }}>📚</div>
-              <h3 style={{ fontSize: 19, fontWeight: 800, color: '#111827', marginBottom: 8, marginTop: 0 }}>Blog Especializado</h3>
-              <p style={{ color: '#6b7280', fontSize: 14, lineHeight: 1.6, margin: '0 0 16px' }}>
-                Artigos técnicos e científicos sobre peptídeos, protocolos e aplicações clínicas.
-              </p>
-              <span style={{ color: '#16a34a', fontWeight: 700, fontSize: 14 }}>Ler artigos →</span>
-            </div>
-          </Link>
-
-          <IndicarLinkCard token={token} />
-
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 28, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-            <div style={{ fontSize: 42, marginBottom: 14 }}>💬</div>
-            <h3 style={{ fontSize: 19, fontWeight: 800, color: '#111827', marginBottom: 8, marginTop: 0 }}>Suporte</h3>
-            <p style={{ color: '#6b7280', fontSize: 14, lineHeight: 1.6, margin: '0 0 16px' }}>
-              Dúvidas sobre produtos, protocolos ou pedidos? Fale diretamente conosco.
-            </p>
-            <a href={`https://wa.me/${waNumero}`} target="_blank" rel="noreferrer"
-              style={{ color: '#16a34a', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
-              WhatsApp →
-            </a>
-          </div>
-        </div>
+        <CardsGrid token={token} waNumero={waNumero} />
       </div>
     </div>
   );

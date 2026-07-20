@@ -85,6 +85,7 @@ export type Config = {
   emails_mes_referencia?: string;
   limite_emails_dia?: number;
   limite_emails_mes?: number;
+  cliques_cards?: Record<string, number>;
 };
 
 declare global {
@@ -419,6 +420,13 @@ export function mem_registrarEnvioEmail(): Config {
     emails_mes_referencia: mes,
     emails_enviados_mes: (mesOk ? (cfg.emails_enviados_mes || 0) : 0) + 1,
   });
+}
+
+export function mem_registrarClique(card: string): Config {
+  const cfg = mem_getConfig();
+  const atual = { ...(cfg.cliques_cards || {}) };
+  atual[card] = (atual[card] || 0) + 1;
+  return mem_setConfig({ cliques_cards: atual });
 }
 
 // ---- Banners ----

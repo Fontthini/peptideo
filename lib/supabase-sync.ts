@@ -27,6 +27,7 @@ function rowToConfig(row: Record<string, unknown>): Config {
     emails_mes_referencia: (row.emails_mes_referencia as string) || '',
     limite_emails_dia: (row.limite_emails_dia as number) || 100,
     limite_emails_mes: (row.limite_emails_mes as number) || 3000,
+    cliques_cards: (row.cliques_cards as Record<string, number>) || {},
   };
 }
 
@@ -50,6 +51,7 @@ function configToRow(cfg: Config) {
     emails_mes_referencia: cfg.emails_mes_referencia || '',
     limite_emails_dia: cfg.limite_emails_dia || 100,
     limite_emails_mes: cfg.limite_emails_mes || 3000,
+    cliques_cards: cfg.cliques_cards || {},
   };
 }
 

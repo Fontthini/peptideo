@@ -22,6 +22,7 @@ type Config = {
   emails_enviados_hoje?: number; emails_dia_referencia?: string;
   emails_enviados_mes?: number; emails_mes_referencia?: string;
   limite_emails_dia?: number; limite_emails_mes?: number;
+  cliques_cards?: Record<string, number>;
 };
 type BannerItem = { id: string; imagem: string; titulo: string; subtitulo: string; ativo: boolean; ordem: number; };
 type Material = { nome: string; url: string };
@@ -1525,6 +1526,16 @@ export default function AdminPage() {
             const corDia = pctDia >= 90 ? '#dc2626' : pctDia >= 70 ? '#f59e0b' : '#16a34a';
             const corMes = pctMes >= 90 ? '#dc2626' : pctMes >= 70 ? '#f59e0b' : '#16a34a';
 
+            const cliques = config.cliques_cards || {};
+            const CARDS_INICIO: { key: string; label: string }[] = [
+              { key: 'loja', label: 'Loja Completa' },
+              { key: 'blog', label: 'Blog Especializado' },
+              { key: 'indicar', label: 'Indicar Paciente' },
+              { key: 'suporte', label: 'Suporte' },
+              { key: 'mentoria', label: 'Mentoria Sobre Peptídeos' },
+            ];
+            const maxCliques = Math.max(...CARDS_INICIO.map(c => cliques[c.key] || 0), 1);
+
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                 <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>Dashboard Geral</h2>
@@ -1654,6 +1665,24 @@ export default function AdminPage() {
                     </div>
                   )}
                   <p style={{ color: '#9ca3af', fontSize: 11, margin: '12px 0 0' }}>Limites ajustáveis em Configurações → Integrações.</p>
+                </div>
+
+                {/* Cliques nos cards da tela inicial */}
+                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Cliques nos Cards (Início)</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {CARDS_INICIO.map(c => (
+                      <div key={c.key}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                          <span style={{ color: '#374151', fontWeight: 600 }}>{c.label}</span>
+                          <span style={{ color: '#6b7280' }}>{cliques[c.key] || 0} cliques</span>
+                        </div>
+                        <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
+                          <div style={{ background: '#16a34a', borderRadius: 4, height: '100%', width: `${((cliques[c.key] || 0) / maxCliques) * 100}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Produtos mais vistos */}
