@@ -30,7 +30,7 @@ type Artigo = { id: string; titulo: string; conteudo: string; imagem?: string; v
 type Membro = { id: string; nome: string; email: string; cargo: string; ativo: boolean; created_at: string; senha?: string; token_acesso?: string; last_seen?: string | null; };
 type PedidoItem = { nome: string; preco: number; quantidade: number };
 type Pedido = { id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string; produto_nome: string; preco: number; itens?: PedidoItem[]; vendedor_id?: string; status: string; obs?: string; created_at: string; };
-type Indicacao = { id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string; status: string; created_at: string; };
+type Indicacao = { id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string; status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string; };
 
 const ADMIN_KEY_LOCAL = 'admin_key';
 const ADMIN_NOME_LOCAL = 'admin_nome';
@@ -63,7 +63,7 @@ export default function AdminPage() {
   const [logado, setLogado] = useState(false);
   const [adminNome, setAdminNome] = useState('');
   const [isSuperadmin, setIsSuperadmin] = useState(false);
-  const [aba, setAba] = useState<'leads' | 'produtos' | 'banners' | 'blog' | 'equipe' | 'indicacoes' | 'pedidos' | 'config' | 'dashboard' | 'logs'>('leads');
+  const [aba, setAba] = useState<'leads' | 'produtos' | 'banners' | 'blog' | 'equipe' | 'indicacoes' | 'indicacoes-medicas' | 'pedidos' | 'config' | 'dashboard' | 'logs'>('leads');
   const [msg, setMsg] = useState('');
   const [logs, setLogs] = useState<AdminLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -288,7 +288,7 @@ export default function AdminPage() {
     if (a === 'banners') carregarBanners();
     if (a === 'blog') { carregarArtigos(); carregarCategoriasBlog(); carregarBannersBlog(); }
     if (a === 'equipe') carregarEquipe();
-    if (a === 'indicacoes') carregarIndicacoes();
+    if (a === 'indicacoes' || a === 'indicacoes-medicas') carregarIndicacoes();
     if (a === 'pedidos') carregarPedidos();
     if (a === 'dashboard') { carregarCadastros(); carregarEquipe(); carregarPedidos(); if (produtos.length === 0) carregarProdutos(); }
     if (a === 'logs') carregarLogs();
@@ -577,7 +577,7 @@ export default function AdminPage() {
 
   const NAV_COLOR: Record<string, string> = {
     dashboard: '#4f46e5', leads: '#16a34a', produtos: '#7c3aed', banners: '#f59e0b',
-    blog: '#db2777', equipe: '#2563eb', indicacoes: '#0d9488', pedidos: '#ea580c', config: '#64748b',
+    blog: '#db2777', equipe: '#2563eb', indicacoes: '#0d9488', 'indicacoes-medicas': '#0891b2', pedidos: '#ea580c', config: '#64748b',
     logs: '#57534e',
   };
 
@@ -667,6 +667,7 @@ export default function AdminPage() {
           {navItem('blog', '~', 'Blog')}
           {isSuperadmin && navItem('equipe', '@', 'Equipe')}
           {navItem('indicacoes', '>', 'Indicações')}
+          {navItem('indicacoes-medicas', '+', 'Indicações Médicas')}
           {navItem('pedidos', '$', 'Pedidos')}
           {navItem('config', '=', 'Config')}
           {isSuperadmin && navItem('logs', '!', 'Log')}
@@ -1595,6 +1596,7 @@ export default function AdminPage() {
               { key: 'loja', label: 'Loja Completa' },
               { key: 'blog', label: 'Blog Especializado' },
               { key: 'indicar', label: 'Indicar Paciente' },
+              { key: 'indicar_medico', label: 'Indicar Médico' },
               { key: 'suporte', label: 'Suporte' },
               { key: 'mentoria', label: 'Mentoria Sobre Peptídeos' },
             ];
@@ -2078,10 +2080,12 @@ export default function AdminPage() {
           )}
 
           {/* ======== ABA INDICAÇÕES ======== */}
-          {aba === 'indicacoes' && (
+          {aba === 'indicacoes' && (() => {
+            const indicacoesPacientes = indicacoes.filter(i => i.tipo !== 'medico');
+            return (
             <div>
               <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>
-                Indicações <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({indicacoes.length})</span>
+                Indicações <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({indicacoesPacientes.length})</span>
               </h2>
               <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>
                 Pacientes cadastrados pelo link de indicação de um médico aprovado, com vínculo automático.
@@ -2093,7 +2097,7 @@ export default function AdminPage() {
 
               {(() => {
                 const q = buscaIndicacao.trim().toLowerCase();
-                const indicacoesFiltradas = !q ? indicacoes : indicacoes.filter(i =>
+                const indicacoesFiltradas = !q ? indicacoesPacientes : indicacoesPacientes.filter(i =>
                   `${i.medico_nome} ${i.nome} ${i.sobrenome} ${i.email || ''}`.toLowerCase().includes(q));
 
                 const porMedico = new Map<string, number>();
@@ -2126,7 +2130,7 @@ export default function AdminPage() {
                       <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
                     ) : indicacoesFiltradas.length === 0 ? (
                       <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
-                        {indicacoes.length === 0
+                        {indicacoesPacientes.length === 0
                           ? <>Nenhuma indicação ainda. O botão &quot;Copiar Link de Indicação&quot; aparece na aba Leads para médicos aprovados.</>
                           : <>Nenhuma indicação encontrada para essa busca.</>}
                       </div>
@@ -2184,7 +2188,115 @@ export default function AdminPage() {
                 );
               })()}
             </div>
-          )}
+            );
+          })()}
+
+          {/* ======== ABA INDICAÇÕES MÉDICAS ======== */}
+          {aba === 'indicacoes-medicas' && (() => {
+            const indicacoesMedicas = indicacoes.filter(i => i.tipo === 'medico');
+            const q = buscaIndicacao.trim().toLowerCase();
+            const filtradas = !q ? indicacoesMedicas : indicacoesMedicas.filter(i =>
+              `${i.medico_nome} ${i.nome} ${i.sobrenome} ${i.email || ''} ${i.crm || ''}`.toLowerCase().includes(q));
+
+            const porMedico = new Map<string, number>();
+            filtradas.forEach(i => porMedico.set(i.medico_nome, (porMedico.get(i.medico_nome) || 0) + 1));
+            const ranking = [...porMedico.entries()].sort((a, b) => b[1] - a[1]);
+            const maxIndic = Math.max(...ranking.map(([, n]) => n), 1);
+
+            return (
+              <div>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>
+                  Indicações Médicas <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({indicacoesMedicas.length})</span>
+                </h2>
+                <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>
+                  Médicos indicados por outros médicos já aprovados, pelo card &quot;Indicar Médico&quot; na tela inicial.
+                </p>
+
+                <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
+                  placeholder="Buscar por médico indicador, indicado ou CRM..."
+                  style={{ ...inputStyle, marginBottom: 20, maxWidth: 420 }} />
+
+                {ranking.length > 0 && (
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24, marginBottom: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Indicações Médicas por Médico</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {ranking.map(([medico, n]) => (
+                        <div key={medico}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                            <span style={{ color: '#374151', fontWeight: 600 }}>{medico}</span>
+                            <span style={{ color: '#0891b2', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
+                          </div>
+                          <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
+                            <div style={{ background: '#0891b2', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {loadingIndicacoes ? (
+                  <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+                ) : filtradas.length === 0 ? (
+                  <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                    {indicacoesMedicas.length === 0
+                      ? <>Nenhuma indicação médica ainda. O card &quot;Indicar Médico&quot; aparece na tela inicial para médicos aprovados.</>
+                      : <>Nenhuma indicação encontrada para essa busca.</>}
+                  </div>
+                ) : (
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                    <div className="admin-table-scroll">
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                          {['Médico Indicado', 'CRM', 'WhatsApp', 'E-mail', 'Endereço', 'Médico Indicador', 'Status', 'Data', 'Ações'].map(h => (
+                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtradas.map((i, idx) => (
+                          <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                            <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{i.nome} {i.sobrenome}</td>
+                            <td style={{ padding: '11px 14px', color: '#6b7280' }}>{i.crm || '—'}</td>
+                            <td style={{ padding: '11px 14px' }}>
+                              {i.whatsapp && (
+                                <a href={`https://wa.me/${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                                  style={{ color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>{i.whatsapp}</a>
+                              )}
+                            </td>
+                            <td style={{ padding: '11px 14px', color: '#6b7280' }}>{i.email || '—'}</td>
+                            <td style={{ padding: '11px 14px', color: '#6b7280', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.endereco}</td>
+                            <td style={{ padding: '11px 14px', color: '#0891b2', fontWeight: 700 }}>{i.medico_nome}</td>
+                            <td style={{ padding: '11px 14px' }}>
+                              <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
+                                style={{ background: '#fff', color: '#111827', border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                <option value="novo">Novo</option>
+                                <option value="contatado">Contatado</option>
+                                <option value="convertido">Convertido</option>
+                              </select>
+                            </td>
+                            <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                              {new Date(i.created_at).toLocaleDateString('pt-BR')}
+                            </td>
+                            <td style={{ padding: '11px 14px' }}>
+                              {isSuperadmin && (
+                                <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
+                                  style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
+                                  Excluir
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* ======== ABA PEDIDOS ======== */}
           {aba === 'pedidos' && (

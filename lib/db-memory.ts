@@ -150,6 +150,8 @@ export type Indicacao = {
   status: 'novo' | 'contatado' | 'convertido';
   obs?: string;
   created_at: string;
+  tipo?: 'paciente' | 'medico';
+  crm?: string;
 };
 
 export type PedidoItem = { nome: string; preco: number; quantidade: number };

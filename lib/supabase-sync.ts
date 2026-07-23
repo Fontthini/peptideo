@@ -197,6 +197,7 @@ export async function sbSaveIndicacao(i: Indicacao) {
     nome: i.nome, sobrenome: i.sobrenome || '', whatsapp: i.whatsapp,
     email: i.email || '', endereco: i.endereco || '',
     status: i.status, obs: i.obs || '', created_at: i.created_at,
+    tipo: i.tipo || 'paciente', crm: i.crm || '',
   });
   if (error) throw new Error(`sbSaveIndicacao: ${error.message} (${error.code})`);
 }

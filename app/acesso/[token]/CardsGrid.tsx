@@ -14,6 +14,7 @@ function track(card: string) {
 
 export default function CardsGrid({ token, waNumero }: { token: string; waNumero: string }) {
   const [copiado, setCopiado] = useState(false);
+  const [copiadoMedico, setCopiadoMedico] = useState(false);
 
   const copiarLink = () => {
     track('indicar');
@@ -21,6 +22,14 @@ export default function CardsGrid({ token, waNumero }: { token: string; waNumero
     navigator.clipboard.writeText(url);
     setCopiado(true);
     setTimeout(() => setCopiado(false), 2500);
+  };
+
+  const copiarLinkMedico = () => {
+    track('indicar_medico');
+    const url = `${window.location.origin}/indicar-medico/${token}`;
+    navigator.clipboard.writeText(url);
+    setCopiadoMedico(true);
+    setTimeout(() => setCopiadoMedico(false), 2500);
   };
 
   return (
@@ -58,6 +67,20 @@ export default function CardsGrid({ token, waNumero }: { token: string; waNumero
           padding: '10px 18px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit',
         }}>
           {copiado ? '✓ Link copiado!' : 'Copiar meu link →'}
+        </button>
+      </div>
+
+      <div style={cardStyle}>
+        <div style={{ fontSize: 42, marginBottom: 14 }}>🩺</div>
+        <h3 style={{ fontSize: 19, fontWeight: 800, color: '#111827', marginBottom: 8, marginTop: 0 }}>Indicar Médico</h3>
+        <p style={{ color: '#6b7280', fontSize: 14, lineHeight: 1.6, margin: '0 0 16px' }}>
+          Conhece um colega médico? Copie o link e convide para se juntar à PeptideZ Health.
+        </p>
+        <button onClick={copiarLinkMedico} style={{
+          background: copiadoMedico ? '#dcfce7' : '#f0fdf4', color: '#15803d', border: '1px solid #86efac',
+          padding: '10px 18px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit',
+        }}>
+          {copiadoMedico ? '✓ Link copiado!' : 'Copiar meu link →'}
         </button>
       </div>
 

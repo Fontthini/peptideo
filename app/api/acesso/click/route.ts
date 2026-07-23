@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mem_registrarClique } from '@/lib/db-memory';
 
-const CARDS_VALIDOS = ['loja', 'blog', 'indicar', 'suporte', 'mentoria'];
+const CARDS_VALIDOS = ['loja', 'blog', 'indicar', 'indicar_medico', 'suporte', 'mentoria'];
 
 export async function POST(req: NextRequest) {
   const { card } = await req.json();
