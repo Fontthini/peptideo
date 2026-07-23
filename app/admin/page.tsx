@@ -2031,14 +2031,16 @@ export default function AdminPage() {
                     </select>
                   </div>
                   <div>
-                    <label style={labelStyle}>Senha do Portal *</label>
+                    <label style={labelStyle}>Senha {(editandoMembro ? editandoMembro.cargo : novoMembro.cargo) === 'admin' ? 'do Painel' : 'do Portal'} *</label>
                     <input type="password"
                       value={editandoMembro ? (editandoMembro.senha || '') : novoMembro.senha}
                       onChange={e => editandoMembro ? setEditandoMembro(m => m && ({ ...m, senha: e.target.value })) : setNovoMembro(m => ({ ...m, senha: e.target.value }))}
                       placeholder={editandoMembro ? '(deixe em branco para manter)' : 'mínimo 6 caracteres'}
                       style={inputStyle} />
                     <p style={{ color: '#6b7280', fontSize: 11, margin: '4px 0 0' }}>
-                      Usada no acesso em <strong>/equipe/login</strong>
+                      {(editandoMembro ? editandoMembro.cargo : novoMembro.cargo) === 'admin'
+                        ? <>Usada no acesso em <strong>/admin</strong>, junto com o e-mail</>
+                        : <>Usada no acesso em <strong>/equipe/login</strong></>}
                     </p>
                   </div>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#374151' }}>
