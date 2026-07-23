@@ -64,6 +64,8 @@ export default function AdminPage() {
   const [cadastros, setCadastros] = useState<Cadastro[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
   const [filtro, setFiltro] = useState('todos');
+  const [buscaLead, setBuscaLead] = useState('');
+  const [buscaIndicacao, setBuscaIndicacao] = useState('');
   const [editandoLead, setEditandoLead] = useState<Cadastro | null>(null);
   const [salvandoLead, setSalvandoLead] = useState(false);
   const [reenviandoId, setReenviandoId] = useState<string | null>(null);
@@ -522,7 +524,12 @@ export default function AdminPage() {
     );
   }
 
-  const filtrados = filtro === 'todos' ? cadastros : cadastros.filter(c => c.status === filtro);
+  const filtrados = (filtro === 'todos' ? cadastros : cadastros.filter(c => c.status === filtro))
+    .filter(c => {
+      const q = buscaLead.trim().toLowerCase();
+      if (!q) return true;
+      return `${c.nome} ${c.sobrenome} ${c.email} ${c.whatsapp} ${c.crm || ''}`.toLowerCase().includes(q);
+    });
   const counts = {
     todos: cadastros.length,
     pendente: cadastros.filter(c => c.status === 'pendente').length,
@@ -671,6 +678,11 @@ export default function AdminPage() {
                   </button>
                 ))}
               </div>
+
+              {/* Busca */}
+              <input value={buscaLead} onChange={e => setBuscaLead(e.target.value)}
+                placeholder="Buscar médico por nome, e-mail, WhatsApp ou CRM..."
+                style={{ ...inputStyle, marginBottom: 16, maxWidth: 420 }} />
 
               {/* Tabela */}
               <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
@@ -2020,85 +2032,100 @@ export default function AdminPage() {
                 Pacientes cadastrados pelo link de indicação de um médico aprovado, com vínculo automático.
               </p>
 
-              {indicacoes.length > 0 && (() => {
+              <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
+                placeholder="Buscar por médico indicador ou paciente indicado..."
+                style={{ ...inputStyle, marginBottom: 20, maxWidth: 420 }} />
+
+              {(() => {
+                const q = buscaIndicacao.trim().toLowerCase();
+                const indicacoesFiltradas = !q ? indicacoes : indicacoes.filter(i =>
+                  `${i.medico_nome} ${i.nome} ${i.sobrenome} ${i.email || ''}`.toLowerCase().includes(q));
+
                 const porMedico = new Map<string, number>();
-                indicacoes.forEach(i => porMedico.set(i.medico_nome, (porMedico.get(i.medico_nome) || 0) + 1));
+                indicacoesFiltradas.forEach(i => porMedico.set(i.medico_nome, (porMedico.get(i.medico_nome) || 0) + 1));
                 const ranking = [...porMedico.entries()].sort((a, b) => b[1] - a[1]);
                 const maxIndic = Math.max(...ranking.map(([, n]) => n), 1);
+
                 return (
-                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Indicações por Médico</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {ranking.map(([medico, n]) => (
-                        <div key={medico}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                            <span style={{ color: '#374151', fontWeight: 600 }}>{medico}</span>
-                            <span style={{ color: '#7c3aed', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
-                          </div>
-                          <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
-                            <div style={{ background: '#7c3aed', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
-                          </div>
+                  <>
+                    {ranking.length > 0 && (
+                      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24, marginBottom: 24 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Indicações por Médico</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {ranking.map(([medico, n]) => (
+                            <div key={medico}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                                <span style={{ color: '#374151', fontWeight: 600 }}>{medico}</span>
+                                <span style={{ color: '#7c3aed', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
+                              </div>
+                              <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
+                                <div style={{ background: '#7c3aed', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                      </div>
+                    )}
+
+                    {loadingIndicacoes ? (
+                      <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+                    ) : indicacoesFiltradas.length === 0 ? (
+                      <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                        {indicacoes.length === 0
+                          ? <>Nenhuma indicação ainda. O botão &quot;Copiar Link de Indicação&quot; aparece na aba Leads para médicos aprovados.</>
+                          : <>Nenhuma indicação encontrada para essa busca.</>}
+                      </div>
+                    ) : (
+                      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                        <div className="admin-table-scroll">
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                              {['Paciente', 'WhatsApp', 'E-mail', 'Endereço', 'Médico Indicador', 'Status', 'Data', 'Ações'].map(h => (
+                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {indicacoesFiltradas.map((i, idx) => (
+                              <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                                <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{i.nome} {i.sobrenome}</td>
+                                <td style={{ padding: '11px 14px' }}>
+                                  {i.whatsapp && (
+                                    <a href={`https://wa.me/${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                                      style={{ color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>{i.whatsapp}</a>
+                                  )}
+                                </td>
+                                <td style={{ padding: '11px 14px', color: '#6b7280' }}>{i.email || '—'}</td>
+                                <td style={{ padding: '11px 14px', color: '#6b7280', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.endereco}</td>
+                                <td style={{ padding: '11px 14px', color: '#7c3aed', fontWeight: 700 }}>{i.medico_nome}</td>
+                                <td style={{ padding: '11px 14px' }}>
+                                  <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
+                                    style={{ background: '#fff', color: '#111827', border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                    <option value="novo">Novo</option>
+                                    <option value="contatado">Contatado</option>
+                                    <option value="convertido">Convertido</option>
+                                  </select>
+                                </td>
+                                <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                                  {new Date(i.created_at).toLocaleDateString('pt-BR')}
+                                </td>
+                                <td style={{ padding: '11px 14px' }}>
+                                  <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
+                                    style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
+                                    Excluir
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 );
               })()}
-
-              {loadingIndicacoes ? (
-                <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
-              ) : indicacoes.length === 0 ? (
-                <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
-                  Nenhuma indicação ainda. O botão &quot;Copiar Link de Indicação&quot; aparece na aba Leads para médicos aprovados.
-                </div>
-              ) : (
-                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
-                  <div className="admin-table-scroll">
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-                        {['Paciente', 'WhatsApp', 'E-mail', 'Endereço', 'Médico Indicador', 'Status', 'Data', 'Ações'].map(h => (
-                          <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {indicacoes.map((i, idx) => (
-                        <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                          <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{i.nome} {i.sobrenome}</td>
-                          <td style={{ padding: '11px 14px' }}>
-                            {i.whatsapp && (
-                              <a href={`https://wa.me/${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
-                                style={{ color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>{i.whatsapp}</a>
-                            )}
-                          </td>
-                          <td style={{ padding: '11px 14px', color: '#6b7280' }}>{i.email || '—'}</td>
-                          <td style={{ padding: '11px 14px', color: '#6b7280', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.endereco}</td>
-                          <td style={{ padding: '11px 14px', color: '#7c3aed', fontWeight: 700 }}>{i.medico_nome}</td>
-                          <td style={{ padding: '11px 14px' }}>
-                            <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                              style={{ background: '#fff', color: '#111827', border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
-                              <option value="novo">Novo</option>
-                              <option value="contatado">Contatado</option>
-                              <option value="convertido">Convertido</option>
-                            </select>
-                          </td>
-                          <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
-                            {new Date(i.created_at).toLocaleDateString('pt-BR')}
-                          </td>
-                          <td style={{ padding: '11px 14px' }}>
-                            <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
-                              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
-                              Excluir
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 

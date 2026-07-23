@@ -621,17 +621,22 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [indicacoes, setIndicacoes] = useState<Indicacao[]>([]);
   const [aba, setAba] = useState<'leads' | 'pedidos' | 'indicacoes'>('leads');
+  const [buscaMedico, setBuscaMedico] = useState('');
+  const [buscaIndicacao, setBuscaIndicacao] = useState('');
 
   const pendentes = lista.filter(l => l.status === 'pendente');
   const emAnalise = lista.filter(l => l.status === 'em_analise');
   const aprovados = lista.filter(l => l.status === 'aprovado');
   const rejeitados = lista.filter(l => l.status === 'rejeitado');
 
-  const visivel = filtro === 'analise' ? emAnalise
+  const visivelPorStatus = filtro === 'analise' ? emAnalise
     : filtro === 'pendente' ? pendentes
     : filtro === 'aprovado' ? aprovados
     : filtro === 'rejeitado' ? rejeitados
     : lista;
+  const buscaQ = buscaMedico.trim().toLowerCase();
+  const visivel = !buscaQ ? visivelPorStatus : visivelPorStatus.filter(l =>
+    `${l.nome} ${l.sobrenome} ${l.email} ${l.whatsapp} ${l.crm || ''}`.toLowerCase().includes(buscaQ));
 
   const vendedores = equipe.filter(e => e.cargo === 'vendedor' && e.ativo);
   const perf = vendedores.map(v => ({
@@ -770,65 +775,81 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
       {/* ABA INDICACOES */}
       {aba === 'indicacoes' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {indicacoes.length > 0 && (() => {
+        <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
+          placeholder="Buscar por médico indicador ou paciente indicado..."
+          style={{ maxWidth: 380, border: '1px solid #d1d5db', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box' }} />
+        {(() => {
+          const q = buscaIndicacao.trim().toLowerCase();
+          const indicacoesFiltradas = !q ? indicacoes : indicacoes.filter(i =>
+            `${i.medico_nome} ${i.nome} ${i.sobrenome} ${i.email || ''}`.toLowerCase().includes(q));
+
           const porMedico = new Map<string, number>();
-          indicacoes.forEach(i => porMedico.set(i.medico_nome, (porMedico.get(i.medico_nome) || 0) + 1));
+          indicacoesFiltradas.forEach(i => porMedico.set(i.medico_nome, (porMedico.get(i.medico_nome) || 0) + 1));
           const ranking = [...porMedico.entries()].sort((a, b) => b[1] - a[1]);
           const maxIndic = Math.max(...ranking.map(([, n]) => n), 1);
+
           return (
-            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Indicações por Médico</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {ranking.map(([medico, n]) => (
-                  <div key={medico}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                      <span style={{ color: '#374151', fontWeight: 600 }}>{medico}</span>
-                      <span style={{ color: '#7c3aed', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
-                    </div>
-                    <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
-                      <div style={{ background: '#7c3aed', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
-                    </div>
+            <>
+              {ranking.length > 0 && (
+                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Indicações por Médico</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {ranking.map(([medico, n]) => (
+                      <div key={medico}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                          <span style={{ color: '#374151', fontWeight: 600 }}>{medico}</span>
+                          <span style={{ color: '#7c3aed', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
+                        </div>
+                        <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
+                          <div style={{ background: '#7c3aed', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+              )}
+              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Todas as Indicações de Pacientes</div>
+                {indicacoesFiltradas.length === 0 && (
+                  <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>
+                    {indicacoes.length === 0 ? 'Nenhuma indicação ainda.' : 'Nenhuma indicação encontrada para essa busca.'}
+                  </div>
+                )}
+                <div className="portal-table-scroll">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                      {['Paciente', 'Contato', 'Médico Indicador', 'Data'].map(h => (
+                        <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {indicacoesFiltradas.map(i => (
+                      <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        <td style={{ padding: '10px 14px' }}>
+                          <div style={{ fontWeight: 600, color: '#111827' }}>{i.nome} {i.sobrenome}</div>
+                          <div style={{ fontSize: 11, color: '#6b7280' }}>{i.email || '—'}</div>
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>
+                          {i.whatsapp && (
+                            <a href={`https://wa.me/${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                              style={{ fontSize: 12, color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>
+                              {i.whatsapp}
+                            </a>
+                          )}
+                        </td>
+                        <td style={{ padding: '10px 14px', color: '#7c3aed', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
+                        <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{formatDate(i.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                </div>
               </div>
-            </div>
+            </>
           );
         })()}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Todas as Indicações de Pacientes</div>
-          {indicacoes.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Nenhuma indicação ainda.</div>}
-          <div className="portal-table-scroll">
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                {['Paciente', 'Contato', 'Médico Indicador', 'Data'].map(h => (
-                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {indicacoes.map(i => (
-                <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <td style={{ padding: '10px 14px' }}>
-                    <div style={{ fontWeight: 600, color: '#111827' }}>{i.nome} {i.sobrenome}</div>
-                    <div style={{ fontSize: 11, color: '#6b7280' }}>{i.email || '—'}</div>
-                  </td>
-                  <td style={{ padding: '10px 14px' }}>
-                    {i.whatsapp && (
-                      <a href={`https://wa.me/${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
-                        style={{ fontSize: 12, color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>
-                        {i.whatsapp}
-                      </a>
-                    )}
-                  </td>
-                  <td style={{ padding: '10px 14px', color: '#7c3aed', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
-                  <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{formatDate(i.created_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        </div>
         </div>
       )}
 
@@ -874,6 +895,11 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
                   {l}
                 </button>
               ))}
+            </div>
+            <div style={{ padding: '12px 20px', borderBottom: '1px solid #f3f4f6' }}>
+              <input value={buscaMedico} onChange={e => setBuscaMedico(e.target.value)}
+                placeholder="Buscar médico por nome, e-mail, WhatsApp ou CRM..."
+                style={{ width: '100%', maxWidth: 380, border: '1px solid #d1d5db', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box' }} />
             </div>
             <div className="portal-table-scroll">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
