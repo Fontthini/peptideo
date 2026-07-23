@@ -3,7 +3,7 @@ import {
   mem_buscarMembroPorToken, mem_buscarId,
   mem_atribuirVendedor, mem_solicitarAcao,
   mem_aprovar, mem_rejeitar, mem_adicionarObs,
-  mem_getConfig, mem_registrarEnvioEmail,
+  mem_getConfig, mem_registrarEnvioEmail, mem_registrarLog,
 } from '@/lib/db-memory';
 import { randomUUID } from 'crypto';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
@@ -21,6 +21,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const body = await req.json();
   const { action, obs, motivo } = body;
+  const nomeCadastro = `${cadastro.nome} ${cadastro.sobrenome || ''}`.trim();
+  const ator = `${membro.nome} (${membro.cargo})`;
 
   // Vendedor: salvar observações
   if (action === 'salvar_obs') {
@@ -28,20 +30,24 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
     }
     const c = mem_adicionarObs(id, obs || '');
+    mem_registrarLog(ator, 'Salvou observação no lead', nomeCadastro);
     return NextResponse.json(c);
   }
 
   if (membro.cargo === 'vendedor') {
     if (action === 'assumir') {
       const c = mem_atribuirVendedor(id, membro.id);
+      mem_registrarLog(ator, 'Assumiu lead', nomeCadastro);
       return NextResponse.json(c);
     }
     if (action === 'solicitar_aprovar') {
       const c = mem_solicitarAcao(id, 'aprovar');
+      mem_registrarLog(ator, 'Solicitou aprovação do lead', nomeCadastro);
       return NextResponse.json(c);
     }
     if (action === 'solicitar_rejeitar') {
       const c = mem_solicitarAcao(id, 'rejeitar', motivo);
+      mem_registrarLog(ator, 'Solicitou rejeição do lead', nomeCadastro);
       return NextResponse.json(c);
     }
   }
@@ -51,6 +57,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const accessToken = randomUUID();
       const c = mem_aprovar(id, accessToken);
       if (!c) return NextResponse.json({ error: 'Erro ao aprovar' }, { status: 500 });
+      mem_registrarLog(ator, 'Aprovou cadastro', nomeCadastro);
 
       const cfg = mem_getConfig();
       const baseUrl = cfg.base_url || 'http://localhost:3000';
@@ -118,6 +125,7 @@ ${whatsappNumero ? `<p style="color:#9ca3af;font-size:12px;text-align:center;mar
     if (action === 'rejeitar') {
       const c = mem_rejeitar(id);
       if (!c) return NextResponse.json({ error: 'Erro ao rejeitar' }, { status: 500 });
+      mem_registrarLog(ator, 'Rejeitou cadastro', nomeCadastro);
 
       // Link WA para notificar rejeição se quiser
       const nomeCliente = `${c.nome}${c.sobrenome ? ' ' + c.sobrenome : ''}`;

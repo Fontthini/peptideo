@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mem_buscarMembroPorToken, mem_listarProdutos, mem_editarProduto, mem_seedProdutos } from '@/lib/db-memory';
+import { mem_buscarMembroPorToken, mem_listarProdutos, mem_editarProduto, mem_seedProdutos, mem_registrarLog } from '@/lib/db-memory';
 import { PRODUTOS } from '@/lib/produtos';
 import { ensureEquipe } from '@/lib/ensure-equipe';
 
@@ -17,12 +17,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  if (!await checkDesigner(req)) return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
+  const membro = await checkDesigner(req);
+  if (!membro) return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
   const data = await req.json();
   if (!data.id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
   const { id, ...rest } = data;
   const p = mem_editarProduto(id, rest);
   if (!p) return NextResponse.json({ error: 'Produto não encontrado' }, { status: 404 });
   try { const { sbSaveProduto } = await import('@/lib/supabase-sync'); await sbSaveProduto(p); } catch (e) { console.error('[PRODUTO] save error:', e); }
+  mem_registrarLog(`${membro.nome} (${membro.cargo})`, 'Editou produto (portal)', p.nome);
   return NextResponse.json(p);
 }

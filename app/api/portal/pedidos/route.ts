@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mem_buscarMembroPorToken, mem_listarPedidosPorVendedor, mem_listarPedidos, mem_atualizarPedido } from '@/lib/db-memory';
+import { mem_buscarMembroPorToken, mem_listarPedidosPorVendedor, mem_listarPedidos, mem_atualizarPedido, mem_registrarLog } from '@/lib/db-memory';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 export async function GET(req: NextRequest) {
@@ -28,5 +28,6 @@ export async function PATCH(req: NextRequest) {
 
   const pedido = mem_atualizarPedido(id, { status, obs });
   if (!pedido) return NextResponse.json({ error: 'Pedido não encontrado' }, { status: 404 });
+  mem_registrarLog(`${membro.nome} (${membro.cargo})`, 'Atualizou pedido', `${pedido.cadastro_nome} — ${pedido.produto_nome} (${pedido.status})`);
   return NextResponse.json(pedido);
 }
