@@ -1,10 +1,11 @@
 // equipe admin API
 import { NextRequest, NextResponse } from 'next/server';
-import { mem_listarEquipe, mem_criarMembro, mem_editarMembro, mem_deletarMembro } from '@/lib/db-memory';
+import { isAdminKeyValid, adminAtorFromKey } from '@/lib/admin-auth';
+import { mem_listarEquipe, mem_criarMembro, mem_editarMembro, mem_deletarMembro, mem_registrarLog } from '@/lib/db-memory';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 function checkAdmin(req: NextRequest) {
-  return req.headers.get('x-admin-key') === (process.env.ADMIN_PASSWORD || '48139148');
+  return isAdminKeyValid(req.headers.get('x-admin-key'));
 }
 
 export async function GET(req: NextRequest) {
@@ -21,6 +22,7 @@ export async function POST(req: NextRequest) {
     if (!data.nome || !data.cargo) return NextResponse.json({ error: 'Nome e cargo obrigatórios' }, { status: 400 });
     const m = mem_criarMembro({ nome: data.nome, email: data.email || '', cargo: data.cargo, ativo: data.ativo ?? true, senha: data.senha || undefined });
     try { const { sbSaveMembro } = await import('@/lib/supabase-sync'); await sbSaveMembro(m); } catch (e) { console.error('[EQUIPE] Supabase save error:', e); }
+    mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Criou membro da equipe', `${m.nome} (${m.cargo})`);
     return NextResponse.json(m, { status: 201 });
   } catch (err) {
     console.error('[EQUIPE POST]', err);
@@ -37,6 +39,7 @@ export async function PUT(req: NextRequest) {
     const m = mem_editarMembro(data.id, { nome: data.nome, email: data.email || '', cargo: data.cargo, ativo: data.ativo ?? true, ...(data.senha ? { senha: data.senha } : {}) });
     if (!m) return NextResponse.json({ error: 'Membro não encontrado' }, { status: 404 });
     try { const { sbSaveMembro } = await import('@/lib/supabase-sync'); await sbSaveMembro(m); } catch (e) { console.error('[EQUIPE] Supabase save error:', e); }
+    mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Editou membro da equipe', `${m.nome} (${m.cargo})`);
     return NextResponse.json(m);
   } catch (err) {
     console.error('[EQUIPE PUT]', err);
@@ -49,9 +52,11 @@ export async function DELETE(req: NextRequest) {
   try {
     await reloadFromSupabase();
     const { id } = await req.json();
+    const alvo = mem_listarEquipe().find(m => m.id === id);
     const ok = mem_deletarMembro(id);
     if (!ok) return NextResponse.json({ error: 'Membro não encontrado' }, { status: 404 });
     try { const { sbDeleteMembro } = await import('@/lib/supabase-sync'); await sbDeleteMembro(id); } catch (e) { console.error('[EQUIPE] Supabase delete error:', e); }
+    mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Excluiu membro da equipe', alvo ? `${alvo.nome} (${alvo.cargo})` : id);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

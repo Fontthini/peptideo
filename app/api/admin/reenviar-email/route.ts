@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mem_buscarId } from '@/lib/db-memory';
+import { isAdminKeyValid, adminAtorFromKey } from '@/lib/admin-auth';
+import { mem_buscarId, mem_registrarLog } from '@/lib/db-memory';
 import { enviarEmailAprovacao } from '@/lib/email';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 function checkAdmin(req: NextRequest) {
-  const key = req.headers.get('x-admin-key');
-  return key === (process.env.ADMIN_PASSWORD || '48139148');
+  return isAdminKeyValid(req.headers.get('x-admin-key'));
 }
 
 export async function POST(req: NextRequest) {
@@ -24,5 +24,6 @@ export async function POST(req: NextRequest) {
   if (!emailResult.ok) {
     return NextResponse.json({ error: 'Falha ao enviar e-mail. Verifique a configuração do Resend.' }, { status: 502 });
   }
+  mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Reenviou e-mail de acesso', `${cadastro.nome} ${cadastro.sobrenome || ''}`.trim());
   return NextResponse.json({ ok: true });
 }

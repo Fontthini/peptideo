@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mem_buscarId, mem_aprovar } from '@/lib/db-memory';
+import { isAdminKeyValid, adminAtorFromKey } from '@/lib/admin-auth';
+import { mem_buscarId, mem_aprovar, mem_registrarLog } from '@/lib/db-memory';
 import { enviarEmailAprovacao } from '@/lib/email';
 import { enviarWhatsApp } from '@/lib/whatsapp';
 import { v4 as uuidv4 } from 'uuid';
 
 function checkAdmin(req: NextRequest) {
-  const key = req.headers.get('x-admin-key');
-  return key === (process.env.ADMIN_PASSWORD || '48139148');
+  return isAdminKeyValid(req.headers.get('x-admin-key'));
 }
 
 export async function POST(req: NextRequest) {
@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
     if (!cadastro) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 });
 
     mem_aprovar(id, token);
+    mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Aprovou cadastro', `${cadastro.nome} ${cadastro.sobrenome || ''}`.trim());
 
     // Email via Resend
     const emailResult = await enviarEmailAprovacao(cadastro.nome, cadastro.email, token);

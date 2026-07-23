@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mem_buscarId, mem_rejeitar } from '@/lib/db-memory';
+import { isAdminKeyValid, adminAtorFromKey } from '@/lib/admin-auth';
+import { mem_buscarId, mem_rejeitar, mem_registrarLog } from '@/lib/db-memory';
 
 function checkAdmin(req: NextRequest) {
-  const key = req.headers.get('x-admin-key');
-  return key === (process.env.ADMIN_PASSWORD || '48139148');
+  return isAdminKeyValid(req.headers.get('x-admin-key'));
 }
 
 export async function POST(req: NextRequest) {
@@ -24,8 +24,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (!mem_buscarId(id)) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 });
+    const c = mem_buscarId(id);
+    if (!c) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 });
     mem_rejeitar(id);
+    mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Rejeitou cadastro', `${c.nome} ${c.sobrenome || ''}`.trim());
     return NextResponse.json({ ok: true });
 
   } catch (err) {

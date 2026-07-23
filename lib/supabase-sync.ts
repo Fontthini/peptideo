@@ -4,7 +4,7 @@
  * and provides async functions to write back.
  */
 import { supabase } from './supabase-client';
-import type { Cadastro, ProdutoMemory, Config, BannerItem, Artigo, MembroEquipe, Pedido, Indicacao } from './db-memory';
+import type { Cadastro, ProdutoMemory, Config, BannerItem, Artigo, MembroEquipe, Pedido, Indicacao, AdminLog } from './db-memory';
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
@@ -154,6 +154,21 @@ export async function sbSaveMembro(m: MembroEquipe) {
 
 export async function sbDeleteMembro(id: string) {
   await supabase.from('equipe').delete().eq('id', id);
+}
+
+// ── Log de atividade admin ────────────────────────────────────────────────
+
+export async function sbSaveLog(log: AdminLog) {
+  const { error } = await supabase.from('admin_logs').insert({
+    id: log.id, ator: log.ator, acao: log.acao, detalhe: log.detalhe || null, created_at: log.created_at,
+  });
+  if (error) throw new Error(`sbSaveLog: ${error.message} (${error.code})`);
+}
+
+export async function sbListarLogs(): Promise<AdminLog[]> {
+  const { data, error } = await supabase.from('admin_logs').select('*').order('created_at', { ascending: false }).limit(200);
+  if (error) throw new Error(`sbListarLogs: ${error.message} (${error.code})`);
+  return (data || []) as AdminLog[];
 }
 
 // ── Pedidos ─────────────────────────────────────────────────────────────────

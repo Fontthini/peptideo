@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mem_listar, mem_deletarCadastro, mem_editarCadastro } from '@/lib/db-memory';
+import { isAdminKeyValid, adminAtorFromKey } from '@/lib/admin-auth';
+import { mem_listar, mem_deletarCadastro, mem_editarCadastro, mem_buscarId, mem_registrarLog } from '@/lib/db-memory';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 function checkAdmin(req: NextRequest) {
-  const key = req.headers.get('x-admin-key');
-  return key === (process.env.ADMIN_PASSWORD || '48139148');
+  return isAdminKeyValid(req.headers.get('x-admin-key'));
 }
 
 export async function GET(req: NextRequest) {
@@ -22,6 +22,7 @@ export async function PUT(req: NextRequest) {
   if (!id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
   const c = mem_editarCadastro(id, { nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu });
   if (!c) return NextResponse.json({ error: 'Cadastro não encontrado' }, { status: 404 });
+  mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Editou cadastro', `${c.nome} ${c.sobrenome || ''}`.trim());
   return NextResponse.json(c);
 }
 
@@ -30,6 +31,7 @@ export async function DELETE(req: NextRequest) {
   await reloadFromSupabase();
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
+  const alvo = mem_buscarId(id);
 
   // Apaga no Supabase primeiro: se falhar (ex: pedidos vinculados a este cadastro),
   // nao mexe na memoria local e devolve o motivo real em vez de um sucesso falso.
@@ -47,5 +49,6 @@ export async function DELETE(req: NextRequest) {
 
   const ok = mem_deletarCadastro(id);
   if (!ok) return NextResponse.json({ error: 'Cadastro não encontrado' }, { status: 404 });
+  mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Excluiu cadastro', alvo ? `${alvo.nome} ${alvo.sobrenome || ''}`.trim() : id);
   return NextResponse.json({ ok: true });
 }

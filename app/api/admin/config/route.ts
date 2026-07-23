@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mem_getConfig, mem_setConfig } from '@/lib/db-memory';
+import { isAdminKeyValid, adminAtorFromKey } from '@/lib/admin-auth';
+import { mem_getConfig, mem_setConfig, mem_registrarLog } from '@/lib/db-memory';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 function checkAdmin(req: NextRequest) {
-  return req.headers.get('x-admin-key') === (process.env.ADMIN_PASSWORD || '48139148');
+  return isAdminKeyValid(req.headers.get('x-admin-key'));
 }
 
 export async function GET(req: NextRequest) {
@@ -22,5 +23,6 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     console.error('[CONFIG] Supabase save error:', e);
   }
+  mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Alterou configurações', Object.keys(data).join(', '));
   return NextResponse.json(updated);
 }

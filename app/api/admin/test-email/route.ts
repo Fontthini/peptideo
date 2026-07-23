@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isAdminKeyValid } from '@/lib/admin-auth';
 import { enviarEmailAprovacao } from '@/lib/email';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 // Endpoint temporário de diagnóstico — testa o envio via Resend sem tocar em
 // nenhum cadastro real. Remover depois de confirmar que o envio funciona.
 function checkAdmin(req: NextRequest) {
-  return req.headers.get('x-admin-key') === (process.env.ADMIN_PASSWORD || '48139148');
+  return isAdminKeyValid(req.headers.get('x-admin-key'));
 }
 
 export async function POST(req: NextRequest) {

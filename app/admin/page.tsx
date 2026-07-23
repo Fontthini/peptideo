@@ -33,7 +33,10 @@ type Pedido = { id: string; cadastro_nome: string; cadastro_email: string; cadas
 type Indicacao = { id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string; status: string; created_at: string; };
 
 const ADMIN_KEY_LOCAL = 'admin_key';
+const ADMIN_NOME_LOCAL = 'admin_nome';
+const ADMIN_SUPERADMIN_LOCAL = 'admin_superadmin';
 const ONLINE_THRESHOLD_MS = 90 * 1000;
+type AdminLog = { id: string; ator: string; acao: string; detalhe?: string; created_at: string; };
 
 function getKey() {
   return typeof window !== 'undefined' ? localStorage.getItem(ADMIN_KEY_LOCAL) || '' : '';
@@ -58,8 +61,12 @@ export default function AdminPage() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [logado, setLogado] = useState(false);
-  const [aba, setAba] = useState<'leads' | 'produtos' | 'banners' | 'blog' | 'equipe' | 'indicacoes' | 'pedidos' | 'config' | 'dashboard'>('leads');
+  const [adminNome, setAdminNome] = useState('');
+  const [isSuperadmin, setIsSuperadmin] = useState(false);
+  const [aba, setAba] = useState<'leads' | 'produtos' | 'banners' | 'blog' | 'equipe' | 'indicacoes' | 'pedidos' | 'config' | 'dashboard' | 'logs'>('leads');
   const [msg, setMsg] = useState('');
+  const [logs, setLogs] = useState<AdminLog[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
 
   const [cadastros, setCadastros] = useState<Cadastro[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
@@ -115,7 +122,15 @@ export default function AdminPage() {
 
   useEffect(() => {
     const k = getKey();
-    if (k) { setLogado(true); carregarCadastros(k); carregarConfig(); }
+    if (k) {
+      setLogado(true);
+      // Sessao de antes deste recurso existir: so a senha mestra logava, entao
+      // sem a flag salva assumimos Superadmin (nao existia usuario nomeado ainda).
+      const flagSalva = localStorage.getItem(ADMIN_SUPERADMIN_LOCAL);
+      setAdminNome(localStorage.getItem(ADMIN_NOME_LOCAL) || 'Superadmin');
+      setIsSuperadmin(flagSalva === null ? true : flagSalva === '1');
+      carregarCadastros(k); carregarConfig();
+    }
   }, []);
 
   useEffect(() => {
@@ -126,13 +141,22 @@ export default function AdminPage() {
 
   const login = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch('/api/admin/cadastros', { headers: { 'x-admin-key': senha } });
+    const res = await fetch('/api/admin/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, senha }),
+    });
     if (res.ok) {
-      localStorage.setItem(ADMIN_KEY_LOCAL, senha);
+      const d = await res.json();
+      localStorage.setItem(ADMIN_KEY_LOCAL, d.adminKey);
+      localStorage.setItem(ADMIN_NOME_LOCAL, d.nome);
+      localStorage.setItem(ADMIN_SUPERADMIN_LOCAL, d.superadmin ? '1' : '0');
+      setAdminNome(d.nome);
+      setIsSuperadmin(!!d.superadmin);
       setLogado(true);
-      setCadastros(await res.json());
+      carregarCadastros(d.adminKey);
+      carregarConfig();
     } else {
-      alert('Senha incorreta');
+      alert('E-mail ou senha incorretos');
     }
   };
 
@@ -267,6 +291,7 @@ export default function AdminPage() {
     if (a === 'indicacoes') carregarIndicacoes();
     if (a === 'pedidos') carregarPedidos();
     if (a === 'dashboard') { carregarCadastros(); carregarEquipe(); carregarPedidos(); if (produtos.length === 0) carregarProdutos(); }
+    if (a === 'logs') carregarLogs();
   };
 
   const aprovar = async (id: string) => {
@@ -501,7 +526,20 @@ export default function AdminPage() {
   };
 
   const showMsg = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 4000); };
-  const sair = () => { localStorage.removeItem(ADMIN_KEY_LOCAL); setLogado(false); setSenha(''); };
+  const sair = () => {
+    localStorage.removeItem(ADMIN_KEY_LOCAL);
+    localStorage.removeItem(ADMIN_NOME_LOCAL);
+    localStorage.removeItem(ADMIN_SUPERADMIN_LOCAL);
+    setLogado(false); setSenha(''); setAdminNome(''); setIsSuperadmin(false);
+  };
+
+  const carregarLogs = async () => {
+    setLoadingLogs(true);
+    try {
+      const r = await fetch('/api/admin/logs', { headers: { 'x-admin-key': getKey() } });
+      if (r.ok) setLogs(await r.json());
+    } finally { setLoadingLogs(false); }
+  };
 
   /* ---- Login ---- */
   if (!logado) {
@@ -540,6 +578,7 @@ export default function AdminPage() {
   const NAV_COLOR: Record<string, string> = {
     dashboard: '#4f46e5', leads: '#16a34a', produtos: '#7c3aed', banners: '#f59e0b',
     blog: '#db2777', equipe: '#2563eb', indicacoes: '#0d9488', pedidos: '#ea580c', config: '#64748b',
+    logs: '#57534e',
   };
 
   const navItem = (key: typeof aba, icon: string, label: string) => {
@@ -630,6 +669,7 @@ export default function AdminPage() {
           {navItem('indicacoes', '>', 'Indicações')}
           {navItem('pedidos', '$', 'Pedidos')}
           {navItem('config', '=', 'Config')}
+          {isSuperadmin && navItem('logs', '!', 'Log')}
 
           <div className="admin-sidebar-extra" style={{ marginTop: 'auto', paddingTop: 20, borderTop: '1px solid #f3f4f6' }}>
             <div style={{ fontSize: 11, color: '#6b7280', textAlign: 'center', lineHeight: 1.5 }}>
@@ -1905,7 +1945,7 @@ export default function AdminPage() {
                           <tr key={m.id} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
                             <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{m.nome}</td>
                             <td style={{ padding: '11px 14px' }}>
-                              <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: m.cargo === 'superadmin' ? '#fef9c3' : m.cargo === 'gerente' ? '#eff6ff' : m.cargo === 'vendedor' ? '#f0fdf4' : '#f9fafb', color: m.cargo === 'superadmin' ? '#a16207' : m.cargo === 'gerente' ? '#1d4ed8' : m.cargo === 'vendedor' ? '#15803d' : '#374151' }}>
+                              <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: m.cargo === 'admin' ? '#fee2e2' : m.cargo === 'superadmin' ? '#fef9c3' : m.cargo === 'gerente' ? '#eff6ff' : m.cargo === 'vendedor' ? '#f0fdf4' : '#f9fafb', color: m.cargo === 'admin' ? '#b91c1c' : m.cargo === 'superadmin' ? '#a16207' : m.cargo === 'gerente' ? '#1d4ed8' : m.cargo === 'vendedor' ? '#15803d' : '#374151' }}>
                                 {m.cargo}
                               </span>
                             </td>
@@ -1972,7 +2012,8 @@ export default function AdminPage() {
                     <select value={editandoMembro ? editandoMembro.cargo : novoMembro.cargo}
                       onChange={e => editandoMembro ? setEditandoMembro(m => m && ({ ...m, cargo: e.target.value })) : setNovoMembro(m => ({ ...m, cargo: e.target.value }))}
                       style={{ ...inputStyle, cursor: 'pointer' }}>
-                      <option value="superadmin">Superadmin</option>
+                      <option value="admin">Admin (acesso total ao painel /admin)</option>
+                      <option value="superadmin">Superadmin (portal da equipe)</option>
                       <option value="gerente">Gerente</option>
                       <option value="vendedor">Vendedor</option>
                     </select>
@@ -2322,6 +2363,51 @@ export default function AdminPage() {
                   <li>Resend: sem API key, aprovação não envia e-mail</li>
                 </ul>
               </div>
+            </div>
+          )}
+
+          {/* ======== ABA LOG (so superadmin) ======== */}
+          {aba === 'logs' && isSuperadmin && (
+            <div>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>
+                Log de Atividade <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({logs.length})</span>
+              </h2>
+              <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>
+                Tudo que os usuários admin alteram no sistema. Visível apenas para o superadmin.
+              </p>
+              {loadingLogs ? (
+                <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+              ) : logs.length === 0 ? (
+                <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                  Nenhuma atividade registrada ainda.
+                </div>
+              ) : (
+                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                  <div className="admin-table-scroll">
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                        {['Quando', 'Quem', 'Ação', 'Detalhe'].map(h => (
+                          <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {logs.map((l, idx) => (
+                        <tr key={l.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                          <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                            {new Date(l.created_at).toLocaleString('pt-BR')}
+                          </td>
+                          <td style={{ padding: '11px 14px', fontWeight: 700, color: l.ator === 'Superadmin' ? '#a16207' : '#2563eb' }}>{l.ator}</td>
+                          <td style={{ padding: '11px 14px', color: '#111827' }}>{l.acao}</td>
+                          <td style={{ padding: '11px 14px', color: '#6b7280' }}>{l.detalhe || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

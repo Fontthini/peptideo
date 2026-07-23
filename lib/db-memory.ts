@@ -100,7 +100,16 @@ declare global {
   var __categorias_blog__: string[] | undefined;
   var __pedidos__: Pedido[] | undefined;
   var __indicacoes__: Indicacao[] | undefined;
+  var __admin_logs__: AdminLog[] | undefined;
 }
+
+export type AdminLog = {
+  id: string;
+  ator: string;
+  acao: string;
+  detalhe?: string;
+  created_at: string;
+};
 
 export type Material = { nome: string; url: string };
 
@@ -674,6 +683,30 @@ export function mem_gerarTokenMembro(id: string): string | null {
   m.token_acesso = token;
   salvarEquipe(); persist(sb()?.sbSaveMembro(m));
   return token;
+}
+
+// ---- Log de atividade admin (visivel so para o superadmin) ----
+function getLogStore(): AdminLog[] {
+  if (global.__admin_logs__ === undefined) {
+    global.__admin_logs__ = carregarJSON<AdminLog[]>('admin_logs.json') ?? [];
+  }
+  return global.__admin_logs__;
+}
+
+const MAX_LOGS = 500;
+
+export function mem_registrarLog(ator: string, acao: string, detalhe?: string): AdminLog {
+  const store = getLogStore();
+  const log: AdminLog = { id: randomUUID(), ator, acao, detalhe, created_at: new Date().toISOString() };
+  store.unshift(log);
+  if (store.length > MAX_LOGS) store.length = MAX_LOGS;
+  salvarJSON('admin_logs.json', store);
+  persist(sb()?.sbSaveLog(log));
+  return log;
+}
+
+export function mem_listarLogs(): AdminLog[] {
+  return [...getLogStore()];
 }
 
 // ---- Pedidos ----

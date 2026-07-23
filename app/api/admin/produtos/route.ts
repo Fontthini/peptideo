@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mem_listarProdutos, mem_criarProdutoComPersistencia, mem_deletarProdutoComPersistencia, mem_editarProduto, mem_seedProdutos, mem_duplicarProduto } from '@/lib/db-memory';
+import { isAdminKeyValid, adminAtorFromKey } from '@/lib/admin-auth';
+import { mem_listarProdutos, mem_criarProdutoComPersistencia, mem_deletarProdutoComPersistencia, mem_editarProduto, mem_seedProdutos, mem_duplicarProduto, mem_registrarLog } from '@/lib/db-memory';
 import { PRODUTOS } from '@/lib/produtos';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 function checkAdmin(req: NextRequest) {
-  return req.headers.get('x-admin-key') === (process.env.ADMIN_PASSWORD || '48139148');
+  return isAdminKeyValid(req.headers.get('x-admin-key'));
 }
 
 function isSeeded(id: string) {
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
     mem_seedProdutos(PRODUTOS);
     const copia = mem_duplicarProduto(data.id);
     if (!copia) return NextResponse.json({ error: 'Produto não encontrado' }, { status: 404 });
+    mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Duplicou produto', copia.nome);
     return NextResponse.json({ ...copia, custom: true }, { status: 201 });
   }
 
@@ -43,6 +45,7 @@ export async function POST(req: NextRequest) {
     galeria: Array.isArray(data.galeria) ? data.galeria : undefined,
   });
   try { const { sbSaveProduto } = await import('@/lib/supabase-sync'); await sbSaveProduto(p); } catch (e) { console.error('[PRODUTO] save error:', e); }
+  mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Criou produto', p.nome);
   return NextResponse.json({ ...p, custom: true }, { status: 201 });
 }
 
@@ -65,6 +68,7 @@ export async function PUT(req: NextRequest) {
   });
   if (!p) return NextResponse.json({ error: 'Produto não encontrado' }, { status: 404 });
   try { const { sbSaveProduto } = await import('@/lib/supabase-sync'); await sbSaveProduto(p); } catch (e) { console.error('[PRODUTO] save error:', e); }
+  mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Editou produto', p.nome);
   return NextResponse.json({ ...p, custom: !isSeeded(p.id) });
 }
 
@@ -73,7 +77,9 @@ export async function DELETE(req: NextRequest) {
   await reloadFromSupabase();
   const { id } = await req.json();
   if (isSeeded(id)) return NextResponse.json({ error: 'Produtos do catálogo não podem ser removidos' }, { status: 403 });
+  const alvo = mem_listarProdutos().find(p => p.id === id);
   const ok = mem_deletarProdutoComPersistencia(id);
   if (!ok) return NextResponse.json({ error: 'Produto não encontrado' }, { status: 404 });
+  mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Excluiu produto', alvo?.nome || id);
   return NextResponse.json({ ok: true });
 }
