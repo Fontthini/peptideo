@@ -769,6 +769,31 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
 
       {/* ABA INDICACOES */}
       {aba === 'indicacoes' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {indicacoes.length > 0 && (() => {
+          const porMedico = new Map<string, number>();
+          indicacoes.forEach(i => porMedico.set(i.medico_nome, (porMedico.get(i.medico_nome) || 0) + 1));
+          const ranking = [...porMedico.entries()].sort((a, b) => b[1] - a[1]);
+          const maxIndic = Math.max(...ranking.map(([, n]) => n), 1);
+          return (
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Indicações por Médico</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {ranking.map(([medico, n]) => (
+                  <div key={medico}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                      <span style={{ color: '#374151', fontWeight: 600 }}>{medico}</span>
+                      <span style={{ color: '#7c3aed', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
+                    </div>
+                    <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
+                      <div style={{ background: '#7c3aed', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
           <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Todas as Indicações de Pacientes</div>
           {indicacoes.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Nenhuma indicação ainda.</div>}
@@ -803,6 +828,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
             </tbody>
           </table>
           </div>
+        </div>
         </div>
       )}
 
