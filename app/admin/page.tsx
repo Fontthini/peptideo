@@ -665,7 +665,7 @@ export default function AdminPage() {
           {navItem('produtos', '+', 'Produtos')}
           {navItem('banners', '*', 'Banners')}
           {navItem('blog', '~', 'Blog')}
-          {navItem('equipe', '@', 'Equipe')}
+          {isSuperadmin && navItem('equipe', '@', 'Equipe')}
           {navItem('indicacoes', '>', 'Indicações')}
           {navItem('pedidos', '$', 'Pedidos')}
           {navItem('config', '=', 'Config')}
@@ -796,11 +796,13 @@ export default function AdminPage() {
                                   title="Editar dados do cadastro">
                                   Editar
                                 </button>
-                                <button onClick={() => excluirCadastro(c.id, c.nome)}
-                                  style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 13 }}
-                                  title="Excluir cadastro">
-                                  Excluir
-                                </button>
+                                {isSuperadmin && (
+                                  <button onClick={() => excluirCadastro(c.id, c.nome)}
+                                    style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 13 }}
+                                    title="Excluir cadastro">
+                                    Excluir
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -913,7 +915,7 @@ export default function AdminPage() {
                               title="Duplicar produto">
                               Dup
                             </button>
-                            {p.custom && (
+                            {p.custom && isSuperadmin && (
                               <button onClick={() => deletarProduto(p.id)}
                                 style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
                                 -
@@ -954,7 +956,9 @@ export default function AdminPage() {
                           {categoriasCustom.map(c => (
                             <span key={c} style={{ background: '#f0fdf4', border: '1px solid #86efac', color: '#15803d', padding: '3px 10px', borderRadius: 12, fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}>
                               {c}
-                                <button type="button" onClick={() => deletarCategoria(c)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: 0 }}>-</button>
+                                {isSuperadmin && (
+                                  <button type="button" onClick={() => deletarCategoria(c)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: 0 }}>-</button>
+                                )}
                               </span>
                             ))}
                           </div>
@@ -1219,10 +1223,12 @@ export default function AdminPage() {
                               style={{ background: '#f9fafb', color: '#374151', border: '1px solid #e5e7eb', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', fontWeight: 600 }}>
                               {b.ativo ? '⏸ Pausar' : '- Ativar'}
                             </button>
-                            <button onClick={() => deletarBanner(b.id)}
-                              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>
-                              -
-                            </button>
+                            {isSuperadmin && (
+                              <button onClick={() => deletarBanner(b.id)}
+                                style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>
+                                -
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1298,7 +1304,9 @@ export default function AdminPage() {
                           <button onClick={() => toggleBannerBlog(b.id)} style={{ background: b.ativo ? '#f0fdf4' : '#f3f4f6', color: b.ativo ? '#15803d' : '#6b7280', border: `1px solid ${b.ativo ? '#86efac' : '#e5e7eb'}`, padding: '5px 11px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, fontFamily: 'inherit' }}>
                             {b.ativo ? 'Ativo' : 'Inativo'}
                           </button>
-                          <button onClick={() => deletarBannerBlog(b.id)} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 9px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>-</button>
+                          {isSuperadmin && (
+                            <button onClick={() => deletarBannerBlog(b.id)} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 9px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>-</button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1367,10 +1375,12 @@ export default function AdminPage() {
                               style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}>
                               Editar
                             </button>
-                            <button onClick={() => deletarArtigo(a.id)}
-                              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>
-                              -
-                            </button>
+                            {isSuperadmin && (
+                              <button onClick={() => deletarArtigo(a.id)}
+                                style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>
+                                -
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1407,7 +1417,9 @@ export default function AdminPage() {
                           {categoriasBlog.map(c => (
                             <span key={c} style={{ background: '#f0fdf4', border: '1px solid #86efac', color: '#15803d', padding: '3px 10px', borderRadius: 12, fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}>
                               {c}
-                              <button type="button" onClick={() => deletarCategoriaBlog(c)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: 0 }}>-</button>
+                              {isSuperadmin && (
+                                <button type="button" onClick={() => deletarCategoriaBlog(c)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: 0 }}>-</button>
+                              )}
                             </span>
                           ))}
                         </div>
@@ -2152,10 +2164,12 @@ export default function AdminPage() {
                                   {new Date(i.created_at).toLocaleDateString('pt-BR')}
                                 </td>
                                 <td style={{ padding: '11px 14px' }}>
-                                  <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
-                                    style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
-                                    Excluir
-                                  </button>
+                                  {isSuperadmin && (
+                                    <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
+                                      style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
+                                      Excluir
+                                    </button>
+                                  )}
                                 </td>
                               </tr>
                             ))}
@@ -2217,10 +2231,12 @@ export default function AdminPage() {
                             {new Date(p.created_at).toLocaleDateString('pt-BR')}
                           </td>
                           <td style={{ padding: '11px 14px' }}>
-                            <button onClick={() => excluirPedido(p.id, p.cadastro_nome)}
-                              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
-                              Excluir
-                            </button>
+                            {isSuperadmin && (
+                              <button onClick={() => excluirPedido(p.id, p.cadastro_nome)}
+                                style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
+                                Excluir
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}

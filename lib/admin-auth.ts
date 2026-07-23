@@ -14,6 +14,12 @@ export function isAdminKeyValid(key: string | null | undefined): boolean {
   return !!(membro && membro.ativo && membro.cargo === 'admin');
 }
 
+// So a senha mestra — usado para excluir qualquer coisa e para gerenciar a
+// equipe. Um usuario "admin" comum tem acesso a tudo, menos apagar.
+export function isSuperadminKey(key: string | null | undefined): boolean {
+  return !!key && key === masterPassword();
+}
+
 // Nome de quem fez a acao, para registrar no log — so deve ser chamado depois
 // de confirmar isAdminKeyValid.
 export function adminAtorFromKey(key: string | null | undefined): string {

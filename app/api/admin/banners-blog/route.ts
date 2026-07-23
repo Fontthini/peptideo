@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isAdminKeyValid, adminAtorFromKey } from '@/lib/admin-auth';
+import { isAdminKeyValid, isSuperadminKey, adminAtorFromKey } from '@/lib/admin-auth';
 import { mem_listarTodosBannersBlog, mem_adicionarBannerBlog, mem_deletarBannerBlog, mem_toggleBannerBlog, mem_registrarLog } from '@/lib/db-memory';
 
 function checkAdmin(req: NextRequest) {
@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  if (!isSuperadminKey(req.headers.get('x-admin-key'))) return NextResponse.json({ error: 'Apenas o superadmin pode excluir.' }, { status: 403 });
   const { id } = await req.json();
   const alvo = mem_listarTodosBannersBlog().find(b => b.id === id);
   const ok = mem_deletarBannerBlog(id);

@@ -1,6 +1,6 @@
 // equipe admin API
 import { NextRequest, NextResponse } from 'next/server';
-import { isAdminKeyValid, adminAtorFromKey } from '@/lib/admin-auth';
+import { isAdminKeyValid, isSuperadminKey, adminAtorFromKey } from '@/lib/admin-auth';
 import { mem_listarEquipe, mem_criarMembro, mem_editarMembro, mem_deletarMembro, mem_registrarLog } from '@/lib/db-memory';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
@@ -14,8 +14,10 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(mem_listarEquipe());
 }
 
+// Criar, editar e excluir membros (quem tem acesso admin, gerente etc.) e
+// exclusivo do superadmin.
 export async function POST(req: NextRequest) {
-  if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  if (!isSuperadminKey(req.headers.get('x-admin-key'))) return NextResponse.json({ error: 'Apenas o superadmin pode gerenciar a equipe.' }, { status: 403 });
   try {
     await reloadFromSupabase();
     const data = await req.json();
@@ -31,7 +33,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  if (!isSuperadminKey(req.headers.get('x-admin-key'))) return NextResponse.json({ error: 'Apenas o superadmin pode gerenciar a equipe.' }, { status: 403 });
   try {
     await reloadFromSupabase();
     const data = await req.json();
@@ -48,7 +50,7 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  if (!isSuperadminKey(req.headers.get('x-admin-key'))) return NextResponse.json({ error: 'Apenas o superadmin pode gerenciar a equipe.' }, { status: 403 });
   try {
     await reloadFromSupabase();
     const { id } = await req.json();
