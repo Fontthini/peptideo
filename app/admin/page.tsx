@@ -568,6 +568,11 @@ export default function AdminPage() {
       if (!q) return true;
       return `${c.nome} ${c.sobrenome} ${c.email} ${c.whatsapp} ${c.crm || ''}`.toLowerCase().includes(q);
     });
+  const whatsappCounts: Record<string, number> = {};
+  cadastros.forEach(c => {
+    const w = (c.whatsapp || '').replace(/\D/g, '');
+    if (w) whatsappCounts[w] = (whatsappCounts[w] || 0) + 1;
+  });
   const counts = {
     todos: cadastros.length,
     pendente: cadastros.filter(c => c.status === 'pendente').length,
@@ -742,13 +747,23 @@ export default function AdminPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {filtrados.map((c, i) => (
+                        {filtrados.map((c, i) => {
+                          const whatsDup = whatsappCounts[(c.whatsapp || '').replace(/\D/g, '')] > 1;
+                          return (
                           <tr key={c.id} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                            <td style={{ padding: '11px 14px', color: '#111827', fontWeight: 600, whiteSpace: 'nowrap' }}>{c.nome}</td>
+                            <td style={{ padding: '11px 14px', color: '#111827', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                              {c.nome}
+                              {whatsDup && (
+                                <span title="Este WhatsApp aparece em mais de um cadastro — pode ser a mesma pessoa cadastrada duas vezes."
+                                  style={{ marginLeft: 6, background: '#fef3c7', color: '#92400e', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, cursor: 'help' }}>
+                                  ⚠ possível duplicado
+                                </span>
+                              )}
+                            </td>
                             <td style={{ padding: '11px 14px', color: '#374151', whiteSpace: 'nowrap' }}>{c.sobrenome || '-'}</td>
                             <td style={{ padding: '11px 14px', color: '#6b7280' }}>{c.email}</td>
                             <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                              <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#16a34a', textDecoration: 'none' }}>{c.whatsapp}</a>
+                              <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: whatsDup ? '#d97706' : '#16a34a', textDecoration: 'none', fontWeight: whatsDup ? 700 : 400 }}>{c.whatsapp}</a>
                             </td>
                             <td style={{ padding: '11px 14px', color: '#6b7280' }}>{c.crm || '-'}</td>
                             <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap' }}>{c.onde_conheceu || '-'}</td>
@@ -807,7 +822,8 @@ export default function AdminPage() {
                               </div>
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
