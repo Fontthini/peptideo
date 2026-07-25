@@ -160,6 +160,47 @@ function LeadsChart30d({ data }: { data: [string, number][] }) {
   );
 }
 
+type HBarItem = { key: string; label: string; value: number; sub?: string };
+
+function HBarChart({ items, color, emptyLabel = 'Sem dados ainda.' }: { items: HBarItem[]; color: string; emptyLabel?: string }) {
+  const [hover, setHover] = useState<string | null>(null);
+  const max = Math.max(...items.map(i => i.value), 1);
+
+  if (items.length === 0) {
+    return <div style={{ color: '#6b7280', fontSize: 13 }}>{emptyLabel}</div>;
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+      {items.map(item => {
+        const pct = Math.max((item.value / max) * 100, item.value > 0 ? 2 : 0);
+        const hovered = hover === item.key;
+        return (
+          <div key={item.key}
+            onMouseEnter={() => setHover(item.key)} onMouseLeave={() => setHover(null)}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12.5, marginBottom: 5, gap: 10 }}>
+              <span style={{ color: hovered ? color : '#374151', fontWeight: hovered ? 700 : 600, transition: 'color .15s', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {item.label}
+              </span>
+              <span style={{ flexShrink: 0, color: '#111827', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
+                {item.value}{item.sub && <span style={{ color: '#9ca3af', fontWeight: 500, marginLeft: 4 }}>{item.sub}</span>}
+              </span>
+            </div>
+            <div style={{ background: '#f1f5f9', borderRadius: 8, height: 9, overflow: 'hidden' }}>
+              <div style={{
+                background: color, borderRadius: 8, height: '100%', width: `${pct}%`,
+                opacity: hovered ? 1 : 0.82,
+                boxShadow: hovered ? `0 0 0 2px ${color}30` : 'none',
+                transition: 'width .5s cubic-bezier(.4,0,.2,1), opacity .15s, box-shadow .15s',
+              }} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -1669,7 +1710,6 @@ export default function AdminPage() {
             const origens: Record<string, number> = {};
             cadastros.forEach((c: Cadastro) => { const o = c.onde_conheceu || 'Não informado'; origens[o] = (origens[o] || 0) + 1; });
             const origensSort = Object.entries(origens).sort((a, b) => b[1] - a[1]).slice(0, 6);
-            const maxOrigem = origensSort[0]?.[1] || 1;
 
             const ultimos30 = (() => {
               const dias: Record<string, number> = {};
@@ -1697,7 +1737,6 @@ export default function AdminPage() {
             const onlineLoja = cadastros.filter((c: Cadastro) => estaOnline(c.last_seen_loja)).length;
             const acessaramBlog = cadastros.filter((c: Cadastro) => !!c.last_seen_blog).length;
             const produtosOrdenados = [...produtos].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 8);
-            const maxViews = Math.max(...produtosOrdenados.map(p => p.views || 0), 1);
             const totalCartAdds = produtos.reduce((s, p) => s + (p.cart_adds || 0), 0);
 
             const emailsHoje = config.emails_enviados_hoje || 0;
@@ -1718,7 +1757,6 @@ export default function AdminPage() {
               { key: 'suporte', label: 'Suporte' },
               { key: 'mentoria', label: 'Mentoria Sobre Peptídeos' },
             ];
-            const maxCliques = Math.max(...CARDS_INICIO.map(c => cliques[c.key] || 0), 1);
 
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -1751,20 +1789,7 @@ export default function AdminPage() {
                   {/* Origem */}
                   <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Origem dos Leads</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {origensSort.map(([orig, qtd]) => (
-                        <div key={orig}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                            <span style={{ color: '#374151', fontWeight: 600 }}>{orig}</span>
-                            <span style={{ color: '#6b7280' }}>{qtd}</span>
-                          </div>
-                          <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
-                            <div style={{ background: '#16a34a', borderRadius: 4, height: '100%', width: `${(qtd / maxOrigem) * 100}%` }} />
-                          </div>
-                        </div>
-                      ))}
-                      {origensSort.length === 0 && <div style={{ color: '#6b7280', fontSize: 13 }}>Sem dados ainda.</div>}
-                    </div>
+                    <HBarChart color="#4f46e5" items={origensSort.map(([orig, qtd]) => ({ key: orig, label: orig, value: qtd }))} />
                   </div>
                 </div>
 
@@ -1793,21 +1818,21 @@ export default function AdminPage() {
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>E-mails Enviados</div>
                   <div className="admin-grid-auto" style={{ display: 'grid', gap: 20 }}>
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 6 }}>
                         <span style={{ color: '#374151', fontWeight: 600 }}>Hoje</span>
-                        <span style={{ color: corDia, fontWeight: 700 }}>{emailsHoje} / {limiteDia}</span>
+                        <span style={{ color: corDia, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{emailsHoje} / {limiteDia}</span>
                       </div>
-                      <div style={{ background: '#f3f4f6', borderRadius: 4, height: 8 }}>
-                        <div style={{ background: corDia, borderRadius: 4, height: '100%', width: `${pctDia}%`, transition: 'width .3s' }} />
+                      <div style={{ background: '#f1f5f9', borderRadius: 8, height: 9, overflow: 'hidden' }}>
+                        <div style={{ background: corDia, borderRadius: 8, height: '100%', width: `${pctDia}%`, transition: 'width .5s cubic-bezier(.4,0,.2,1)' }} />
                       </div>
                     </div>
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 6 }}>
                         <span style={{ color: '#374151', fontWeight: 600 }}>Este mês</span>
-                        <span style={{ color: corMes, fontWeight: 700 }}>{emailsMes} / {limiteMes}</span>
+                        <span style={{ color: corMes, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{emailsMes} / {limiteMes}</span>
                       </div>
-                      <div style={{ background: '#f3f4f6', borderRadius: 4, height: 8 }}>
-                        <div style={{ background: corMes, borderRadius: 4, height: '100%', width: `${pctMes}%`, transition: 'width .3s' }} />
+                      <div style={{ background: '#f1f5f9', borderRadius: 8, height: 9, overflow: 'hidden' }}>
+                        <div style={{ background: corMes, borderRadius: 8, height: '100%', width: `${pctMes}%`, transition: 'width .5s cubic-bezier(.4,0,.2,1)' }} />
                       </div>
                     </div>
                   </div>
@@ -1823,40 +1848,17 @@ export default function AdminPage() {
                 {/* Cliques nos cards da tela inicial */}
                 <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Cliques nos Cards (Início)</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {CARDS_INICIO.map(c => (
-                      <div key={c.key}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                          <span style={{ color: '#374151', fontWeight: 600 }}>{c.label}</span>
-                          <span style={{ color: '#6b7280' }}>{cliques[c.key] || 0} cliques</span>
-                        </div>
-                        <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
-                          <div style={{ background: '#16a34a', borderRadius: 4, height: '100%', width: `${((cliques[c.key] || 0) / maxCliques) * 100}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <HBarChart color="#16a34a"
+                    items={CARDS_INICIO.map(c => ({ key: c.key, label: c.label, value: cliques[c.key] || 0, sub: ' cliques' }))} />
                 </div>
 
                 {/* Produtos mais vistos */}
                 <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Produtos Mais Vistos</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {produtosOrdenados.filter(p => (p.views || 0) > 0).map(p => (
-                      <div key={p.id}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                          <span style={{ color: '#374151', fontWeight: 600 }}>{p.nome}</span>
-                          <span style={{ color: '#6b7280' }}>{p.views || 0} vistos · {p.cart_adds || 0} no carrinho</span>
-                        </div>
-                        <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
-                          <div style={{ background: '#7c3aed', borderRadius: 4, height: '100%', width: `${((p.views || 0) / maxViews) * 100}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                    {produtosOrdenados.filter(p => (p.views || 0) > 0).length === 0 && (
-                      <div style={{ color: '#6b7280', fontSize: 13 }}>Sem dados ainda.</div>
-                    )}
-                  </div>
+                  <HBarChart color="#7c3aed" emptyLabel="Sem dados ainda."
+                    items={produtosOrdenados.filter(p => (p.views || 0) > 0).map(p => ({
+                      key: p.id, label: p.nome, value: p.views || 0, sub: ` vistos · ${p.cart_adds || 0} no carrinho`,
+                    }))} />
                 </div>
 
                 {/* Performance Vendedores */}
