@@ -13,9 +13,20 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(mem_getConfig());
 }
 
+// Campos operacionais que nunca devem virar string vazia: um valor em branco
+// aqui so pode ser um formulario que salvou antes de terminar de carregar os
+// dados atuais (ex: aba Config aberta com internet lenta), nunca uma escolha
+// real do admin — entao um "" recebido e ignorado em vez de apagar o valor
+// que ja estava salvo.
+const NUNCA_VAZIO = ['whatsapp_numero', 'base_url'];
+
 export async function POST(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  await reloadFromSupabase();
   const data = await req.json();
+  for (const campo of NUNCA_VAZIO) {
+    if (campo in data && !String(data[campo] ?? '').trim()) delete data[campo];
+  }
   const updated = mem_setConfig(data);
   try {
     const { sbSaveConfig } = await import('@/lib/supabase-sync');
