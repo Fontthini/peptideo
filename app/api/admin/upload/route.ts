@@ -15,9 +15,9 @@ export async function POST(req: NextRequest) {
 
     if (!file) return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 });
 
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
     if (!validTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'Tipo inválido. Use JPG, PNG, WebP ou GIF.' }, { status: 400 });
+      return NextResponse.json({ error: 'Tipo inválido. Use JPG, PNG, WebP, GIF ou PDF.' }, { status: 400 });
     }
 
     if (file.size > 10 * 1024 * 1024) {

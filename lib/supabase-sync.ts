@@ -233,7 +233,8 @@ export async function sbListarCategoriasFinanceiras(): Promise<string[]> {
 export async function sbSaveDespesa(d: Despesa) {
   const { error } = await supabase.from('despesas').upsert({
     id: d.id, tipo: d.tipo, categoria: d.categoria, descricao: d.descricao,
-    valor: d.valor, data: d.data, created_at: d.created_at, updated_at: d.updated_at || null,
+    valor: d.valor, data: d.data, comprovante_url: d.comprovante_url || null,
+    created_at: d.created_at, updated_at: d.updated_at || null,
   });
   if (error) throw new Error(`sbSaveDespesa: ${error.message} (${error.code})`);
 }

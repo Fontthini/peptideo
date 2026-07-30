@@ -30,7 +30,17 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   const { nome } = await req.json();
-  const ok = mem_deletarCategoriaFinanceira(nome);
-  if (!ok) return NextResponse.json({ error: 'Categoria não encontrada' }, { status: 404 });
+  if (!nome) return NextResponse.json({ error: 'Nome obrigatório' }, { status: 400 });
+  mem_deletarCategoriaFinanceira(nome); // limpa do cache local, se estiver la
+
+  // Supabase e a fonte da verdade — apaga la direto (instancia fria pode nao
+  // ter essa categoria no cache em memoria e causaria um 404 falso).
+  try {
+    const { sbDeleteCategoriaFinanceira } = await import('@/lib/supabase-sync');
+    await sbDeleteCategoriaFinanceira(nome);
+  } catch (e) {
+    console.error('[CATEGORIAS-FINANCEIRAS] Supabase delete error:', e);
+    return NextResponse.json({ error: 'Erro ao excluir categoria' }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

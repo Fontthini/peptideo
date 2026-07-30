@@ -33,7 +33,7 @@ type Membro = { id: string; nome: string; email: string; cargo: string; ativo: b
 type PedidoItem = { nome: string; preco: number; quantidade: number };
 type Pedido = { id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string; produto_nome: string; preco: number; itens?: PedidoItem[]; vendedor_id?: string; status: string; obs?: string; created_at: string; };
 type Indicacao = { id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string; status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string; };
-type Despesa = { id: string; tipo: 'entrada' | 'saida'; categoria: string; descricao: string; valor: number; data: string; created_at: string; updated_at?: string; };
+type Despesa = { id: string; tipo: 'entrada' | 'saida'; categoria: string; descricao: string; valor: number; data: string; comprovante_url?: string; created_at: string; updated_at?: string; };
 
 const ADMIN_KEY_LOCAL = 'admin_key';
 const ADMIN_NOME_LOCAL = 'admin_nome';
@@ -232,7 +232,7 @@ export default function AdminPage() {
   const [categoriasFinanceiras, setCategoriasFinanceiras] = useState<string[]>([]);
   const [novaCategoriaFinanceira, setNovaCategoriaFinanceira] = useState('');
   const [mostrarCatsFinanceiras, setMostrarCatsFinanceiras] = useState(false);
-  const [novaDespesa, setNovaDespesa] = useState({ tipo: 'saida' as 'entrada' | 'saida', categoria: '', descricao: '', valor: '', data: new Date().toISOString().slice(0, 10) });
+  const [novaDespesa, setNovaDespesa] = useState({ tipo: 'saida' as 'entrada' | 'saida', categoria: '', descricao: '', valor: '', data: new Date().toISOString().slice(0, 10), comprovante_url: '' });
   const [editandoDespesa, setEditandoDespesa] = useState<Despesa | null>(null);
 
   const [cadastros, setCadastros] = useState<Cadastro[]>([]);
@@ -751,7 +751,7 @@ export default function AdminPage() {
     if (r.ok) {
       showMsg(editandoDespesa ? 'OK: Lançamento atualizado!' : 'OK: Lançamento registrado!');
       setEditandoDespesa(null);
-      setNovaDespesa({ tipo: 'saida', categoria: '', descricao: '', valor: '', data: new Date().toISOString().slice(0, 10) });
+      setNovaDespesa({ tipo: 'saida', categoria: '', descricao: '', valor: '', data: new Date().toISOString().slice(0, 10), comprovante_url: '' });
       carregarDespesas();
     } else {
       const d = await r.json().catch(() => ({}));
@@ -2996,7 +2996,7 @@ export default function AdminPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                           <thead>
                             <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-                              {['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor', 'Ações'].map(h => (
+                              {['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor', 'Comprovante', 'Ações'].map(h => (
                                 <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                               ))}
                             </tr>
@@ -3016,6 +3016,16 @@ export default function AdminPage() {
                                 <td style={{ padding: '11px 14px', color: '#6b7280' }}>{d.descricao}</td>
                                 <td style={{ padding: '11px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                                   R$ {d.valor.toFixed(2)}
+                                </td>
+                                <td style={{ padding: '11px 14px' }}>
+                                  {d.comprovante_url ? (
+                                    <a href={d.comprovante_url} target="_blank" rel="noreferrer"
+                                      style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
+                                      Ver
+                                    </a>
+                                  ) : (
+                                    <span style={{ color: '#d1d5db', fontSize: 12 }}>-</span>
+                                  )}
                                 </td>
                                 <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                                   <div style={{ display: 'flex', gap: 6 }}>
@@ -3115,6 +3125,25 @@ export default function AdminPage() {
                             <input type="date" value={editandoDespesa ? editandoDespesa.data : novaDespesa.data}
                               onChange={e => editandoDespesa ? setEditandoDespesa(v => v && ({ ...v, data: e.target.value })) : setNovaDespesa(v => ({ ...v, data: e.target.value }))}
                               required style={inputStyle} />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Comprovante <span style={{ color: '#6b7280', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(nota fiscal, recibo — imagem ou PDF)</span></label>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            {(editandoDespesa ? editandoDespesa.comprovante_url : novaDespesa.comprovante_url) && (
+                              <a href={editandoDespesa ? editandoDespesa.comprovante_url : novaDespesa.comprovante_url} target="_blank" rel="noreferrer"
+                                style={{ fontSize: 12, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, padding: '6px 10px', textDecoration: 'none', fontWeight: 600 }}>
+                                Ver comprovante atual
+                              </a>
+                            )}
+                            <label style={{ background: uploadando === 'comprovante' ? '#e5e7eb' : '#f9fafb', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              {uploadando === 'comprovante' ? '...' : 'Enviar comprovante'}
+                              <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={async e => {
+                                const f = e.target.files?.[0]; if (!f) return;
+                                await uploadImagem('comprovante', f, url => editandoDespesa ? setEditandoDespesa(v => v && ({ ...v, comprovante_url: url })) : setNovaDespesa(v => ({ ...v, comprovante_url: url })));
+                                e.target.value = '';
+                              }} />
+                            </label>
                           </div>
                         </div>
                         <button type="submit" style={{ background: '#111827', color: '#fff', fontWeight: 700, padding: '12px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>

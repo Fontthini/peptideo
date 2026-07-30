@@ -128,6 +128,7 @@ export type Despesa = {
   descricao: string;
   valor: number;
   data: string;
+  comprovante_url?: string;
   created_at: string;
   updated_at?: string;
 };
