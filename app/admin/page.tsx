@@ -2897,12 +2897,10 @@ export default function AdminPage() {
                                       style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
                                       Editar
                                     </button>
-                                    {isSuperadmin && (
-                                      <button onClick={() => excluirDespesa(d.id, d.descricao)}
-                                        style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
-                                        Excluir
-                                      </button>
-                                    )}
+                                    <button onClick={() => excluirDespesa(d.id, d.descricao)}
+                                      style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
+                                      Excluir
+                                    </button>
                                   </div>
                                 </td>
                               </tr>
@@ -2930,9 +2928,7 @@ export default function AdminPage() {
                               {categoriasFinanceiras.map(c => (
                                 <span key={c} style={{ background: '#fefce8', border: '1px solid #fde047', color: '#a16207', padding: '3px 10px', borderRadius: 12, fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}>
                                   {c}
-                                  {isSuperadmin && (
-                                    <button type="button" onClick={() => deletarCategoriaFinanceira(c)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: 0 }}>-</button>
-                                  )}
+                                  <button type="button" onClick={() => deletarCategoriaFinanceira(c)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: 0 }}>-</button>
                                 </span>
                               ))}
                             </div>
