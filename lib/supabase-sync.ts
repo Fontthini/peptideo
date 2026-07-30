@@ -194,6 +194,11 @@ export async function sbListarCliquesMentoria(): Promise<MentoriaClique[]> {
   return (data || []) as MentoriaClique[];
 }
 
+export async function sbDeleteCliqueMentoria(id: string) {
+  const { error } = await supabase.from('mentoria_cliques').delete().eq('id', id);
+  if (error) throw new Error(`sbDeleteCliqueMentoria: ${error.message} (${error.code})`);
+}
+
 // ── Carrinho (monitoramento) ───────────────────────────────────────────────
 
 export async function sbSaveCarrinhoEvento(e: CarrinhoEvento) {

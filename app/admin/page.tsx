@@ -740,6 +740,16 @@ export default function AdminPage() {
     } finally { setLoadingMentoria(false); }
   };
 
+  const excluirCliqueMentoria = async (id: string, medicoNome: string) => {
+    if (!confirm(`Excluir o clique de ${medicoNome}?`)) return;
+    const r = await fetch('/api/admin/mentoria-cliques', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify({ id }),
+    });
+    if (r.ok) { showMsg('Clique excluído.'); carregarMentoriaCliques(); }
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao excluir')); }
+  };
+
   const carregarCarrinho = async () => {
     setLoadingCarrinho(true);
     try {
@@ -2884,7 +2894,7 @@ export default function AdminPage() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-                          {['Médico', 'Quando'].map(h => (
+                          {['Médico', 'Quando', 'Ações'].map(h => (
                             <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                           ))}
                         </tr>
@@ -2895,6 +2905,14 @@ export default function AdminPage() {
                             <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{c.medico_nome}</td>
                             <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
                               {new Date(c.created_at).toLocaleString('pt-BR')}
+                            </td>
+                            <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                              {isSuperadmin && (
+                                <button onClick={() => excluirCliqueMentoria(c.id, c.medico_nome)}
+                                  style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
+                                  Excluir
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}

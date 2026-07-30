@@ -788,6 +788,15 @@ export function mem_listarCliquesMentoria(): MentoriaClique[] {
   return [...getMentoriaCliquesStore()];
 }
 
+export function mem_deletarCliqueMentoria(id: string): boolean {
+  const store = getMentoriaCliquesStore();
+  const idx = store.findIndex(c => c.id === id);
+  if (idx === -1) return false;
+  store.splice(idx, 1);
+  salvarJSON('mentoria_cliques.json', store);
+  return true;
+}
+
 // ---- Carrinho (quem adicionou o que, para monitoramento) ----
 function getCarrinhoEventosStore(): CarrinhoEvento[] {
   if (global.__carrinho_eventos__ === undefined) {
