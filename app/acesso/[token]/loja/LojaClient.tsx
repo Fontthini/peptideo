@@ -71,7 +71,7 @@ export default function LojaClient({
     setTimeout(() => setToast(''), 2200);
     fetch('/api/produtos/track', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: prod.id, tipo: 'cart' }),
+      body: JSON.stringify({ id: prod.id, tipo: 'cart', token }),
     }).catch(() => {});
   };
 

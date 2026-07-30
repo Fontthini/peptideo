@@ -217,12 +217,15 @@ export default function AdminPage() {
   const [logado, setLogado] = useState(false);
   const [adminNome, setAdminNome] = useState('');
   const [isSuperadmin, setIsSuperadmin] = useState(false);
-  const [aba, setAba] = useState<'leads' | 'produtos' | 'banners' | 'blog' | 'despesas' | 'equipe' | 'indicacoes' | 'indicacoes-medicas' | 'pedidos' | 'config' | 'dashboard' | 'logs' | 'mentoria'>('leads');
+  const [aba, setAba] = useState<'leads' | 'produtos' | 'banners' | 'blog' | 'despesas' | 'equipe' | 'indicacoes' | 'indicacoes-medicas' | 'pedidos' | 'config' | 'dashboard' | 'logs' | 'mentoria' | 'carrinho'>('leads');
   const [msg, setMsg] = useState('');
   const [logs, setLogs] = useState<AdminLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [mentoriaCliques, setMentoriaCliques] = useState<{ id: string; medico_id: string; medico_nome: string; created_at: string }[]>([]);
   const [loadingMentoria, setLoadingMentoria] = useState(false);
+
+  const [carrinhoEventos, setCarrinhoEventos] = useState<{ id: string; medico_id: string; medico_nome: string; produto_id: string; produto_nome: string; created_at: string }[]>([]);
+  const [loadingCarrinho, setLoadingCarrinho] = useState(false);
 
   const [despesas, setDespesas] = useState<Despesa[]>([]);
   const [loadingDespesas, setLoadingDespesas] = useState(false);
@@ -458,6 +461,7 @@ export default function AdminPage() {
     if (a === 'logs') carregarLogs();
     if (a === 'mentoria') carregarMentoriaCliques();
     if (a === 'despesas') { carregarDespesas(); carregarCategoriasFinanceiras(); }
+    if (a === 'carrinho') { carregarCarrinho(); carregarPedidos(); }
   };
 
   const aprovar = async (id: string) => {
@@ -715,6 +719,14 @@ export default function AdminPage() {
     } finally { setLoadingMentoria(false); }
   };
 
+  const carregarCarrinho = async () => {
+    setLoadingCarrinho(true);
+    try {
+      const r = await fetch('/api/admin/carrinho', { headers: { 'x-admin-key': getKey() } });
+      if (r.ok) setCarrinhoEventos(await r.json());
+    } finally { setLoadingCarrinho(false); }
+  };
+
   const carregarDespesas = async () => {
     setLoadingDespesas(true);
     try {
@@ -811,7 +823,7 @@ export default function AdminPage() {
   const NAV_COLOR: Record<string, string> = {
     dashboard: '#4f46e5', leads: '#16a34a', produtos: '#7c3aed', banners: '#f59e0b',
     blog: '#db2777', equipe: '#2563eb', indicacoes: '#0d9488', 'indicacoes-medicas': '#0891b2', pedidos: '#ea580c', config: '#64748b',
-    logs: '#57534e', mentoria: '#0d9488', despesas: '#ca8a04',
+    logs: '#57534e', mentoria: '#0d9488', despesas: '#ca8a04', carrinho: '#be123c',
   };
 
   const navItem = (key: typeof aba, icon: string, label: string) => {
@@ -905,6 +917,7 @@ export default function AdminPage() {
           {navItem('pedidos', '$', 'Pedidos')}
           {navItem('config', '=', 'Config')}
           {navItem('mentoria', '%', 'Mentoria')}
+          {navItem('carrinho', 'C', 'Monitoramento de Carrinho')}
           {isSuperadmin && navItem('logs', '!', 'Log')}
 
           <div className="admin-sidebar-extra" style={{ marginTop: 'auto', paddingTop: 20, borderTop: '1px solid #f3f4f6' }}>
@@ -1826,7 +1839,8 @@ export default function AdminPage() {
               analise: (cadastros as any[]).filter(c => c.vendedor_id === v.id && c.status === 'em_analise').length,
             }));
 
-            const onlineLoja = cadastros.filter((c: Cadastro) => estaOnline(c.last_seen_loja)).length;
+            const onlineLojaLista = cadastros.filter((c: Cadastro) => estaOnline(c.last_seen_loja));
+            const onlineLoja = onlineLojaLista.length;
             const acessaramBlog = cadastros.filter((c: Cadastro) => !!c.last_seen_blog).length;
             const produtosOrdenados = [...produtos].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 8);
             const totalCartAdds = produtos.reduce((s, p) => s + (p.cart_adds || 0), 0);
@@ -1842,6 +1856,7 @@ export default function AdminPage() {
 
             const cliques = config.cliques_cards || {};
             const cliquesHoje = config.cliques_cards_hoje || {};
+            const cliquesMentoria = cliques['mentoria'] || 0;
             const CARDS_INICIO: { key: string; label: string }[] = [
               { key: 'loja', label: 'Loja Completa' },
               { key: 'blog', label: 'Blog Especializado' },
@@ -1889,10 +1904,11 @@ export default function AdminPage() {
                 {/* Engajamento na Loja/Blog */}
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Engajamento</div>
-                  <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                  <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: onlineLoja > 0 ? 14 : 0 }}>
                     {[
                       { label: 'Online na Loja Agora', value: onlineLoja, color: '#16a34a', live: onlineLoja > 0 },
                       { label: 'Já Acessaram o Blog', value: acessaramBlog, color: '#db2777' },
+                      { label: 'Cliques na Mentoria', value: cliquesMentoria, color: '#0d9488' },
                       { label: 'Adições ao Carrinho', value: totalCartAdds, color: '#7c3aed' },
                     ].map(k => (
                       <div key={k.label} style={{ background: `${k.color}0d`, border: `1px solid ${k.color}33`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${k.color}`, position: 'relative' }}>
@@ -1904,6 +1920,19 @@ export default function AdminPage() {
                       </div>
                     ))}
                   </div>
+                  {onlineLoja > 0 && (
+                    <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: '12px 16px' }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#15803d', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Quem está online agora</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {onlineLojaLista.map((c: Cadastro) => (
+                          <span key={c.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #bbf7d0', borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 600, color: '#111827' }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a' }} />
+                            {c.nome} {c.sobrenome || ''}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* E-mails enviados */}
@@ -2799,6 +2828,99 @@ export default function AdminPage() {
                             </td>
                           </tr>
                         ))}
+                      </tbody>
+                    </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ======== ABA MONITORAMENTO DE CARRINHO ======== */}
+          {aba === 'carrinho' && (() => {
+            const normalizar = (s: string) => s.trim().toLowerCase();
+            const porMedico = new Map<string, { medico_id: string; medico_nome: string; produtos: Map<string, number>; ultima: string }>();
+            carrinhoEventos.forEach(e => {
+              const cur = porMedico.get(e.medico_id) || { medico_id: e.medico_id, medico_nome: e.medico_nome, produtos: new Map<string, number>(), ultima: e.created_at };
+              cur.produtos.set(e.produto_nome, (cur.produtos.get(e.produto_nome) || 0) + 1);
+              if (e.created_at > cur.ultima) cur.ultima = e.created_at;
+              porMedico.set(e.medico_id, cur);
+            });
+            const pedidosPorNome = new Set(pedidos.map(p => normalizar(p.cadastro_nome)));
+            const lista = [...porMedico.values()].sort((a, b) => (a.ultima < b.ultima ? 1 : -1));
+            const semPedido = lista.filter(m => !pedidosPorNome.has(normalizar(m.medico_nome)));
+
+            return (
+              <div>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 20, marginTop: 0 }}>
+                  Monitoramento de Carrinho <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({lista.length})</span>
+                </h2>
+
+                <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 24 }}>
+                  <div style={{ background: '#be123c0d', border: '1px solid #be123c33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #be123c' }}>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: '#be123c' }}>{carrinhoEventos.length}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Adições ao carrinho</div>
+                  </div>
+                  <div style={{ background: '#4f46e50d', border: '1px solid #4f46e533', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #4f46e5' }}>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: '#4f46e5' }}>{lista.length}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Médicos que adicionaram</div>
+                  </div>
+                  <div style={{ background: '#d977060d', border: '1px solid #d9770633', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #d97706' }}>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: '#d97706' }}>{semPedido.length}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Carrinho sem pedido enviado</div>
+                  </div>
+                </div>
+
+                {loadingCarrinho ? (
+                  <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+                ) : lista.length === 0 ? (
+                  <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                    Ninguém adicionou produtos ao carrinho ainda.
+                  </div>
+                ) : (
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                    <div className="admin-table-scroll">
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                          {['Médico', 'Produtos no carrinho', 'Última atividade', 'Status', 'Ações'].map(h => (
+                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {lista.map((m, idx) => {
+                          const comprou = pedidosPorNome.has(normalizar(m.medico_nome));
+                          const cadastro = cadastros.find(c => c.id === m.medico_id);
+                          return (
+                            <tr key={m.medico_id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                              <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{m.medico_nome}</td>
+                              <td style={{ padding: '11px 14px', color: '#374151', maxWidth: 260, fontSize: 12 }}>
+                                {[...m.produtos.entries()].map(([nome, qtd]) => `${nome}${qtd > 1 ? ` x${qtd}` : ''}`).join(', ')}
+                              </td>
+                              <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                                {new Date(m.ultima).toLocaleString('pt-BR')}
+                              </td>
+                              <td style={{ padding: '11px 14px' }}>
+                                <span style={{
+                                  background: comprou ? '#f0fdf4' : '#fffbeb', color: comprou ? '#15803d' : '#b45309',
+                                  border: `1px solid ${comprou ? '#86efac' : '#fde68a'}`, padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                                }}>
+                                  {comprou ? 'Comprou' : 'Não enviou pedido'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '11px 14px' }}>
+                                {cadastro?.whatsapp && (
+                                  <a href={`https://wa.me/55${cadastro.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                                    style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
+                                    WhatsApp
+                                  </a>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                     </div>

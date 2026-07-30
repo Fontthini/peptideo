@@ -4,7 +4,7 @@
  * and provides async functions to write back.
  */
 import { supabase } from './supabase-client';
-import type { Cadastro, ProdutoMemory, Config, BannerItem, Artigo, MembroEquipe, Pedido, Indicacao, AdminLog, MentoriaClique, Despesa } from './db-memory';
+import type { Cadastro, ProdutoMemory, Config, BannerItem, Artigo, MembroEquipe, Pedido, Indicacao, AdminLog, MentoriaClique, Despesa, CarrinhoEvento } from './db-memory';
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
@@ -192,6 +192,22 @@ export async function sbListarCliquesMentoria(): Promise<MentoriaClique[]> {
   const { data, error } = await supabase.from('mentoria_cliques').select('*').order('created_at', { ascending: false }).limit(500);
   if (error) throw new Error(`sbListarCliquesMentoria: ${error.message} (${error.code})`);
   return (data || []) as MentoriaClique[];
+}
+
+// ── Carrinho (monitoramento) ───────────────────────────────────────────────
+
+export async function sbSaveCarrinhoEvento(e: CarrinhoEvento) {
+  const { error } = await supabase.from('carrinho_eventos').insert({
+    id: e.id, medico_id: e.medico_id, medico_nome: e.medico_nome,
+    produto_id: e.produto_id, produto_nome: e.produto_nome, created_at: e.created_at,
+  });
+  if (error) throw new Error(`sbSaveCarrinhoEvento: ${error.message} (${error.code})`);
+}
+
+export async function sbListarCarrinhoEventos(): Promise<CarrinhoEvento[]> {
+  const { data, error } = await supabase.from('carrinho_eventos').select('*').order('created_at', { ascending: false }).limit(2000);
+  if (error) throw new Error(`sbListarCarrinhoEventos: ${error.message} (${error.code})`);
+  return (data || []) as CarrinhoEvento[];
 }
 
 // ── Categorias Financeiras (Despesas) ─────────────────────────────────────

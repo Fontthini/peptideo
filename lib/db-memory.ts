@@ -109,7 +109,17 @@ declare global {
   var __mentoria_cliques__: MentoriaClique[] | undefined;
   var __despesas__: Despesa[] | undefined;
   var __categorias_financeiras__: string[] | undefined;
+  var __carrinho_eventos__: CarrinhoEvento[] | undefined;
 }
+
+export type CarrinhoEvento = {
+  id: string;
+  medico_id: string;
+  medico_nome: string;
+  produto_id: string;
+  produto_nome: string;
+  created_at: string;
+};
 
 export type Despesa = {
   id: string;
@@ -773,6 +783,27 @@ export function mem_registrarCliqueMentoria(medicoId: string, medicoNome: string
 
 export function mem_listarCliquesMentoria(): MentoriaClique[] {
   return [...getMentoriaCliquesStore()];
+}
+
+// ---- Carrinho (quem adicionou o que, para monitoramento) ----
+function getCarrinhoEventosStore(): CarrinhoEvento[] {
+  if (global.__carrinho_eventos__ === undefined) {
+    global.__carrinho_eventos__ = carregarJSON<CarrinhoEvento[]>('carrinho_eventos.json') ?? [];
+  }
+  return global.__carrinho_eventos__;
+}
+
+export function mem_registrarCarrinho(medicoId: string, medicoNome: string, produtoId: string, produtoNome: string): CarrinhoEvento {
+  const store = getCarrinhoEventosStore();
+  const e: CarrinhoEvento = { id: randomUUID(), medico_id: medicoId, medico_nome: medicoNome, produto_id: produtoId, produto_nome: produtoNome, created_at: new Date().toISOString() };
+  store.unshift(e);
+  salvarJSON('carrinho_eventos.json', store);
+  persist(sb()?.sbSaveCarrinhoEvento(e));
+  return e;
+}
+
+export function mem_listarCarrinho(): CarrinhoEvento[] {
+  return [...getCarrinhoEventosStore()];
 }
 
 // ---- Categorias Financeiras (Despesas) ----
