@@ -7,13 +7,11 @@ const DEFAULT_COR_PRIMARIA = '#111827';
 const DEFAULT_COR_ACENTO = '#16a34a';
 
 const ONDE_CONHECEU = [
-  'Google / Busca',
-  'Instagram',
-  'Facebook',
+  'Convidado pela PeptideZ Health',
+  'Pós Graduação LR',
   'Indicação de Médico',
-  'Blog PeptideZ',
-  'WhatsApp',
-  'Outro',
+  'Mentoria ICS',
+  'Blog da PeptideZ Health',
 ];
 
 export default function LandingPage() {
@@ -188,8 +186,8 @@ export default function LandingPage() {
           </div>
 
           <div>
-            <label style={labelStyle}>Onde conheceu o site? <span style={{ color: '#9ca3af', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
-            <select name="onde_conheceu" value={form.onde_conheceu} onChange={handle}
+            <label style={labelStyle}>Onde conheceu o site? *</label>
+            <select name="onde_conheceu" value={form.onde_conheceu} onChange={handle} required
               style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }}>
               <option value="">Selecione...</option>
               {ONDE_CONHECEU.map(o => <option key={o} value={o}>{o}</option>)}
