@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 // dados atuais (ex: aba Config aberta com internet lenta), nunca uma escolha
 // real do admin — entao um "" recebido e ignorado em vez de apagar o valor
 // que ja estava salvo.
-const NUNCA_VAZIO = ['whatsapp_numero', 'base_url'];
+const NUNCA_VAZIO = ['whatsapp_numero', 'base_url', 'resend_api_key'];
 
 export async function POST(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
