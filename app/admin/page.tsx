@@ -899,7 +899,7 @@ export default function AdminPage() {
           {navItem('banners', '*', 'Banners')}
           {navItem('blog', '~', 'Blog')}
           {navItem('despesas', '&', 'Financeiro')}
-          {isSuperadmin && navItem('equipe', '@', 'Equipe')}
+          {navItem('equipe', '@', 'Equipe')}
           {navItem('indicacoes', '>', 'Indicações')}
           {navItem('indicacoes-medicas', '+', 'Indicações Médicas')}
           {navItem('pedidos', '$', 'Pedidos')}
@@ -2109,7 +2109,7 @@ export default function AdminPage() {
 
           {/* ======== ABA EQUIPE ======== */}
           {aba === 'equipe' && (
-            <div className="admin-split-340" style={{ display: 'grid', gap: 28, alignItems: 'start' }}>
+            <div className={isSuperadmin ? 'admin-split-340' : undefined} style={isSuperadmin ? { display: 'grid', gap: 28, alignItems: 'start' } : undefined}>
               {/* Lista */}
               <div>
                 <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 20, marginTop: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -2131,7 +2131,7 @@ export default function AdminPage() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-                          {['Nome', 'Cargo', 'E-mail', 'Status', 'Online', 'Ações'].map(h => (
+                          {(isSuperadmin ? ['Nome', 'Cargo', 'E-mail', 'Status', 'Online', 'Ações'] : ['Nome', 'Cargo', 'E-mail', 'Status', 'Online']).map(h => (
                             <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                           ))}
                         </tr>
@@ -2164,14 +2164,16 @@ export default function AdminPage() {
                                 </span>
                               )}
                             </td>
-                            <td style={{ padding: '11px 14px' }}>
-                              <div style={{ display: 'flex', gap: 6 }}>
-                                <button onClick={() => setEditandoMembro({ ...m })}
-                                  style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}>Editar</button>
-                                <button onClick={() => deletarMembro(m.id, m.nome)}
-                                  style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>-</button>
-                              </div>
-                            </td>
+                            {isSuperadmin && (
+                              <td style={{ padding: '11px 14px' }}>
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                  <button onClick={() => setEditandoMembro({ ...m })}
+                                    style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}>Editar</button>
+                                  <button onClick={() => deletarMembro(m.id, m.nome)}
+                                    style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>-</button>
+                                </div>
+                              </td>
+                            )}
                           </tr>
                         ))}
                       </tbody>
@@ -2185,6 +2187,7 @@ export default function AdminPage() {
               </div>
 
               {/* Painel: Form Membro */}
+              {isSuperadmin && (
               <div style={{ position: 'sticky', top: 24, background: '#fff', border: `1px solid ${editandoMembro ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 12, padding: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
                   <h3 style={{ fontSize: 16, fontWeight: 800, color: '#111827', margin: 0 }}>{editandoMembro ? 'Editar Membro' : 'Novo Membro'}</h3>
@@ -2258,6 +2261,7 @@ export default function AdminPage() {
                   </div>
                 </form>
               </div>
+              )}
             </div>
           )}
 
