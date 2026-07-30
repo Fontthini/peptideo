@@ -1042,6 +1042,12 @@ export default function AdminPage() {
                                   title="Editar dados do cadastro">
                                   Editar
                                 </button>
+                                {c.whatsapp && (
+                                  <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                                    style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
+                                    WhatsApp
+                                  </a>
+                                )}
                                 {isSuperadmin && (
                                   <button onClick={() => excluirCadastro(c.id, c.nome)}
                                     style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 13 }}
@@ -2345,13 +2351,21 @@ export default function AdminPage() {
                                 <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
                                   {new Date(i.created_at).toLocaleDateString('pt-BR')}
                                 </td>
-                                <td style={{ padding: '11px 14px' }}>
-                                  {isSuperadmin && (
-                                    <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
-                                      style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
-                                      Excluir
-                                    </button>
-                                  )}
+                                <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                  <div style={{ display: 'flex', gap: 6 }}>
+                                    {i.whatsapp && (
+                                      <a href={`https://wa.me/${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                                        style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
+                                        WhatsApp
+                                      </a>
+                                    )}
+                                    {isSuperadmin && (
+                                      <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
+                                        style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
+                                        Excluir
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                             ))}
@@ -2455,13 +2469,21 @@ export default function AdminPage() {
                             <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
                               {new Date(i.created_at).toLocaleDateString('pt-BR')}
                             </td>
-                            <td style={{ padding: '11px 14px' }}>
-                              {isSuperadmin && (
-                                <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
-                                  style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
-                                  Excluir
-                                </button>
-                              )}
+                            <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                {i.whatsapp && (
+                                  <a href={`https://wa.me/${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                                    style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
+                                    WhatsApp
+                                  </a>
+                                )}
+                                {isSuperadmin && (
+                                  <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
+                                    style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
+                                    Excluir
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -2520,13 +2542,21 @@ export default function AdminPage() {
                           <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
                             {new Date(p.created_at).toLocaleDateString('pt-BR')}
                           </td>
-                          <td style={{ padding: '11px 14px' }}>
-                            {isSuperadmin && (
-                              <button onClick={() => excluirPedido(p.id, p.cadastro_nome)}
-                                style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
-                                Excluir
-                              </button>
-                            )}
+                          <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              {p.cadastro_whatsapp && (
+                                <a href={`https://wa.me/55${p.cadastro_whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                                  style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
+                                  WhatsApp
+                                </a>
+                              )}
+                              {isSuperadmin && (
+                                <button onClick={() => excluirPedido(p.id, p.cadastro_nome)}
+                                  style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
+                                  Excluir
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
