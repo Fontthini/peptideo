@@ -889,7 +889,7 @@ export default function AdminPage() {
           {navItem('produtos', '+', 'Produtos')}
           {navItem('banners', '*', 'Banners')}
           {navItem('blog', '~', 'Blog')}
-          {navItem('despesas', '&', 'Despesas')}
+          {navItem('despesas', '&', 'Financeiro')}
           {isSuperadmin && navItem('equipe', '@', 'Equipe')}
           {navItem('indicacoes', '>', 'Indicações')}
           {navItem('indicacoes-medicas', '+', 'Indicações Médicas')}
@@ -2783,7 +2783,7 @@ export default function AdminPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                 <div>
                   <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>
-                    Despesas <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({despesas.length})</span>
+                    Financeiro <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({despesas.length})</span>
                   </h2>
                   <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>
                     Controle de entradas e saídas — categorias, lançamentos e relatórios.
