@@ -28,6 +28,8 @@ function rowToConfig(row: Record<string, unknown>): Config {
     limite_emails_dia: (row.limite_emails_dia as number) || 100,
     limite_emails_mes: (row.limite_emails_mes as number) || 3000,
     cliques_cards: (row.cliques_cards as Record<string, number>) || {},
+    cliques_cards_hoje: (row.cliques_cards_hoje as Record<string, number>) || {},
+    cliques_dia_referencia: (row.cliques_dia_referencia as string) || '',
   };
 }
 
@@ -52,6 +54,8 @@ function configToRow(cfg: Config) {
     limite_emails_dia: cfg.limite_emails_dia || 100,
     limite_emails_mes: cfg.limite_emails_mes || 3000,
     cliques_cards: cfg.cliques_cards || {},
+    cliques_cards_hoje: cfg.cliques_cards_hoje || {},
+    cliques_dia_referencia: cfg.cliques_dia_referencia || '',
   };
 }
 
@@ -89,6 +93,8 @@ export async function sbSaveProduto(p: ProdutoMemory) {
     imagem: p.imagem || '', video: p.video || '',
     galeria: p.galeria || [], created_at: p.created_at,
     views: p.views || 0, cart_adds: p.cart_adds || 0,
+    views_hoje: p.views_hoje || 0, cart_adds_hoje: p.cart_adds_hoje || 0,
+    views_dia_referencia: p.views_dia_referencia || null,
   });
   if (error) throw new Error(`sbSaveProduto: ${error.message} (${error.code})`);
 }
@@ -101,6 +107,8 @@ export async function sbSaveProdutos(produtos: ProdutoMemory[]) {
     imagem: p.imagem || '', video: p.video || '',
     galeria: p.galeria || [], created_at: p.created_at,
     views: p.views || 0, cart_adds: p.cart_adds || 0,
+    views_hoje: p.views_hoje || 0, cart_adds_hoje: p.cart_adds_hoje || 0,
+    views_dia_referencia: p.views_dia_referencia || null,
   })));
 }
 

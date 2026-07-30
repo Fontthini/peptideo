@@ -65,6 +65,9 @@ export type ProdutoMemory = {
   created_at: string;
   views?: number;
   cart_adds?: number;
+  views_hoje?: number;
+  cart_adds_hoje?: number;
+  views_dia_referencia?: string;
 };
 
 export type Config = {
@@ -86,6 +89,8 @@ export type Config = {
   limite_emails_dia?: number;
   limite_emails_mes?: number;
   cliques_cards?: Record<string, number>;
+  cliques_cards_hoje?: Record<string, number>;
+  cliques_dia_referencia?: string;
 };
 
 declare global {
@@ -395,11 +400,22 @@ export function mem_duplicarProduto(id: string): ProdutoMemory | null {
   return copia;
 }
 
+function garantirDiaProduto(p: ProdutoMemory) {
+  const hoje = new Date().toISOString().slice(0, 10);
+  if (p.views_dia_referencia !== hoje) {
+    p.views_dia_referencia = hoje;
+    p.views_hoje = 0;
+    p.cart_adds_hoje = 0;
+  }
+}
+
 export function mem_incrementarViewProduto(id: string): ProdutoMemory | null {
   const store = getProdutosStore();
   const p = store.find(p => p.id === id);
   if (!p) return null;
+  garantirDiaProduto(p);
   p.views = (p.views || 0) + 1;
+  p.views_hoje = (p.views_hoje || 0) + 1;
   salvarJSON('produtos.json', store);
   return p;
 }
@@ -408,7 +424,9 @@ export function mem_incrementarCartAddProduto(id: string): ProdutoMemory | null 
   const store = getProdutosStore();
   const p = store.find(p => p.id === id);
   if (!p) return null;
+  garantirDiaProduto(p);
   p.cart_adds = (p.cart_adds || 0) + 1;
+  p.cart_adds_hoje = (p.cart_adds_hoje || 0) + 1;
   salvarJSON('produtos.json', store);
   return p;
 }
@@ -456,9 +474,13 @@ export function mem_registrarEnvioEmail(): Config {
 
 export function mem_registrarClique(card: string): Config {
   const cfg = mem_getConfig();
+  const hoje = new Date().toISOString().slice(0, 10);
+  const diaOk = cfg.cliques_dia_referencia === hoje;
   const atual = { ...(cfg.cliques_cards || {}) };
   atual[card] = (atual[card] || 0) + 1;
-  return mem_setConfig({ cliques_cards: atual });
+  const atualHoje = diaOk ? { ...(cfg.cliques_cards_hoje || {}) } : {};
+  atualHoje[card] = (atualHoje[card] || 0) + 1;
+  return mem_setConfig({ cliques_cards: atual, cliques_cards_hoje: atualHoje, cliques_dia_referencia: hoje });
 }
 
 // ---- Banners ----

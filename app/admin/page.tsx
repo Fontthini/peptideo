@@ -15,6 +15,7 @@ type Produto = {
   video?: string; galeria?: string[];
   custom: boolean;
   views?: number; cart_adds?: number;
+  views_hoje?: number; cart_adds_hoje?: number;
 };
 type Config = {
   mercadopago_token: string; resend_api_key: string; whatsapp_numero: string; base_url: string;
@@ -23,6 +24,7 @@ type Config = {
   emails_enviados_mes?: number; emails_mes_referencia?: string;
   limite_emails_dia?: number; limite_emails_mes?: number;
   cliques_cards?: Record<string, number>;
+  cliques_cards_hoje?: Record<string, number>;
 };
 type BannerItem = { id: string; imagem: string; titulo: string; subtitulo: string; ativo: boolean; ordem: number; };
 type Material = { nome: string; url: string };
@@ -161,7 +163,7 @@ function LeadsChart30d({ data }: { data: [string, number][] }) {
   );
 }
 
-type HBarItem = { key: string; label: string; value: number; sub?: string };
+type HBarItem = { key: string; label: string; value: number; sub?: string; hoje?: number };
 
 function HBarChart({ items, color, emptyLabel = 'Sem dados ainda.' }: { items: HBarItem[]; color: string; emptyLabel?: string }) {
   const [hover, setHover] = useState<string | null>(null);
@@ -183,8 +185,15 @@ function HBarChart({ items, color, emptyLabel = 'Sem dados ainda.' }: { items: H
               <span style={{ color: hovered ? color : '#374151', fontWeight: hovered ? 700 : 600, transition: 'color .15s', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {item.label}
               </span>
-              <span style={{ flexShrink: 0, color: '#111827', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
-                {item.value}{item.sub && <span style={{ color: '#9ca3af', fontWeight: 500, marginLeft: 4 }}>{item.sub}</span>}
+              <span style={{ flexShrink: 0, display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                <span style={{ color: '#111827', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
+                  {item.value}{item.sub && <span style={{ color: '#9ca3af', fontWeight: 500, marginLeft: 4 }}>{item.sub}</span>}
+                </span>
+                {!!item.hoje && (
+                  <span style={{ background: `${color}1a`, color, fontWeight: 700, fontSize: 10, padding: '2px 6px', borderRadius: 10, whiteSpace: 'nowrap' }}>
+                    +{item.hoje} hoje
+                  </span>
+                )}
               </span>
             </div>
             <div style={{ background: '#f1f5f9', borderRadius: 8, height: 9, overflow: 'hidden' }}>
@@ -1826,6 +1835,7 @@ export default function AdminPage() {
             const corMes = pctMes >= 90 ? '#dc2626' : pctMes >= 70 ? '#f59e0b' : '#16a34a';
 
             const cliques = config.cliques_cards || {};
+            const cliquesHoje = config.cliques_cards_hoje || {};
             const CARDS_INICIO: { key: string; label: string }[] = [
               { key: 'loja', label: 'Loja Completa' },
               { key: 'blog', label: 'Blog Especializado' },
@@ -1926,7 +1936,7 @@ export default function AdminPage() {
                 <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Cliques nos Cards (Início)</div>
                   <HBarChart color="#16a34a"
-                    items={CARDS_INICIO.map(c => ({ key: c.key, label: c.label, value: cliques[c.key] || 0, sub: ' cliques' }))} />
+                    items={CARDS_INICIO.map(c => ({ key: c.key, label: c.label, value: cliques[c.key] || 0, sub: ' cliques', hoje: cliquesHoje[c.key] || 0 }))} />
                 </div>
 
                 {/* Produtos mais vistos */}
@@ -1934,7 +1944,7 @@ export default function AdminPage() {
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Produtos Mais Vistos</div>
                   <HBarChart color="#7c3aed" emptyLabel="Sem dados ainda."
                     items={produtosOrdenados.filter(p => (p.views || 0) > 0).map(p => ({
-                      key: p.id, label: p.nome, value: p.views || 0, sub: ` vistos · ${p.cart_adds || 0} no carrinho`,
+                      key: p.id, label: p.nome, value: p.views || 0, sub: ` vistos · ${p.cart_adds || 0} no carrinho`, hoje: p.views_hoje || 0,
                     }))} />
                 </div>
 
