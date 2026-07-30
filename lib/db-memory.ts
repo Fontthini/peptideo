@@ -101,7 +101,15 @@ declare global {
   var __pedidos__: Pedido[] | undefined;
   var __indicacoes__: Indicacao[] | undefined;
   var __admin_logs__: AdminLog[] | undefined;
+  var __mentoria_cliques__: MentoriaClique[] | undefined;
 }
+
+export type MentoriaClique = {
+  id: string;
+  medico_id: string;
+  medico_nome: string;
+  created_at: string;
+};
 
 export type AdminLog = {
   id: string;
@@ -709,6 +717,27 @@ export function mem_registrarLog(ator: string, acao: string, detalhe?: string): 
 
 export function mem_listarLogs(): AdminLog[] {
   return [...getLogStore()];
+}
+
+// ---- Cliques no card de Mentoria (quem clicou, nao so quantos) ----
+function getMentoriaCliquesStore(): MentoriaClique[] {
+  if (global.__mentoria_cliques__ === undefined) {
+    global.__mentoria_cliques__ = carregarJSON<MentoriaClique[]>('mentoria_cliques.json') ?? [];
+  }
+  return global.__mentoria_cliques__;
+}
+
+export function mem_registrarCliqueMentoria(medicoId: string, medicoNome: string): MentoriaClique {
+  const store = getMentoriaCliquesStore();
+  const c: MentoriaClique = { id: randomUUID(), medico_id: medicoId, medico_nome: medicoNome, created_at: new Date().toISOString() };
+  store.unshift(c);
+  salvarJSON('mentoria_cliques.json', store);
+  persist(sb()?.sbSaveCliqueMentoria(c));
+  return c;
+}
+
+export function mem_listarCliquesMentoria(): MentoriaClique[] {
+  return [...getMentoriaCliquesStore()];
 }
 
 // ---- Pedidos ----

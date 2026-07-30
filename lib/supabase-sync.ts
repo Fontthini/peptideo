@@ -4,7 +4,7 @@
  * and provides async functions to write back.
  */
 import { supabase } from './supabase-client';
-import type { Cadastro, ProdutoMemory, Config, BannerItem, Artigo, MembroEquipe, Pedido, Indicacao, AdminLog } from './db-memory';
+import type { Cadastro, ProdutoMemory, Config, BannerItem, Artigo, MembroEquipe, Pedido, Indicacao, AdminLog, MentoriaClique } from './db-memory';
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
@@ -169,6 +169,21 @@ export async function sbListarLogs(): Promise<AdminLog[]> {
   const { data, error } = await supabase.from('admin_logs').select('*').order('created_at', { ascending: false }).limit(200);
   if (error) throw new Error(`sbListarLogs: ${error.message} (${error.code})`);
   return (data || []) as AdminLog[];
+}
+
+// ── Cliques no card de Mentoria ───────────────────────────────────────────
+
+export async function sbSaveCliqueMentoria(c: MentoriaClique) {
+  const { error } = await supabase.from('mentoria_cliques').insert({
+    id: c.id, medico_id: c.medico_id, medico_nome: c.medico_nome, created_at: c.created_at,
+  });
+  if (error) throw new Error(`sbSaveCliqueMentoria: ${error.message} (${error.code})`);
+}
+
+export async function sbListarCliquesMentoria(): Promise<MentoriaClique[]> {
+  const { data, error } = await supabase.from('mentoria_cliques').select('*').order('created_at', { ascending: false }).limit(500);
+  if (error) throw new Error(`sbListarCliquesMentoria: ${error.message} (${error.code})`);
+  return (data || []) as MentoriaClique[];
 }
 
 // ── Pedidos ─────────────────────────────────────────────────────────────────

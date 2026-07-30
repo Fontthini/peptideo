@@ -207,10 +207,12 @@ export default function AdminPage() {
   const [logado, setLogado] = useState(false);
   const [adminNome, setAdminNome] = useState('');
   const [isSuperadmin, setIsSuperadmin] = useState(false);
-  const [aba, setAba] = useState<'leads' | 'produtos' | 'banners' | 'blog' | 'equipe' | 'indicacoes' | 'indicacoes-medicas' | 'pedidos' | 'config' | 'dashboard' | 'logs'>('leads');
+  const [aba, setAba] = useState<'leads' | 'produtos' | 'banners' | 'blog' | 'equipe' | 'indicacoes' | 'indicacoes-medicas' | 'pedidos' | 'config' | 'dashboard' | 'logs' | 'mentoria'>('leads');
   const [msg, setMsg] = useState('');
   const [logs, setLogs] = useState<AdminLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [mentoriaCliques, setMentoriaCliques] = useState<{ id: string; medico_id: string; medico_nome: string; created_at: string }[]>([]);
+  const [loadingMentoria, setLoadingMentoria] = useState(false);
 
   const [cadastros, setCadastros] = useState<Cadastro[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
@@ -436,6 +438,7 @@ export default function AdminPage() {
     if (a === 'pedidos') carregarPedidos();
     if (a === 'dashboard') { carregarCadastros(); carregarEquipe(); carregarPedidos(); if (produtos.length === 0) carregarProdutos(); }
     if (a === 'logs') carregarLogs();
+    if (a === 'mentoria') carregarMentoriaCliques();
   };
 
   const aprovar = async (id: string) => {
@@ -685,6 +688,14 @@ export default function AdminPage() {
     } finally { setLoadingLogs(false); }
   };
 
+  const carregarMentoriaCliques = async () => {
+    setLoadingMentoria(true);
+    try {
+      const r = await fetch('/api/admin/mentoria-cliques', { headers: { 'x-admin-key': getKey() } });
+      if (r.ok) setMentoriaCliques(await r.json());
+    } finally { setLoadingMentoria(false); }
+  };
+
   /* ---- Login ---- */
   if (!logado) {
     return (
@@ -727,7 +738,7 @@ export default function AdminPage() {
   const NAV_COLOR: Record<string, string> = {
     dashboard: '#4f46e5', leads: '#16a34a', produtos: '#7c3aed', banners: '#f59e0b',
     blog: '#db2777', equipe: '#2563eb', indicacoes: '#0d9488', 'indicacoes-medicas': '#0891b2', pedidos: '#ea580c', config: '#64748b',
-    logs: '#57534e',
+    logs: '#57534e', mentoria: '#0d9488',
   };
 
   const navItem = (key: typeof aba, icon: string, label: string) => {
@@ -819,6 +830,7 @@ export default function AdminPage() {
           {navItem('indicacoes-medicas', '+', 'Indicações Médicas')}
           {navItem('pedidos', '$', 'Pedidos')}
           {navItem('config', '=', 'Config')}
+          {navItem('mentoria', '%', 'Mentoria')}
           {isSuperadmin && navItem('logs', '!', 'Log')}
 
           <div className="admin-sidebar-extra" style={{ marginTop: 'auto', paddingTop: 20, borderTop: '1px solid #f3f4f6' }}>
@@ -2629,6 +2641,66 @@ export default function AdminPage() {
               )}
             </div>
           )}
+
+          {/* ======== ABA MENTORIA ======== */}
+          {aba === 'mentoria' && (() => {
+            const porMedico = new Map<string, number>();
+            mentoriaCliques.forEach(c => porMedico.set(c.medico_nome, (porMedico.get(c.medico_nome) || 0) + 1));
+            const medicosUnicos = porMedico.size;
+            return (
+              <div>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>
+                  Mentoria <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({mentoriaCliques.length})</span>
+                </h2>
+                <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>
+                  Quem clicou em &quot;Saiba mais&quot; no card Mentoria (tela inicial) e quando.
+                </p>
+
+                <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 24 }}>
+                  <div style={{ background: '#0d94880d', border: '1px solid #0d948833', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #0d9488' }}>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: '#0d9488' }}>{mentoriaCliques.length}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Cliques totais</div>
+                  </div>
+                  <div style={{ background: '#4f46e50d', border: '1px solid #4f46e533', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #4f46e5' }}>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: '#4f46e5' }}>{medicosUnicos}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Médicos únicos</div>
+                  </div>
+                </div>
+
+                {loadingMentoria ? (
+                  <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+                ) : mentoriaCliques.length === 0 ? (
+                  <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                    Ninguém clicou no card Mentoria ainda.
+                  </div>
+                ) : (
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                    <div className="admin-table-scroll">
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                          {['Médico', 'Quando'].map(h => (
+                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {mentoriaCliques.map((c, idx) => (
+                          <tr key={c.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                            <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{c.medico_nome}</td>
+                            <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                              {new Date(c.created_at).toLocaleString('pt-BR')}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
         </main>
       </div>

@@ -3,12 +3,19 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 const cardStyle: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 28, boxShadow: '0 1px 4px rgba(0,0,0,0.05)', height: '100%' };
-const MENTORIA_WHATSAPP = '5527997593493';
+const MENTORIA_LINK = 'https://st65crvn78a.typeform.com/to/UNF3kTx5';
 
 function track(card: string) {
   fetch('/api/acesso/click', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ card }),
+  }).catch(() => {});
+}
+
+function trackMentoria(token: string) {
+  fetch('/api/acesso/click-mentoria', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
   }).catch(() => {});
 }
 
@@ -102,8 +109,8 @@ export default function CardsGrid({ token, waNumero }: { token: string; waNumero
         <p style={{ color: '#6b7280', fontSize: 14, lineHeight: 1.6, margin: '0 0 16px' }}>
           Acompanhamento e orientação especializada para aplicar peptídeos na sua prática clínica.
         </p>
-        <a href={`https://wa.me/${MENTORIA_WHATSAPP}?text=${encodeURIComponent('Olá! Tenho interesse na Mentoria Sobre Peptídeos da PeptideZ Health.')}`}
-          target="_blank" rel="noreferrer" onClick={() => track('mentoria')}
+        <a href={MENTORIA_LINK}
+          target="_blank" rel="noreferrer" onClick={() => trackMentoria(token)}
           style={{ color: '#16a34a', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
           Saiba mais →
         </a>
