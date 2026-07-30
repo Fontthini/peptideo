@@ -184,7 +184,9 @@ export type Indicacao = {
   whatsapp: string;
   email: string;
   endereco: string;
-  status: 'novo' | 'contatado' | 'convertido';
+  // tipo=medico: 'novo' | 'contatado' | 'convertido' | 'reprovado'
+  // tipo=paciente (ou ausente): 'em_atendimento' | 'negociacao' | 'pago' | 'cancelado'
+  status: string;
   obs?: string;
   created_at: string;
   tipo?: 'paciente' | 'medico';
@@ -203,7 +205,7 @@ export type Pedido = {
   preco: number;
   itens?: PedidoItem[];
   vendedor_id?: string;
-  status: 'em_aberto' | 'vendido' | 'cancelado';
+  status: 'em_atendimento' | 'negociacao' | 'pago' | 'cancelado';
   obs?: string;
   created_at: string;
   updated_at?: string;
@@ -915,7 +917,7 @@ export function mem_listarPedidosPorVendedor(vendedorId: string): Pedido[] {
 
 export function mem_totalPedidos(): { total: number; valor: number; vendidos: number; valorVendido: number } {
   const store = getPedidosStore();
-  const vendidos = store.filter(p => p.status === 'vendido');
+  const vendidos = store.filter(p => p.status === 'pago');
   return {
     total: store.length,
     valor: store.reduce((s, p) => s + p.preco, 0),
@@ -935,7 +937,8 @@ function salvarIndicacoes() { salvarJSON('indicacoes.json', getIndicacoesStore()
 
 export function mem_criarIndicacao(data: Omit<Indicacao, 'id' | 'status' | 'created_at'>): Indicacao {
   const store = getIndicacoesStore();
-  const i: Indicacao = { ...data, id: randomUUID(), status: 'novo', created_at: new Date().toISOString() };
+  const statusInicial = data.tipo === 'medico' ? 'novo' : 'em_atendimento';
+  const i: Indicacao = { ...data, id: randomUUID(), status: statusInicial, created_at: new Date().toISOString() };
   store.push(i); salvarIndicacoes(); persist(sb()?.sbSaveIndicacao(i));
   return i;
 }

@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       preco: total,
       itens,
       vendedor_id: cadastro.vendedor_id ?? undefined,
-      status: 'em_aberto',
+      status: 'em_atendimento',
     });
 
     return NextResponse.json({ ok: true, pedido_id: pedido.id });

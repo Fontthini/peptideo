@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       cadastro_email: usuario.email,
       produto_nome: nome,
       preco,
-      status: 'em_aberto',
+      status: 'em_atendimento',
     });
 
     // Integração Mercado Pago — lê config da memória ou env

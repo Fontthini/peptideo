@@ -35,6 +35,25 @@ type Pedido = { id: string; cadastro_nome: string; cadastro_email: string; cadas
 type Indicacao = { id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string; status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string; };
 type Despesa = { id: string; tipo: 'entrada' | 'saida'; categoria: string; descricao: string; valor: number; data: string; comprovante_url?: string; created_at: string; updated_at?: string; };
 
+// Status compartilhado entre Pedidos e Indicações de pacientes (mesmo pipeline de venda).
+const PIPELINE_STATUS_LABEL: Record<string, string> = {
+  em_atendimento: 'Em Atendimento', negociacao: 'Negociação', pago: 'Pago', cancelado: 'Cancelado',
+};
+const PIPELINE_STATUS_COLOR: Record<string, { bg: string; text: string }> = {
+  em_atendimento: { bg: '#eff6ff', text: '#1d4ed8' },
+  negociacao: { bg: '#fef9c3', text: '#a16207' },
+  pago: { bg: '#dcfce7', text: '#15803d' },
+  cancelado: { bg: '#fef2f2', text: '#dc2626' },
+};
+// Status das indicações médico-para-médico (pipeline de recrutamento, diferente do de vendas).
+const INDICACAO_MEDICA_STATUS_LABEL: Record<string, string> = {
+  novo: 'Novo', contatado: 'Contatado', convertido: 'Convertido', reprovado: 'Reprovado',
+};
+const INDICACAO_MEDICA_STATUS_COLOR: Record<string, { bg: string; text: string }> = {
+  novo: { bg: '#eff6ff', text: '#1d4ed8' }, contatado: { bg: '#fef9c3', text: '#a16207' },
+  convertido: { bg: '#dcfce7', text: '#15803d' }, reprovado: { bg: '#fef2f2', text: '#dc2626' },
+};
+
 const ADMIN_KEY_LOCAL = 'admin_key';
 const ADMIN_NOME_LOCAL = 'admin_nome';
 const ADMIN_SUPERADMIN_LOCAL = 'admin_superadmin';
@@ -240,6 +259,8 @@ export default function AdminPage() {
   const [filtro, setFiltro] = useState('todos');
   const [buscaLead, setBuscaLead] = useState('');
   const [buscaIndicacao, setBuscaIndicacao] = useState('');
+  const [filtroIndicacao, setFiltroIndicacao] = useState('todos');
+  const [filtroPedido, setFiltroPedido] = useState('todos');
   const [editandoLead, setEditandoLead] = useState<Cadastro | null>(null);
   const [salvandoLead, setSalvandoLead] = useState(false);
   const [reenviandoId, setReenviandoId] = useState<string | null>(null);
@@ -1800,8 +1821,8 @@ export default function AdminPage() {
 
             const totalPedidos = pedidos.length;
             const valorTotalPedidos = pedidos.reduce((s, p) => s + p.preco, 0);
-            const pedidosVendidos = pedidos.filter(p => p.status === 'vendido').length;
-            const valorVendido = pedidos.filter(p => p.status === 'vendido').reduce((s, p) => s + p.preco, 0);
+            const pedidosVendidos = pedidos.filter(p => p.status === 'pago').length;
+            const valorVendido = pedidos.filter(p => p.status === 'pago').reduce((s, p) => s + p.preco, 0);
 
             const comData = cadastros.filter((c: Cadastro & { updated_at?: string }) => c.status === 'aprovado' && (c as any).updated_at);
             const tempoMedio = comData.length > 0
@@ -2032,8 +2053,8 @@ export default function AdminPage() {
                     {[
                       { label: 'Total Pedidos', value: totalPedidos, color: '#4f46e5' },
                       { label: 'Valor Total', value: `R$ ${valorTotalPedidos.toFixed(2)}`, color: '#0d9488' },
-                      { label: 'Vendidos', value: pedidosVendidos, color: '#16a34a' },
-                      { label: 'Valor Vendido', value: `R$ ${valorVendido.toFixed(2)}`, color: '#16a34a' },
+                      { label: 'Pagos', value: pedidosVendidos, color: '#16a34a' },
+                      { label: 'Valor Pago', value: `R$ ${valorVendido.toFixed(2)}`, color: '#16a34a' },
                     ].map(k => (
                       <div key={k.label} style={{ background: `${k.color}0d`, border: `1px solid ${k.color}33`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${k.color}` }}>
                         <div style={{ fontSize: 22, fontWeight: 800, color: k.color }}>{k.value}</div>
@@ -2060,12 +2081,7 @@ export default function AdminPage() {
                       </thead>
                       <tbody>
                         {pedidos.slice(0, 10).map((p: Pedido) => {
-                          const pc: Record<string, { bg: string; text: string }> = {
-                            em_aberto: { bg: '#fef9c3', text: '#a16207' },
-                            vendido: { bg: '#dcfce7', text: '#15803d' },
-                            cancelado: { bg: '#fef2f2', text: '#dc2626' },
-                          };
-                          const cc = pc[p.status] || { bg: '#f3f4f6', text: '#374151' };
+                          const cc = PIPELINE_STATUS_COLOR[p.status] || { bg: '#f3f4f6', text: '#374151' };
                           return (
                             <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                               <td style={{ padding: '10px 14px' }}>
@@ -2076,7 +2092,7 @@ export default function AdminPage() {
                               <td style={{ padding: '10px 14px', fontWeight: 700, color: '#16a34a' }}>R$ {p.preco.toFixed(2)}</td>
                               <td style={{ padding: '10px 14px' }}>
                                 <span style={{ padding: '3px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: cc.bg, color: cc.text }}>
-                                  {p.status === 'em_aberto' ? 'Em Aberto' : p.status === 'vendido' ? 'Vendido' : 'Cancelado'}
+                                  {PIPELINE_STATUS_LABEL[p.status] || p.status}
                                 </span>
                               </td>
                               <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{new Date(p.created_at).toLocaleDateString('pt-BR')}</td>
@@ -2308,11 +2324,27 @@ export default function AdminPage() {
 
               <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
                 placeholder="Buscar por médico indicador ou paciente indicado..."
-                style={{ ...inputStyle, marginBottom: 20, maxWidth: 420 }} />
+                style={{ ...inputStyle, marginBottom: 16, maxWidth: 420 }} />
+
+              {/* Filtros */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                {(['todos', 'em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(val => {
+                  const cor = val === 'todos' ? '#4f46e5' : (PIPELINE_STATUS_COLOR[val]?.text || '#374151');
+                  const label = val === 'todos' ? 'Todos' : PIPELINE_STATUS_LABEL[val];
+                  const n = val === 'todos' ? indicacoesPacientes.length : indicacoesPacientes.filter(i => i.status === val).length;
+                  return (
+                    <button key={val} onClick={() => setFiltroIndicacao(val)}
+                      style={{ background: filtroIndicacao === val ? cor : '#fff', color: filtroIndicacao === val ? '#fff' : '#374151', border: `1px solid ${filtroIndicacao === val ? cor : '#d1d5db'}`, padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: filtroIndicacao === val ? 700 : 400, fontFamily: 'inherit', fontSize: 13 }}>
+                      {label} ({n})
+                    </button>
+                  );
+                })}
+              </div>
 
               {(() => {
+                const porFiltro = filtroIndicacao === 'todos' ? indicacoesPacientes : indicacoesPacientes.filter(i => i.status === filtroIndicacao);
                 const q = buscaIndicacao.trim().toLowerCase();
-                const indicacoesFiltradas = !q ? indicacoesPacientes : indicacoesPacientes.filter(i =>
+                const indicacoesFiltradas = !q ? porFiltro : porFiltro.filter(i =>
                   `${i.medico_nome} ${i.nome} ${i.sobrenome} ${i.email || ''}`.toLowerCase().includes(q));
 
                 const porMedico = new Map<string, number>();
@@ -2375,10 +2407,11 @@ export default function AdminPage() {
                                 <td style={{ padding: '11px 14px', color: '#7c3aed', fontWeight: 700 }}>{i.medico_nome}</td>
                                 <td style={{ padding: '11px 14px' }}>
                                   <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                                    style={{ background: '#fff', color: '#111827', border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
-                                    <option value="novo">Novo</option>
-                                    <option value="contatado">Contatado</option>
-                                    <option value="convertido">Convertido</option>
+                                    style={{ background: (PIPELINE_STATUS_COLOR[i.status] || { bg: '#fff' }).bg, color: (PIPELINE_STATUS_COLOR[i.status] || { text: '#111827' }).text, border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                    <option value="em_atendimento">Em Atendimento</option>
+                                    <option value="negociacao">Negociação</option>
+                                    <option value="pago">Pago</option>
+                                    <option value="cancelado">Cancelado</option>
                                   </select>
                                 </td>
                                 <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
@@ -2472,7 +2505,7 @@ export default function AdminPage() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-                          {['Médico Indicado', 'CRM', 'WhatsApp', 'E-mail', 'Endereço', 'Médico Indicador', 'Status', 'Data', 'Ações'].map(h => (
+                          {['Médico Indicador', 'Médico Indicado', 'CRM', 'WhatsApp', 'E-mail', 'Endereço', 'Status', 'Data', 'Ações'].map(h => (
                             <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                           ))}
                         </tr>
@@ -2480,6 +2513,7 @@ export default function AdminPage() {
                       <tbody>
                         {filtradas.map((i, idx) => (
                           <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                            <td style={{ padding: '11px 14px', color: '#0891b2', fontWeight: 700 }}>{i.medico_nome}</td>
                             <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{i.nome} {i.sobrenome}</td>
                             <td style={{ padding: '11px 14px', color: '#6b7280' }}>{i.crm || '—'}</td>
                             <td style={{ padding: '11px 14px' }}>
@@ -2490,13 +2524,13 @@ export default function AdminPage() {
                             </td>
                             <td style={{ padding: '11px 14px', color: '#6b7280' }}>{i.email || '—'}</td>
                             <td style={{ padding: '11px 14px', color: '#6b7280', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.endereco}</td>
-                            <td style={{ padding: '11px 14px', color: '#0891b2', fontWeight: 700 }}>{i.medico_nome}</td>
                             <td style={{ padding: '11px 14px' }}>
                               <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                                style={{ background: '#fff', color: '#111827', border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                style={{ background: (INDICACAO_MEDICA_STATUS_COLOR[i.status] || { bg: '#fff' }).bg, color: (INDICACAO_MEDICA_STATUS_COLOR[i.status] || { text: '#111827' }).text, border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
                                 <option value="novo">Novo</option>
                                 <option value="contatado">Contatado</option>
                                 <option value="convertido">Convertido</option>
+                                <option value="reprovado">Reprovado</option>
                               </select>
                             </td>
                             <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
@@ -2509,6 +2543,12 @@ export default function AdminPage() {
                                     style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
                                     WhatsApp
                                   </a>
+                                )}
+                                {i.status !== 'reprovado' && (
+                                  <button onClick={() => atualizarStatusIndicacao(i, 'reprovado')}
+                                    style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', fontWeight: 600 }}>
+                                    Reprovar
+                                  </button>
                                 )}
                                 {isSuperadmin && (
                                   <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
@@ -2530,7 +2570,17 @@ export default function AdminPage() {
           })()}
 
           {/* ======== ABA PEDIDOS ======== */}
-          {aba === 'pedidos' && (
+          {aba === 'pedidos' && (() => {
+            const pedidosCounts = {
+              todos: pedidos.length,
+              em_atendimento: pedidos.filter(p => p.status === 'em_atendimento').length,
+              negociacao: pedidos.filter(p => p.status === 'negociacao').length,
+              pago: pedidos.filter(p => p.status === 'pago').length,
+              cancelado: pedidos.filter(p => p.status === 'cancelado').length,
+            };
+            const pedidosFiltrados = filtroPedido === 'todos' ? pedidos : pedidos.filter(p => p.status === filtroPedido);
+
+            return (
             <div>
               <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>
                 Pedidos <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({pedidos.length})</span>
@@ -2538,9 +2588,24 @@ export default function AdminPage() {
               <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>
                 Todos os pedidos feitos na loja pelos médicos aprovados. Você pode alterar o status ou excluir pedidos de teste.
               </p>
-              {pedidos.length === 0 ? (
+
+              {/* Filtros */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                {(['todos', 'em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(val => {
+                  const cor = val === 'todos' ? '#4f46e5' : (PIPELINE_STATUS_COLOR[val]?.text || '#374151');
+                  const label = val === 'todos' ? 'Todos' : PIPELINE_STATUS_LABEL[val];
+                  return (
+                    <button key={val} onClick={() => setFiltroPedido(val)}
+                      style={{ background: filtroPedido === val ? cor : '#fff', color: filtroPedido === val ? '#fff' : '#374151', border: `1px solid ${filtroPedido === val ? cor : '#d1d5db'}`, padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: filtroPedido === val ? 700 : 400, fontFamily: 'inherit', fontSize: 13 }}>
+                      {label} ({pedidosCounts[val]})
+                    </button>
+                  );
+                })}
+              </div>
+
+              {pedidosFiltrados.length === 0 ? (
                 <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
-                  Nenhum pedido ainda.
+                  Nenhum pedido encontrado para esse filtro.
                 </div>
               ) : (
                 <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
@@ -2554,7 +2619,9 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {pedidos.map((p, idx) => (
+                      {pedidosFiltrados.map((p, idx) => {
+                        const cc = PIPELINE_STATUS_COLOR[p.status] || { bg: '#f3f4f6', text: '#374151' };
+                        return (
                         <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
                           <td style={{ padding: '11px 14px' }}>
                             <div style={{ fontWeight: 700, color: '#111827' }}>{p.cadastro_nome}</div>
@@ -2566,9 +2633,10 @@ export default function AdminPage() {
                           <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a' }}>R$ {p.preco.toFixed(2)}</td>
                           <td style={{ padding: '11px 14px' }}>
                             <select value={p.status} onChange={e => atualizarStatusPedido(p.id, e.target.value)}
-                              style={{ background: '#fff', color: '#111827', border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
-                              <option value="em_aberto">Em Aberto</option>
-                              <option value="vendido">Vendido</option>
+                              style={{ background: cc.bg, color: cc.text, border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                              <option value="em_atendimento">Em Atendimento</option>
+                              <option value="negociacao">Negociação</option>
+                              <option value="pago">Pago</option>
                               <option value="cancelado">Cancelado</option>
                             </select>
                           </td>
@@ -2592,14 +2660,16 @@ export default function AdminPage() {
                             </div>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                   </div>
                 </div>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {/* ======== ABA CONFIGURA!"ES ======== */}
           {aba === 'config' && (

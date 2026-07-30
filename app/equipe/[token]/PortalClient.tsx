@@ -34,8 +34,12 @@ const STATUS_COLOR: Record<string, { bg: string; text: string }> = {
   pendente: { bg: '#fef9c3', text: '#a16207' }, aprovado: { bg: '#dcfce7', text: '#15803d' },
   rejeitado: { bg: '#fef2f2', text: '#dc2626' }, em_analise: { bg: '#eff6ff', text: '#1d4ed8' },
 };
+const PEDIDO_STATUS_LABEL: Record<string, string> = {
+  em_atendimento: 'Em Atendimento', negociacao: 'Negociação', pago: 'Pago', cancelado: 'Cancelado',
+};
 const PEDIDO_STATUS_COLOR: Record<string, { bg: string; text: string }> = {
-  em_aberto: { bg: '#fef9c3', text: '#a16207' }, vendido: { bg: '#dcfce7', text: '#15803d' }, cancelado: { bg: '#fef2f2', text: '#dc2626' },
+  em_atendimento: { bg: '#eff6ff', text: '#1d4ed8' }, negociacao: { bg: '#fef9c3', text: '#a16207' },
+  pago: { bg: '#dcfce7', text: '#15803d' }, cancelado: { bg: '#fef2f2', text: '#dc2626' },
 };
 
 function Badge({ status, map }: { status: string; map: Record<string, { bg: string; text: string }> }) {
@@ -474,23 +478,18 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#16a34a' }}>R$ {p.preco.toFixed(2)}</td>
                     <td style={{ padding: '10px 14px' }}>
                       <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: cc.bg, color: cc.text }}>
-                        {p.status === 'em_aberto' ? 'Em Aberto' : p.status === 'vendido' ? 'Vendido' : 'Cancelado'}
+                        {PEDIDO_STATUS_LABEL[p.status] || p.status}
                       </span>
                     </td>
                     <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{formatDate(p.created_at)}</td>
                     <td style={{ padding: '10px 14px' }}>
-                      {p.status === 'em_aberto' && (
-                        <div style={{ display: 'flex', gap: 5 }}>
-                          <button onClick={() => marcarPedido(p.id, 'vendido')} disabled={loadingPedido === p.id}
-                            style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 10px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 700 }}>
-                            Marcar Vendido
-                          </button>
-                          <button onClick={() => marcarPedido(p.id, 'cancelado')} disabled={loadingPedido === p.id}
-                            style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 10px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit' }}>
-                            Cancelar
-                          </button>
-                        </div>
-                      )}
+                      <select value={p.status} disabled={loadingPedido === p.id} onChange={e => marcarPedido(p.id, e.target.value)}
+                        style={{ background: cc.bg, color: cc.text, border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                        <option value="em_atendimento">Em Atendimento</option>
+                        <option value="negociacao">Negociação</option>
+                        <option value="pago">Pago</option>
+                        <option value="cancelado">Cancelado</option>
+                      </select>
                     </td>
                   </tr>
                 );
@@ -646,8 +645,8 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
     leads: lista.filter(l => l.vendedor_id === v.id).length,
     aprovados: lista.filter(l => l.vendedor_id === v.id && l.status === 'aprovado').length,
     analise: lista.filter(l => l.vendedor_id === v.id && l.status === 'em_analise').length,
-    pedidosVendidos: pedidos.filter(p => p.vendedor_id === v.id && p.status === 'vendido').length,
-    valorVendido: pedidos.filter(p => p.vendedor_id === v.id && p.status === 'vendido').reduce((s, p) => s + p.preco, 0),
+    pedidosVendidos: pedidos.filter(p => p.vendedor_id === v.id && p.status === 'pago').length,
+    valorVendido: pedidos.filter(p => p.vendedor_id === v.id && p.status === 'pago').reduce((s, p) => s + p.preco, 0),
   }));
 
   async function carregarPedidos() {
@@ -664,7 +663,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
 
   const totalPedidos = pedidos.length;
   const valorPedidos = pedidos.reduce((s, p) => s + p.preco, 0);
-  const pedidosVendidos = pedidos.filter(p => p.status === 'vendido');
+  const pedidosVendidos = pedidos.filter(p => p.status === 'pago');
 
   return (
     <div className="portal-shell">
@@ -699,8 +698,8 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
           <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
             <StatCard label="Total Pedidos" value={totalPedidos} color="#111827" />
             <StatCard label="Valor Total" value={`R$ ${valorPedidos.toFixed(2)}`} color="#6b7280" />
-            <StatCard label="Vendidos" value={pedidosVendidos.length} color="#16a34a" />
-            <StatCard label="Valor Vendido" value={`R$ ${pedidosVendidos.reduce((s,p) => s+p.preco,0).toFixed(2)}`} color="#16a34a" />
+            <StatCard label="Pagos" value={pedidosVendidos.length} color="#16a34a" />
+            <StatCard label="Valor Pago" value={`R$ ${pedidosVendidos.reduce((s,p) => s+p.preco,0).toFixed(2)}`} color="#16a34a" />
           </div>
 
           {/* Performance vendedores com pedidos */}
@@ -711,7 +710,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                    {['Vendedor', 'Leads', 'Aprovados', 'Pedidos Vendidos', 'Valor Vendido'].map(h => (
+                    {['Vendedor', 'Leads', 'Aprovados', 'Pedidos Pagos', 'Valor Pago'].map(h => (
                       <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
                     ))}
                   </tr>
@@ -765,7 +764,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
                       <td style={{ padding: '10px 14px', color: '#374151', fontSize: 12 }}>{vendNome || '—'}</td>
                       <td style={{ padding: '10px 14px' }}>
                         <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: cc.bg, color: cc.text }}>
-                          {p.status === 'em_aberto' ? 'Em Aberto' : p.status === 'vendido' ? 'Vendido' : 'Cancelado'}
+                          {PEDIDO_STATUS_LABEL[p.status] || p.status}
                         </span>
                       </td>
                       <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{formatDate(p.created_at)}</td>
