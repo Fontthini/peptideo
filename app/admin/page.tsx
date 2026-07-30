@@ -2754,12 +2754,9 @@ export default function AdminPage() {
             const medicosUnicos = porMedico.size;
             return (
               <div>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 20, marginTop: 0 }}>
                   Mentoria <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({mentoriaCliques.length})</span>
                 </h2>
-                <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>
-                  Quem clicou em &quot;Saiba mais&quot; no card Mentoria (tela inicial) e quando.
-                </p>
 
                 <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 24 }}>
                   <div style={{ background: '#0d94880d', border: '1px solid #0d948833', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #0d9488' }}>
@@ -2768,7 +2765,7 @@ export default function AdminPage() {
                   </div>
                   <div style={{ background: '#4f46e50d', border: '1px solid #4f46e533', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #4f46e5' }}>
                     <div style={{ fontSize: 32, fontWeight: 900, color: '#4f46e5' }}>{medicosUnicos}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Médicos únicos</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Médicos</div>
                   </div>
                 </div>
 
