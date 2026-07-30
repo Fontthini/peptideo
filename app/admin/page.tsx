@@ -31,6 +31,7 @@ type Membro = { id: string; nome: string; email: string; cargo: string; ativo: b
 type PedidoItem = { nome: string; preco: number; quantidade: number };
 type Pedido = { id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string; produto_nome: string; preco: number; itens?: PedidoItem[]; vendedor_id?: string; status: string; obs?: string; created_at: string; };
 type Indicacao = { id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string; status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string; };
+type Despesa = { id: string; tipo: 'entrada' | 'saida'; categoria: string; descricao: string; valor: number; data: string; created_at: string; updated_at?: string; };
 
 const ADMIN_KEY_LOCAL = 'admin_key';
 const ADMIN_NOME_LOCAL = 'admin_nome';
@@ -207,12 +208,20 @@ export default function AdminPage() {
   const [logado, setLogado] = useState(false);
   const [adminNome, setAdminNome] = useState('');
   const [isSuperadmin, setIsSuperadmin] = useState(false);
-  const [aba, setAba] = useState<'leads' | 'produtos' | 'banners' | 'blog' | 'equipe' | 'indicacoes' | 'indicacoes-medicas' | 'pedidos' | 'config' | 'dashboard' | 'logs' | 'mentoria'>('leads');
+  const [aba, setAba] = useState<'leads' | 'produtos' | 'banners' | 'blog' | 'despesas' | 'equipe' | 'indicacoes' | 'indicacoes-medicas' | 'pedidos' | 'config' | 'dashboard' | 'logs' | 'mentoria'>('leads');
   const [msg, setMsg] = useState('');
   const [logs, setLogs] = useState<AdminLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [mentoriaCliques, setMentoriaCliques] = useState<{ id: string; medico_id: string; medico_nome: string; created_at: string }[]>([]);
   const [loadingMentoria, setLoadingMentoria] = useState(false);
+
+  const [despesas, setDespesas] = useState<Despesa[]>([]);
+  const [loadingDespesas, setLoadingDespesas] = useState(false);
+  const [categoriasFinanceiras, setCategoriasFinanceiras] = useState<string[]>([]);
+  const [novaCategoriaFinanceira, setNovaCategoriaFinanceira] = useState('');
+  const [mostrarCatsFinanceiras, setMostrarCatsFinanceiras] = useState(false);
+  const [novaDespesa, setNovaDespesa] = useState({ tipo: 'saida' as 'entrada' | 'saida', categoria: '', descricao: '', valor: '', data: new Date().toISOString().slice(0, 10) });
+  const [editandoDespesa, setEditandoDespesa] = useState<Despesa | null>(null);
 
   const [cadastros, setCadastros] = useState<Cadastro[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
@@ -439,6 +448,7 @@ export default function AdminPage() {
     if (a === 'dashboard') { carregarCadastros(); carregarEquipe(); carregarPedidos(); if (produtos.length === 0) carregarProdutos(); }
     if (a === 'logs') carregarLogs();
     if (a === 'mentoria') carregarMentoriaCliques();
+    if (a === 'despesas') { carregarDespesas(); carregarCategoriasFinanceiras(); }
   };
 
   const aprovar = async (id: string) => {
@@ -696,6 +706,60 @@ export default function AdminPage() {
     } finally { setLoadingMentoria(false); }
   };
 
+  const carregarDespesas = async () => {
+    setLoadingDespesas(true);
+    try {
+      const r = await fetch('/api/admin/despesas', { headers: { 'x-admin-key': getKey() } });
+      if (r.ok) setDespesas(await r.json());
+    } finally { setLoadingDespesas(false); }
+  };
+
+  const carregarCategoriasFinanceiras = async () => {
+    const r = await fetch('/api/admin/categorias-financeiras', { headers: { 'x-admin-key': getKey() } });
+    if (r.ok) setCategoriasFinanceiras(await r.json());
+  };
+
+  const salvarDespesa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const body = editandoDespesa ?? novaDespesa;
+    const r = await fetch('/api/admin/despesas', {
+      method: editandoDespesa ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify(body),
+    });
+    if (r.ok) {
+      showMsg(editandoDespesa ? 'OK: Lançamento atualizado!' : 'OK: Lançamento registrado!');
+      setEditandoDespesa(null);
+      setNovaDespesa({ tipo: 'saida', categoria: '', descricao: '', valor: '', data: new Date().toISOString().slice(0, 10) });
+      carregarDespesas();
+    } else {
+      const d = await r.json().catch(() => ({}));
+      showMsg('R Erro: ' + (d.error || r.status));
+    }
+  };
+
+  const excluirDespesa = async (id: string, descricao: string) => {
+    if (!confirm(`Excluir o lançamento "${descricao}"?`)) return;
+    const r = await fetch('/api/admin/despesas', { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() }, body: JSON.stringify({ id }) });
+    if (r.ok) { showMsg('Lançamento excluído.'); carregarDespesas(); }
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao excluir')); }
+  };
+
+  const adicionarCategoriaFinanceira = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novaCategoriaFinanceira.trim()) return;
+    const r = await fetch('/api/admin/categorias-financeiras', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() }, body: JSON.stringify({ nome: novaCategoriaFinanceira.trim() }) });
+    if (r.ok) { setNovaCategoriaFinanceira(''); carregarCategoriasFinanceiras(); }
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao adicionar categoria')); }
+  };
+
+  const deletarCategoriaFinanceira = async (nome: string) => {
+    if (!confirm(`Remover a categoria "${nome}"?`)) return;
+    const r = await fetch('/api/admin/categorias-financeiras', { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() }, body: JSON.stringify({ nome }) });
+    if (r.ok) carregarCategoriasFinanceiras();
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao remover categoria')); }
+  };
+
   /* ---- Login ---- */
   if (!logado) {
     return (
@@ -738,7 +802,7 @@ export default function AdminPage() {
   const NAV_COLOR: Record<string, string> = {
     dashboard: '#4f46e5', leads: '#16a34a', produtos: '#7c3aed', banners: '#f59e0b',
     blog: '#db2777', equipe: '#2563eb', indicacoes: '#0d9488', 'indicacoes-medicas': '#0891b2', pedidos: '#ea580c', config: '#64748b',
-    logs: '#57534e', mentoria: '#0d9488',
+    logs: '#57534e', mentoria: '#0d9488', despesas: '#ca8a04',
   };
 
   const navItem = (key: typeof aba, icon: string, label: string) => {
@@ -825,6 +889,7 @@ export default function AdminPage() {
           {navItem('produtos', '+', 'Produtos')}
           {navItem('banners', '*', 'Banners')}
           {navItem('blog', '~', 'Blog')}
+          {navItem('despesas', '&', 'Despesas')}
           {isSuperadmin && navItem('equipe', '@', 'Equipe')}
           {navItem('indicacoes', '>', 'Indicações')}
           {navItem('indicacoes-medicas', '+', 'Indicações Médicas')}
@@ -2698,6 +2763,208 @@ export default function AdminPage() {
                     </div>
                   </div>
                 )}
+              </div>
+            );
+          })()}
+
+          {/* ======== ABA DESPESAS ======== */}
+          {aba === 'despesas' && (() => {
+            const totalEntradas = despesas.filter(d => d.tipo === 'entrada').reduce((s, d) => s + d.valor, 0);
+            const totalSaidas = despesas.filter(d => d.tipo === 'saida').reduce((s, d) => s + d.valor, 0);
+            const saldo = totalEntradas - totalSaidas;
+
+            const porCategoria = (tipo: 'entrada' | 'saida') => {
+              const m = new Map<string, number>();
+              despesas.filter(d => d.tipo === tipo).forEach(d => m.set(d.categoria, (m.get(d.categoria) || 0) + d.valor));
+              return [...m.entries()].sort((a, b) => b[1] - a[1]).map(([categoria, valor]) => ({ key: categoria, label: categoria, value: Math.round(valor * 100) / 100 }));
+            };
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                <div>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>
+                    Despesas <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({despesas.length})</span>
+                  </h2>
+                  <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>
+                    Controle de entradas e saídas — categorias, lançamentos e relatórios.
+                  </p>
+                </div>
+
+                {/* KPIs */}
+                <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                  <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalEntradas.toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Total Entradas</div>
+                  </div>
+                  <div style={{ background: '#dc26260d', border: '1px solid #dc262633', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #dc2626' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#dc2626' }}>R$ {totalSaidas.toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Total Saídas</div>
+                  </div>
+                  <div style={{ background: `${saldo >= 0 ? '#4f46e5' : '#dc2626'}0d`, border: `1px solid ${saldo >= 0 ? '#4f46e5' : '#dc2626'}33`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${saldo >= 0 ? '#4f46e5' : '#dc2626'}` }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: saldo >= 0 ? '#4f46e5' : '#dc2626' }}>R$ {saldo.toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Saldo</div>
+                  </div>
+                </div>
+
+                {/* Relatorio por categoria */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Entradas por Categoria</div>
+                    <HBarChart color="#16a34a" emptyLabel="Sem entradas ainda." items={porCategoria('entrada')} />
+                  </div>
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Saídas por Categoria</div>
+                    <HBarChart color="#dc2626" emptyLabel="Sem saídas ainda." items={porCategoria('saida')} />
+                  </div>
+                </div>
+
+                <div className="admin-split-340" style={{ display: 'grid', gap: 24, alignItems: 'start' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    {/* Lista de lancamentos */}
+                    {loadingDespesas ? (
+                      <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+                    ) : despesas.length === 0 ? (
+                      <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                        Nenhum lançamento ainda.
+                      </div>
+                    ) : (
+                      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                        <div className="admin-table-scroll">
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                              {['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor', 'Ações'].map(h => (
+                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {despesas.map((d, idx) => (
+                              <tr key={d.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                                <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                                  {new Date(d.data + 'T00:00:00').toLocaleDateString('pt-BR')}
+                                </td>
+                                <td style={{ padding: '11px 14px' }}>
+                                  <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: d.tipo === 'entrada' ? '#dcfce7' : '#fee2e2', color: d.tipo === 'entrada' ? '#15803d' : '#dc2626' }}>
+                                    {d.tipo === 'entrada' ? 'Entrada' : 'Saída'}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '11px 14px', color: '#374151', whiteSpace: 'nowrap' }}>{d.categoria}</td>
+                                <td style={{ padding: '11px 14px', color: '#6b7280' }}>{d.descricao}</td>
+                                <td style={{ padding: '11px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                                  R$ {d.valor.toFixed(2)}
+                                </td>
+                                <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                  <div style={{ display: 'flex', gap: 6 }}>
+                                    <button onClick={() => setEditandoDespesa(d)}
+                                      style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                                      Editar
+                                    </button>
+                                    {isSuperadmin && (
+                                      <button onClick={() => excluirDespesa(d.id, d.descricao)}
+                                        style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
+                                        Excluir
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {/* Categorias */}
+                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                      <button type="button" onClick={() => setMostrarCatsFinanceiras(v => !v)}
+                        style={{ width: '100%', background: 'none', border: 'none', padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', fontFamily: 'inherit' }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Categorias ({categoriasFinanceiras.length})</span>
+                        <span style={{ color: '#6b7280', fontSize: 13 }}>{mostrarCatsFinanceiras ? '▲' : '▼'}</span>
+                      </button>
+                      {mostrarCatsFinanceiras && (
+                        <div style={{ padding: '0 16px 16px', borderTop: '1px solid #f3f4f6' }}>
+                          <div style={{ paddingTop: 12, marginBottom: 10 }}>
+                            {categoriasFinanceiras.length === 0 && <div style={{ fontSize: 12, color: '#6b7280', fontStyle: 'italic' }}>Nenhuma ainda.</div>}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                              {categoriasFinanceiras.map(c => (
+                                <span key={c} style={{ background: '#fefce8', border: '1px solid #fde047', color: '#a16207', padding: '3px 10px', borderRadius: 12, fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                  {c}
+                                  {isSuperadmin && (
+                                    <button type="button" onClick={() => deletarCategoriaFinanceira(c)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: 0 }}>-</button>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <form onSubmit={adicionarCategoriaFinanceira} style={{ display: 'flex', gap: 6 }}>
+                            <input value={novaCategoriaFinanceira} onChange={e => setNovaCategoriaFinanceira(e.target.value)} placeholder="Nova categoria..." style={{ ...inputStyle, flex: 1, padding: '8px 12px', fontSize: 12 }} />
+                            <button type="submit" style={{ background: '#111827', color: '#fff', border: 'none', borderRadius: 7, padding: '8px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 12, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>+ Add</button>
+                          </form>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Novo / editar lancamento */}
+                    <div style={{ background: '#fff', border: editandoDespesa ? '1px solid #bfdbfe' : '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                        <h3 style={{ fontSize: 15, fontWeight: 800, color: '#111827', margin: 0 }}>{editandoDespesa ? 'Editar Lançamento' : 'Novo Lançamento'}</h3>
+                        {editandoDespesa && <button onClick={() => setEditandoDespesa(null)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 20 }}>-</button>}
+                      </div>
+                      <form onSubmit={salvarDespesa} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          {(['entrada', 'saida'] as const).map(t => {
+                            const atual = editandoDespesa ? editandoDespesa.tipo : novaDespesa.tipo;
+                            const cor = t === 'entrada' ? '#16a34a' : '#dc2626';
+                            return (
+                              <button key={t} type="button"
+                                onClick={() => editandoDespesa ? setEditandoDespesa(v => v && ({ ...v, tipo: t })) : setNovaDespesa(v => ({ ...v, tipo: t }))}
+                                style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: `1px solid ${atual === t ? cor : '#d1d5db'}`, background: atual === t ? `${cor}14` : '#fff', color: atual === t ? cor : '#374151', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                                {t === 'entrada' ? 'Entrada' : 'Saída'}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Categoria *</label>
+                          <select value={editandoDespesa ? editandoDespesa.categoria : novaDespesa.categoria}
+                            onChange={e => editandoDespesa ? setEditandoDespesa(v => v && ({ ...v, categoria: e.target.value })) : setNovaDespesa(v => ({ ...v, categoria: e.target.value }))}
+                            required style={{ ...inputStyle, cursor: 'pointer' }}>
+                            <option value="">Selecione...</option>
+                            {categoriasFinanceiras.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Descrição *</label>
+                          <input value={editandoDespesa ? editandoDespesa.descricao : novaDespesa.descricao}
+                            onChange={e => editandoDespesa ? setEditandoDespesa(v => v && ({ ...v, descricao: e.target.value })) : setNovaDespesa(v => ({ ...v, descricao: e.target.value }))}
+                            required placeholder="Ex: Comissão vendedor, Almoço com cliente..." style={inputStyle} />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                          <div>
+                            <label style={labelStyle}>Valor (R$) *</label>
+                            <input type="number" min="0" step="0.01"
+                              value={editandoDespesa ? editandoDespesa.valor : novaDespesa.valor}
+                              onChange={e => editandoDespesa ? setEditandoDespesa(v => v && ({ ...v, valor: parseFloat(e.target.value) || 0 })) : setNovaDespesa(v => ({ ...v, valor: e.target.value }))}
+                              required placeholder="0.00" style={inputStyle} />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Data *</label>
+                            <input type="date" value={editandoDespesa ? editandoDespesa.data : novaDespesa.data}
+                              onChange={e => editandoDespesa ? setEditandoDespesa(v => v && ({ ...v, data: e.target.value })) : setNovaDespesa(v => ({ ...v, data: e.target.value }))}
+                              required style={inputStyle} />
+                          </div>
+                        </div>
+                        <button type="submit" style={{ background: '#111827', color: '#fff', fontWeight: 700, padding: '12px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
+                          {editandoDespesa ? 'Salvar Alterações' : 'Registrar Lançamento'}
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
               </div>
             );
           })()}

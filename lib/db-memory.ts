@@ -102,7 +102,20 @@ declare global {
   var __indicacoes__: Indicacao[] | undefined;
   var __admin_logs__: AdminLog[] | undefined;
   var __mentoria_cliques__: MentoriaClique[] | undefined;
+  var __despesas__: Despesa[] | undefined;
+  var __categorias_financeiras__: string[] | undefined;
 }
+
+export type Despesa = {
+  id: string;
+  tipo: 'entrada' | 'saida';
+  categoria: string;
+  descricao: string;
+  valor: number;
+  data: string;
+  created_at: string;
+  updated_at?: string;
+};
 
 export type MentoriaClique = {
   id: string;
@@ -738,6 +751,69 @@ export function mem_registrarCliqueMentoria(medicoId: string, medicoNome: string
 
 export function mem_listarCliquesMentoria(): MentoriaClique[] {
   return [...getMentoriaCliquesStore()];
+}
+
+// ---- Categorias Financeiras (Despesas) ----
+function getCategoriasFinanceirasStore(): string[] {
+  if (global.__categorias_financeiras__ === undefined) {
+    global.__categorias_financeiras__ = carregarJSON<string[]>('categorias_financeiras.json') ?? [];
+  }
+  return global.__categorias_financeiras__;
+}
+export function mem_listarCategoriasFinanceiras(): string[] { return [...getCategoriasFinanceirasStore()]; }
+export function mem_adicionarCategoriaFinanceira(nome: string): boolean {
+  const store = getCategoriasFinanceirasStore();
+  if (store.includes(nome)) return false;
+  store.push(nome);
+  salvarJSON('categorias_financeiras.json', store);
+  persist(sb()?.sbSaveCategoriaFinanceira(nome));
+  return true;
+}
+export function mem_deletarCategoriaFinanceira(nome: string): boolean {
+  const store = getCategoriasFinanceirasStore();
+  const idx = store.indexOf(nome);
+  if (idx === -1) return false;
+  store.splice(idx, 1);
+  salvarJSON('categorias_financeiras.json', store);
+  persist(sb()?.sbDeleteCategoriaFinanceira(nome));
+  return true;
+}
+
+// ---- Despesas (lancamentos financeiros: entrada e saida) ----
+function getDespesasStore(): Despesa[] {
+  if (global.__despesas__ === undefined) {
+    global.__despesas__ = carregarJSON<Despesa[]>('despesas.json') ?? [];
+  }
+  return global.__despesas__;
+}
+export function mem_listarDespesas(): Despesa[] {
+  return [...getDespesasStore()].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+}
+export function mem_criarDespesa(data: Omit<Despesa, 'id' | 'created_at'>): Despesa {
+  const store = getDespesasStore();
+  const d: Despesa = { ...data, id: randomUUID(), created_at: new Date().toISOString() };
+  store.push(d);
+  salvarJSON('despesas.json', store);
+  persist(sb()?.sbSaveDespesa(d));
+  return d;
+}
+export function mem_editarDespesa(id: string, data: Partial<Omit<Despesa, 'id' | 'created_at'>>): Despesa | null {
+  const store = getDespesasStore();
+  const d = store.find(d => d.id === id);
+  if (!d) return null;
+  Object.assign(d, data, { updated_at: new Date().toISOString() });
+  salvarJSON('despesas.json', store);
+  persist(sb()?.sbSaveDespesa(d));
+  return d;
+}
+export function mem_deletarDespesa(id: string): boolean {
+  const store = getDespesasStore();
+  const idx = store.findIndex(d => d.id === id);
+  if (idx === -1) return false;
+  store.splice(idx, 1);
+  salvarJSON('despesas.json', store);
+  persist(sb()?.sbDeleteDespesa(id));
+  return true;
 }
 
 // ---- Pedidos ----

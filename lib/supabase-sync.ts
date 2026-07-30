@@ -4,7 +4,7 @@
  * and provides async functions to write back.
  */
 import { supabase } from './supabase-client';
-import type { Cadastro, ProdutoMemory, Config, BannerItem, Artigo, MembroEquipe, Pedido, Indicacao, AdminLog, MentoriaClique } from './db-memory';
+import type { Cadastro, ProdutoMemory, Config, BannerItem, Artigo, MembroEquipe, Pedido, Indicacao, AdminLog, MentoriaClique, Despesa } from './db-memory';
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
@@ -184,6 +184,45 @@ export async function sbListarCliquesMentoria(): Promise<MentoriaClique[]> {
   const { data, error } = await supabase.from('mentoria_cliques').select('*').order('created_at', { ascending: false }).limit(500);
   if (error) throw new Error(`sbListarCliquesMentoria: ${error.message} (${error.code})`);
   return (data || []) as MentoriaClique[];
+}
+
+// ── Categorias Financeiras (Despesas) ─────────────────────────────────────
+
+export async function sbSaveCategoriaFinanceira(nome: string) {
+  const { error } = await supabase.from('categorias_financeiras').upsert({ nome });
+  if (error) throw new Error(`sbSaveCategoriaFinanceira: ${error.message} (${error.code})`);
+}
+
+export async function sbDeleteCategoriaFinanceira(nome: string) {
+  const { error } = await supabase.from('categorias_financeiras').delete().eq('nome', nome);
+  if (error) throw new Error(`sbDeleteCategoriaFinanceira: ${error.message} (${error.code})`);
+}
+
+export async function sbListarCategoriasFinanceiras(): Promise<string[]> {
+  const { data, error } = await supabase.from('categorias_financeiras').select('nome');
+  if (error) throw new Error(`sbListarCategoriasFinanceiras: ${error.message} (${error.code})`);
+  return (data || []).map((c: { nome: string }) => c.nome);
+}
+
+// ── Despesas (lancamentos financeiros) ────────────────────────────────────
+
+export async function sbSaveDespesa(d: Despesa) {
+  const { error } = await supabase.from('despesas').upsert({
+    id: d.id, tipo: d.tipo, categoria: d.categoria, descricao: d.descricao,
+    valor: d.valor, data: d.data, created_at: d.created_at, updated_at: d.updated_at || null,
+  });
+  if (error) throw new Error(`sbSaveDespesa: ${error.message} (${error.code})`);
+}
+
+export async function sbDeleteDespesa(id: string) {
+  const { error } = await supabase.from('despesas').delete().eq('id', id);
+  if (error) throw new Error(`sbDeleteDespesa: ${error.message} (${error.code})`);
+}
+
+export async function sbListarDespesas(): Promise<Despesa[]> {
+  const { data, error } = await supabase.from('despesas').select('*').order('data', { ascending: false }).limit(2000);
+  if (error) throw new Error(`sbListarDespesas: ${error.message} (${error.code})`);
+  return (data || []) as Despesa[];
 }
 
 // ── Pedidos ─────────────────────────────────────────────────────────────────
