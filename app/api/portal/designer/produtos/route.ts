@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mem_buscarMembroPorToken, mem_listarProdutos, mem_editarProduto, mem_seedProdutos, mem_registrarLog } from '@/lib/db-memory';
 import { PRODUTOS } from '@/lib/produtos';
-import { ensureEquipe } from '@/lib/ensure-equipe';
+import { ensureEquipe, reloadFromSupabase } from '@/lib/ensure-equipe';
 
 async function checkDesigner(req: NextRequest) {
   await ensureEquipe();
@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const membro = await checkDesigner(req);
   if (!membro) return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
+  await reloadFromSupabase();
   const data = await req.json();
   if (!data.id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
   const { id, ...rest } = data;

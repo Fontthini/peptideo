@@ -535,6 +535,7 @@ export function mem_adicionarBanner(data: { imagem: string; titulo: string; subt
   };
   store.push(banner);
   salvarJSON('banners.json', store);
+  persist(sb()?.sbSaveBanners([banner], 'banners'));
   return banner;
 }
 
@@ -544,6 +545,7 @@ export function mem_deletarBanner(id: string): boolean {
   if (idx === -1) return false;
   store.splice(idx, 1);
   salvarJSON('banners.json', store);
+  persist(sb()?.sbDeleteBanner(id, 'banners'));
   return true;
 }
 
@@ -553,6 +555,7 @@ export function mem_toggleBanner(id: string): BannerItem | null {
   if (!b) return null;
   b.ativo = !b.ativo;
   salvarJSON('banners.json', store);
+  persist(sb()?.sbSaveBanners([b], 'banners'));
   return b;
 }
 
@@ -606,6 +609,7 @@ export function mem_adicionarBannerBlog(data: { imagem: string; titulo: string; 
   const banner: BannerItem = { id: randomUUID(), imagem: data.imagem, titulo: data.titulo || '', subtitulo: data.subtitulo || '', ativo: true, ordem: store.length + 1, created_at: new Date().toISOString() };
   store.push(banner);
   salvarJSON('banners-blog.json', store);
+  persist(sb()?.sbSaveBanners([banner], 'banners_blog'));
   return banner;
 }
 export function mem_deletarBannerBlog(id: string): boolean {
@@ -614,6 +618,7 @@ export function mem_deletarBannerBlog(id: string): boolean {
   if (idx === -1) return false;
   store.splice(idx, 1);
   salvarJSON('banners-blog.json', store);
+  persist(sb()?.sbDeleteBanner(id, 'banners_blog'));
   return true;
 }
 export function mem_toggleBannerBlog(id: string): BannerItem | null {
@@ -622,6 +627,7 @@ export function mem_toggleBannerBlog(id: string): BannerItem | null {
   if (!b) return null;
   b.ativo = !b.ativo;
   salvarJSON('banners-blog.json', store);
+  persist(sb()?.sbSaveBanners([b], 'banners_blog'));
   return b;
 }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminKeyValid, isSuperadminKey } from '@/lib/admin-auth';
 import { mem_listarCategoriasBlog, mem_adicionarCategoriaBlog, mem_deletarCategoriaBlog } from '@/lib/db-memory';
+import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 function checkAdmin(req: NextRequest) {
   return isAdminKeyValid(req.headers.get('x-admin-key'));
@@ -23,6 +24,7 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   if (!isSuperadminKey(req.headers.get('x-admin-key'))) return NextResponse.json({ error: 'Apenas o superadmin pode excluir.' }, { status: 403 });
+  await reloadFromSupabase();
   const { nome } = await req.json();
   const ok = mem_deletarCategoriaBlog(nome);
   if (!ok) return NextResponse.json({ error: 'Categoria não encontrada' }, { status: 404 });

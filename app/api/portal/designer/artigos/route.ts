@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mem_buscarMembroPorToken, mem_listarArtigos, mem_criarArtigo, mem_editarArtigo, mem_deletarArtigo, mem_registrarLog } from '@/lib/db-memory';
-import { ensureEquipe } from '@/lib/ensure-equipe';
+import { ensureEquipe, reloadFromSupabase } from '@/lib/ensure-equipe';
 
 async function checkDesigner(req: NextRequest) {
   await ensureEquipe();
@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const membro = await checkDesigner(req);
   if (!membro) return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
+  await reloadFromSupabase();
   const data = await req.json();
   if (!data.id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
   const { id, ...rest } = data;
@@ -41,6 +42,7 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const membro = await checkDesigner(req);
   if (!membro) return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
+  await reloadFromSupabase();
   const { id } = await req.json();
   const alvo = mem_listarArtigos().find(a => a.id === id);
   const ok = mem_deletarArtigo(id);

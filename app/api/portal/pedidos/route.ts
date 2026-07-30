@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  await reloadFromSupabase();
   const token = req.headers.get('x-member-token') || '';
   const membro = mem_buscarMembroPorToken(token);
   if (!membro) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });

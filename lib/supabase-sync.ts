@@ -119,15 +119,17 @@ export async function sbDeleteProduto(id: string) {
 // ── Banners ─────────────────────────────────────────────────────────────────
 
 export async function sbSaveBanners(banners: BannerItem[], table: 'banners' | 'banners_blog') {
-  await supabase.from(table).upsert(banners.map(b => ({
+  const { error } = await supabase.from(table).upsert(banners.map(b => ({
     id: b.id, titulo: b.titulo || '', subtitulo: b.subtitulo || '',
     imagem: b.imagem, link: '', ativo: b.ativo, ordem: b.ordem,
     created_at: b.created_at,
   })));
+  if (error) throw new Error(`sbSaveBanners: ${error.message} (${error.code})`);
 }
 
 export async function sbDeleteBanner(id: string, table: 'banners' | 'banners_blog') {
-  await supabase.from(table).delete().eq('id', id);
+  const { error } = await supabase.from(table).delete().eq('id', id);
+  if (error) throw new Error(`sbDeleteBanner: ${error.message} (${error.code})`);
 }
 
 // ── Artigos ─────────────────────────────────────────────────────────────────
