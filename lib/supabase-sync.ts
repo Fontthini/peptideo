@@ -33,34 +33,44 @@ function rowToConfig(row: Record<string, unknown>): Config {
   };
 }
 
-function configToRow(cfg: Config) {
-  return {
-    id: 1,
-    mercadopago_token: cfg.mercadopago_token || '',
-    resend_api_key: cfg.resend_api_key || '',
-    whatsapp_numero: cfg.whatsapp_numero || '5511999999999',
-    base_url: cfg.base_url || '',
-    banner_titulo: cfg.banner_titulo || '',
-    banner_subtitulo: cfg.banner_subtitulo || '',
-    banner_imagem: cfg.banner_imagem || '',
-    logo: cfg.logo || '',
-    cor_primaria: cfg.corPrimaria || '#111827',
-    cor_acento: cfg.corAcento || '#16a34a',
-    round_robin_idx: cfg.roundRobinIdx || 0,
-    emails_enviados_hoje: cfg.emails_enviados_hoje || 0,
-    emails_dia_referencia: cfg.emails_dia_referencia || '',
-    emails_enviados_mes: cfg.emails_enviados_mes || 0,
-    emails_mes_referencia: cfg.emails_mes_referencia || '',
-    limite_emails_dia: cfg.limite_emails_dia || 100,
-    limite_emails_mes: cfg.limite_emails_mes || 3000,
-    cliques_cards: cfg.cliques_cards || {},
-    cliques_cards_hoje: cfg.cliques_cards_hoje || {},
-    cliques_dia_referencia: cfg.cliques_dia_referencia || '',
-  };
+// So inclui no upsert as colunas que realmente vieram em cfg — como o Supabase
+// so atualiza (ON CONFLICT DO UPDATE) as colunas presentes no objeto, um
+// registrarClique/registrarEnvioEmail/round-robin em instancia fria (cujo
+// cache local ainda nao carregou os dados reais) NUNCA mais sobrescreve
+// whatsapp_numero/resend_api_key/etc com valores padrao vazios.
+function configToRow(cfg: Partial<Config>): Record<string, unknown> {
+  const row: Record<string, unknown> = { id: 1 };
+  const map: [keyof Config, string][] = [
+    ['mercadopago_token', 'mercadopago_token'],
+    ['resend_api_key', 'resend_api_key'],
+    ['whatsapp_numero', 'whatsapp_numero'],
+    ['base_url', 'base_url'],
+    ['banner_titulo', 'banner_titulo'],
+    ['banner_subtitulo', 'banner_subtitulo'],
+    ['banner_imagem', 'banner_imagem'],
+    ['logo', 'logo'],
+    ['corPrimaria', 'cor_primaria'],
+    ['corAcento', 'cor_acento'],
+    ['roundRobinIdx', 'round_robin_idx'],
+    ['emails_enviados_hoje', 'emails_enviados_hoje'],
+    ['emails_dia_referencia', 'emails_dia_referencia'],
+    ['emails_enviados_mes', 'emails_enviados_mes'],
+    ['emails_mes_referencia', 'emails_mes_referencia'],
+    ['limite_emails_dia', 'limite_emails_dia'],
+    ['limite_emails_mes', 'limite_emails_mes'],
+    ['cliques_cards', 'cliques_cards'],
+    ['cliques_cards_hoje', 'cliques_cards_hoje'],
+    ['cliques_dia_referencia', 'cliques_dia_referencia'],
+  ];
+  for (const [key, col] of map) {
+    if (cfg[key] !== undefined) row[col] = cfg[key];
+  }
+  return row;
 }
 
-export async function sbSaveConfig(cfg: Config) {
-  await supabase.from('config').upsert(configToRow(cfg));
+export async function sbSaveConfig(cfg: Partial<Config>) {
+  const { error } = await supabase.from('config').upsert(configToRow(cfg));
+  if (error) throw new Error(`sbSaveConfig: ${error.message} (${error.code})`);
 }
 
 // ── Cadastros ───────────────────────────────────────────────────────────────

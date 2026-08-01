@@ -465,7 +465,12 @@ export function mem_setConfig(cfg: Partial<Config>): Config {
   const current = mem_getConfig();
   Object.assign(current, cfg);
   salvarJSON('config.json', current);
-  persist(sb()?.sbSaveConfig(current));
+  // Envia so os campos que vieram em cfg (nao o objeto current inteiro) -
+  // se o cache local desta instancia ainda nao carregou o config real do
+  // Supabase, current pode estar com valores padrao/vazios; mandando so cfg,
+  // o upsert no Supabase nunca sobrescreve campos que essa chamada nao
+  // pretendia mudar (ver configToRow em supabase-sync.ts).
+  persist(sb()?.sbSaveConfig(cfg));
   return current;
 }
 
