@@ -1,6 +1,8 @@
 'use client';
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { DashboardOverview, type DashProduto, type DashConfig } from '@/components/DashboardOverview';
+import { HBarChart } from '@/components/DashboardCharts';
 
 type Cadastro = {
   id: string; nome: string; sobrenome: string; email: string; whatsapp: string;
@@ -8,6 +10,7 @@ type Cadastro = {
   status: string; token: string | null; created_at: string; updated_at?: string;
   vendedor_id?: string | null; solicitacao?: string | null;
   obs?: string; motivo_rejeicao?: string;
+  last_seen_loja?: string | null; last_seen_blog?: string | null;
 };
 type Membro = { id: string; nome: string; email: string; cargo: string; ativo: boolean; created_at: string; };
 type PedidoItem = { nome: string; preco: number; quantidade: number };
@@ -646,6 +649,15 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
   const [uploadandoArtigo, setUploadandoArtigo] = useState(false);
   const [msgBlog, setMsgBlog] = useState('');
 
+  const [produtosDash, setProdutosDash] = useState<DashProduto[]>([]);
+  const [configDash, setConfigDash] = useState<DashConfig>({});
+  const [loadingDashboard, setLoadingDashboard] = useState(false);
+
+  const [categoriasFinanceiras, setCategoriasFinanceiras] = useState<string[]>([]);
+  const [novaDespesa, setNovaDespesa] = useState({ tipo: 'saida' as 'entrada' | 'saida', categoria: '', descricao: '', valor: '', data: new Date().toISOString().slice(0, 10), comprovante_url: '' });
+  const [editandoDespesa, setEditandoDespesa] = useState<Despesa | null>(null);
+  const [msgFinanceiro, setMsgFinanceiro] = useState('');
+
   const pendentes = lista.filter(l => l.status === 'pendente');
   const emAnalise = lista.filter(l => l.status === 'em_analise');
   const aprovados = lista.filter(l => l.status === 'aprovado');
@@ -684,11 +696,19 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
 
   async function carregarDashboard() {
     setAba('dashboard');
-    if (pedidos.length === 0) carregarPedidosSilencioso();
-    if (indicacoes.length === 0) {
-      const r = await fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } });
-      if (r.ok) setIndicacoes(await r.json());
-    }
+    setLoadingDashboard(true);
+    try {
+      const [rp, ri, rprod, rcfg] = await Promise.all([
+        pedidos.length === 0 ? fetch('/api/portal/pedidos', { headers: { 'x-member-token': token } }) : null,
+        indicacoes.length === 0 ? fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } }) : null,
+        fetch('/api/portal/produtos', { headers: { 'x-member-token': token } }),
+        fetch('/api/portal/config-summary', { headers: { 'x-member-token': token } }),
+      ]);
+      if (rp?.ok) setPedidos(await rp.json());
+      if (ri?.ok) setIndicacoes(await ri.json());
+      if (rprod.ok) setProdutosDash(await rprod.json());
+      if (rcfg.ok) setConfigDash(await rcfg.json());
+    } finally { setLoadingDashboard(false); }
   }
   async function carregarPedidosSilencioso() {
     const r = await fetch('/api/portal/pedidos', { headers: { 'x-member-token': token } });
@@ -699,9 +719,42 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
     setAba('financeiro');
     setLoadingDespesas(true);
     try {
-      const r = await fetch('/api/portal/despesas', { headers: { 'x-member-token': token } });
-      if (r.ok) setDespesas(await r.json());
+      const [rd, rc] = await Promise.all([
+        fetch('/api/portal/despesas', { headers: { 'x-member-token': token } }),
+        fetch('/api/portal/categorias-financeiras', { headers: { 'x-member-token': token } }),
+      ]);
+      if (rd.ok) setDespesas(await rd.json());
+      if (rc.ok) setCategoriasFinanceiras(await rc.json());
     } finally { setLoadingDespesas(false); }
+  }
+
+  async function salvarDespesa(e: React.FormEvent) {
+    e.preventDefault();
+    const body = editandoDespesa ?? novaDespesa;
+    const r = await fetch('/api/portal/despesas', {
+      method: editandoDespesa ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-member-token': token },
+      body: JSON.stringify(body),
+    });
+    if (r.ok) {
+      setMsgFinanceiro(editandoDespesa ? 'OK: Lançamento atualizado!' : 'OK: Lançamento registrado!');
+      setEditandoDespesa(null);
+      setNovaDespesa({ tipo: 'saida', categoria: '', descricao: '', valor: '', data: new Date().toISOString().slice(0, 10), comprovante_url: '' });
+      carregarFinanceiro();
+    } else {
+      const d = await r.json().catch(() => ({}));
+      setMsgFinanceiro('R ' + (d.error || 'Erro ao salvar'));
+    }
+    setTimeout(() => setMsgFinanceiro(''), 4000);
+  }
+
+  async function adicionarCategoriaFinanceira(nome: string) {
+    if (!nome.trim()) return;
+    const r = await fetch('/api/portal/categorias-financeiras', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
+      body: JSON.stringify({ nome: nome.trim() }),
+    });
+    if (r.ok) { const cats = await fetch('/api/portal/categorias-financeiras', { headers: { 'x-member-token': token } }); if (cats.ok) setCategoriasFinanceiras(await cats.json()); }
   }
 
   async function carregarMentoria() {
@@ -802,53 +855,16 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
         </div>
       )}
 
-      {/* ABA DASHBOARD */}
-      {aba === 'dashboard' && (() => {
-        const indicacoesPacientes = indicacoes.filter(i => i.tipo !== 'medico').length;
-        const indicacoesMedicas = indicacoes.filter(i => i.tipo === 'medico').length;
-        const valorPago = pedidos.filter(p => p.status === 'pago').reduce((s, p) => s + p.preco, 0);
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
-              <StatCard label="Total Leads" value={lista.length} color="#111827" />
-              <StatCard label="Pendentes" value={pendentes.length} color="#f59e0b" />
-              <StatCard label="Aprovados" value={aprovados.length} color="#16a34a" />
-              <StatCard label="Pedidos" value={pedidos.length} color="#4f46e5" />
-              <StatCard label="Valor Pago" value={`R$ ${valorPago.toFixed(2)}`} color="#16a34a" />
-              <StatCard label="Indicações" value={indicacoesPacientes} color="#0d9488" />
-              <StatCard label="Indicações Médicas" value={indicacoesMedicas} color="#0891b2" />
-            </div>
-
-            {perf.length > 0 && (
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
-                <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Performance por Vendedor</div>
-                <div className="portal-table-scroll">
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                      {['Vendedor', 'Leads', 'Aprovados', 'Pedidos Pagos', 'Valor Pago'].map(h => (
-                        <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {perf.map(v => (
-                      <tr key={v.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                        <td style={{ padding: '10px 14px', fontWeight: 700, color: '#111827' }}>{v.nome}</td>
-                        <td style={{ padding: '10px 14px', color: '#374151' }}>{v.leads}</td>
-                        <td style={{ padding: '10px 14px', color: '#15803d', fontWeight: 700 }}>{v.aprovados}</td>
-                        <td style={{ padding: '10px 14px', color: '#7c3aed', fontWeight: 700 }}>{v.pedidosVendidos}</td>
-                        <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 800 }}>R$ {v.valorVendido.toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      {/* ABA DASHBOARD (identico ao /admin) */}
+      {aba === 'dashboard' && (
+        loadingDashboard ? (
+          <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+        ) : (
+          <DashboardOverview
+            cadastros={lista} pedidos={pedidos} equipe={equipe} produtos={produtosDash} config={configDash}
+          />
+        )
+      )}
 
       {/* ABA PEDIDOS */}
       {aba === 'pedidos' && (
@@ -1101,11 +1117,16 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
         </div>
       )}
 
-      {/* ABA FINANCEIRO (somente visualizacao) */}
+      {/* ABA FINANCEIRO (gerente pode criar/editar, nao pode excluir) */}
       {aba === 'financeiro' && (() => {
         const totalEntradas = despesas.filter(d => d.tipo === 'entrada').reduce((s, d) => s + d.valor, 0);
         const totalSaidas = despesas.filter(d => d.tipo === 'saida').reduce((s, d) => s + d.valor, 0);
         const saldo = totalEntradas - totalSaidas;
+        const porCategoria = (tipo: 'entrada' | 'saida') => {
+          const m = new Map<string, number>();
+          despesas.filter(d => d.tipo === tipo).forEach(d => m.set(d.categoria, (m.get(d.categoria) || 0) + d.valor));
+          return [...m.entries()].sort((a, b) => b[1] - a[1]).map(([categoria, valor]) => ({ key: categoria, label: categoria, value: Math.round(valor * 100) / 100 }));
+        };
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
@@ -1113,40 +1134,131 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
               <StatCard label="Total Saídas" value={`R$ ${totalSaidas.toFixed(2)}`} color="#dc2626" />
               <StatCard label="Saldo" value={`R$ ${saldo.toFixed(2)}`} color={saldo >= 0 ? '#4f46e5' : '#dc2626'} />
             </div>
-            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
-              <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Lançamentos</div>
-              {loadingDespesas ? (
-                <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
-              ) : despesas.length === 0 ? (
-                <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Nenhum lançamento ainda.</div>
-              ) : (
-                <div className="portal-table-scroll">
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                      {['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor'].map(h => (
-                        <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {despesas.map(d => (
-                      <tr key={d.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                        <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(d.data + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
-                        <td style={{ padding: '10px 14px' }}>
-                          <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: d.tipo === 'entrada' ? '#dcfce7' : '#fee2e2', color: d.tipo === 'entrada' ? '#15803d' : '#dc2626' }}>
-                            {d.tipo === 'entrada' ? 'Entrada' : 'Saída'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '10px 14px', color: '#374151' }}>{d.categoria}</td>
-                        <td style={{ padding: '10px 14px', color: '#6b7280' }}>{d.descricao}</td>
-                        <td style={{ padding: '10px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626' }}>R$ {d.valor.toFixed(2)}</td>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
+              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 22 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 14 }}>Entradas por Categoria</div>
+                <HBarChart color="#16a34a" emptyLabel="Sem entradas ainda." items={porCategoria('entrada')} />
+              </div>
+              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 22 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 14 }}>Saídas por Categoria</div>
+                <HBarChart color="#dc2626" emptyLabel="Sem saídas ainda." items={porCategoria('saida')} />
+              </div>
+            </div>
+
+            <div className="portal-split-380" style={{ display: 'grid', gap: 20, alignItems: 'start' }}>
+              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Lançamentos</div>
+                {loadingDespesas ? (
+                  <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+                ) : despesas.length === 0 ? (
+                  <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Nenhum lançamento ainda.</div>
+                ) : (
+                  <div className="portal-table-scroll">
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                        {['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor', 'Ações'].map(h => (
+                          <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {despesas.map(d => (
+                        <tr key={d.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                          <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(d.data + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                          <td style={{ padding: '10px 14px' }}>
+                            <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: d.tipo === 'entrada' ? '#dcfce7' : '#fee2e2', color: d.tipo === 'entrada' ? '#15803d' : '#dc2626' }}>
+                              {d.tipo === 'entrada' ? 'Entrada' : 'Saída'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px 14px', color: '#374151' }}>{d.categoria}</td>
+                          <td style={{ padding: '10px 14px', color: '#6b7280' }}>{d.descricao}</td>
+                          <td style={{ padding: '10px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626' }}>R$ {d.valor.toFixed(2)}</td>
+                          <td style={{ padding: '10px 14px' }}>
+                            <button onClick={() => setEditandoDespesa(d)}
+                              style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                              Editar
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ position: 'sticky', top: 24, background: '#fff', border: `1px solid ${editandoDespesa ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 12, padding: 22 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: '#111827' }}>{editandoDespesa ? 'Editar Lançamento' : 'Novo Lançamento'}</div>
+                  {editandoDespesa && <button type="button" onClick={() => setEditandoDespesa(null)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 20 }}>-</button>}
                 </div>
-              )}
+                {msgFinanceiro && (
+                  <div style={{ marginBottom: 14, background: msgFinanceiro.startsWith('OK:') ? '#f0fdf4' : '#fef2f2', border: `1px solid ${msgFinanceiro.startsWith('OK:') ? '#86efac' : '#fecaca'}`, color: msgFinanceiro.startsWith('OK:') ? '#15803d' : '#dc2626', padding: '10px 14px', borderRadius: 8, fontSize: 13 }}>
+                    {msgFinanceiro.replace(/^(OK|R):\s*/, '')}
+                  </div>
+                )}
+                <form onSubmit={salvarDespesa} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {(['saida', 'entrada'] as const).map(t => {
+                      const atual = editandoDespesa ? editandoDespesa.tipo : novaDespesa.tipo;
+                      const cor = t === 'entrada' ? '#16a34a' : '#dc2626';
+                      return (
+                        <button key={t} type="button"
+                          onClick={() => editandoDespesa ? setEditandoDespesa(v => v && ({ ...v, tipo: t })) : setNovaDespesa(v => ({ ...v, tipo: t }))}
+                          style={{ flex: 1, background: atual === t ? cor : '#fff', color: atual === t ? '#fff' : cor, border: `1px solid ${cor}`, padding: '9px 0', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>
+                          {t === 'entrada' ? 'Entrada' : 'Saída'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 5, fontSize: 11, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Categoria *</label>
+                    <select value={editandoDespesa ? editandoDespesa.categoria : novaDespesa.categoria}
+                      onChange={e => editandoDespesa ? setEditandoDespesa(v => v && ({ ...v, categoria: e.target.value })) : setNovaDespesa(v => ({ ...v, categoria: e.target.value }))}
+                      required style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box', cursor: 'pointer' }}>
+                      <option value="">Selecione...</option>
+                      {categoriasFinanceiras.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                      <input id="nova-cat-financeira" placeholder="Nova categoria..." style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: 6, padding: '6px 10px', fontSize: 12, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box' }} />
+                      <button type="button" onClick={() => {
+                        const el = document.getElementById('nova-cat-financeira') as HTMLInputElement | null;
+                        if (el && el.value.trim()) { adicionarCategoriaFinanceira(el.value); el.value = ''; }
+                      }} style={{ background: '#f9fafb', color: '#374151', border: '1px solid #d1d5db', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', fontWeight: 600 }}>
+                        + Categoria
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 5, fontSize: 11, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Descrição *</label>
+                    <input value={editandoDespesa ? editandoDespesa.descricao : novaDespesa.descricao}
+                      onChange={e => editandoDespesa ? setEditandoDespesa(v => v && ({ ...v, descricao: e.target.value })) : setNovaDespesa(v => ({ ...v, descricao: e.target.value }))}
+                      required placeholder="Ex: Comissão vendedor, Almoço com cliente..."
+                      style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box' }} />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: 5, fontSize: 11, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Valor (R$) *</label>
+                      <input type="number" min="0" step="0.01"
+                        value={editandoDespesa ? editandoDespesa.valor : novaDespesa.valor}
+                        onChange={e => editandoDespesa ? setEditandoDespesa(v => v && ({ ...v, valor: parseFloat(e.target.value) || 0 })) : setNovaDespesa(v => ({ ...v, valor: e.target.value }))}
+                        required placeholder="0.00"
+                        style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box' }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: 5, fontSize: 11, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Data *</label>
+                      <input type="date" value={editandoDespesa ? editandoDespesa.data : novaDespesa.data}
+                        onChange={e => editandoDespesa ? setEditandoDespesa(v => v && ({ ...v, data: e.target.value })) : setNovaDespesa(v => ({ ...v, data: e.target.value }))}
+                        required style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box' }} />
+                    </div>
+                  </div>
+                  <button type="submit" style={{ background: '#111827', color: '#fff', fontWeight: 700, padding: '12px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
+                    {editandoDespesa ? 'Salvar Alterações' : 'Registrar Lançamento'}
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
         );
