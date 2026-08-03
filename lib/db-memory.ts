@@ -912,10 +912,14 @@ export function mem_criarPedido(data: Omit<Pedido, 'id' | 'created_at'>): Pedido
   return p;
 }
 
-export function mem_atualizarPedido(id: string, data: Partial<Pick<Pedido, 'status' | 'obs' | 'vendedor_id'>>): Pedido | null {
+export function mem_atualizarPedido(id: string, data: Partial<Pick<Pedido, 'status' | 'obs' | 'vendedor_id' | 'preco'>>): Pedido | null {
   const p = getPedidosStore().find(p => p.id === id);
   if (!p) return null;
-  Object.assign(p, data, { updated_at: new Date().toISOString() });
+  // So aplica os campos realmente enviados — Object.assign copia ate chaves
+  // com valor undefined, o que apagaria status/obs/preco existentes sempre
+  // que o chamador so quisesse atualizar um dos campos.
+  const campos = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
+  Object.assign(p, campos, { updated_at: new Date().toISOString() });
   salvarPedidos(); persist(sb()?.sbSavePedido(p));
   return p;
 }

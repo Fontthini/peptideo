@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminKeyValid, isSuperadminKey, adminAtorFromKey } from '@/lib/admin-auth';
-import { mem_listarPedidos, mem_atualizarPedido, mem_deletarPedido, mem_registrarLog } from '@/lib/db-memory';
+import { mem_listarPedidos, mem_atualizarPedido, mem_deletarPedido, mem_registrarLog, mem_criarDespesa } from '@/lib/db-memory';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 function checkAdmin(req: NextRequest) {
@@ -16,12 +16,27 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 });
   await reloadFromSupabase();
-  const { id, status, obs } = await req.json();
+  const { id, status, obs, preco } = await req.json();
   if (!id) return NextResponse.json({ error: 'id obrigatorio' }, { status: 400 });
-  const p = mem_atualizarPedido(id, { status, obs });
+
+  const statusAnterior = mem_listarPedidos().find(p => p.id === id)?.status;
+  const p = mem_atualizarPedido(id, { status, obs, preco: preco !== undefined ? parseFloat(preco) : undefined });
   if (!p) return NextResponse.json({ error: 'Pedido nao encontrado' }, { status: 404 });
   try { const { sbSavePedido } = await import('@/lib/supabase-sync'); await sbSavePedido(p); } catch (e) { console.error('[PEDIDO] save error:', e); }
-  mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Atualizou pedido', `${p.cadastro_nome} — ${p.produto_nome} (${p.status})`);
+  const ator = adminAtorFromKey(req.headers.get('x-admin-key'));
+  mem_registrarLog(ator, 'Atualizou pedido', `${p.cadastro_nome} — ${p.produto_nome} (${p.status}) — R$ ${p.preco.toFixed(2)}`);
+
+  // Ao marcar como pago (e so na transicao, pra nao duplicar em cada edicao
+  // seguinte), lanca automaticamente uma entrada no Financeiro.
+  if (p.status === 'pago' && statusAnterior !== 'pago') {
+    const d = mem_criarDespesa({
+      tipo: 'entrada', categoria: 'Pago',
+      descricao: `Pedido pago — ${p.cadastro_nome} (${p.produto_nome})`,
+      valor: p.preco, data: new Date().toISOString().slice(0, 10),
+    });
+    mem_registrarLog(ator, 'Lançou entrada automática (pedido pago)', `${d.categoria} — ${d.descricao} — R$ ${d.valor.toFixed(2)}`);
+  }
+
   return NextResponse.json(p);
 }
 

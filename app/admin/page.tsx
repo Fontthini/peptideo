@@ -306,6 +306,15 @@ export default function AdminPage() {
     else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao atualizar')); }
   };
 
+  const atualizarValorPedido = async (id: string, preco: number) => {
+    const r = await fetch('/api/admin/pedidos', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify({ id, preco }),
+    });
+    if (r.ok) { showMsg('OK: Valor atualizado!'); carregarPedidos(); }
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao atualizar')); }
+  };
+
   const excluirPedido = async (id: string, cliente: string) => {
     if (!confirm(`Excluir permanentemente o pedido de ${cliente}?`)) return;
     const r = await fetch('/api/admin/pedidos', {
@@ -2154,7 +2163,17 @@ export default function AdminPage() {
                           <td style={{ padding: '11px 14px', color: '#374151', maxWidth: 220, fontSize: 12 }}>
                             {p.itens && p.itens.length > 0 ? p.itens.map(it => `${it.nome} x${it.quantidade}`).join(', ') : p.produto_nome}
                           </td>
-                          <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a' }}>R$ {p.preco.toFixed(2)}</td>
+                          <td style={{ padding: '11px 14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <span style={{ color: '#6b7280', fontSize: 12 }}>R$</span>
+                              <input type="number" step="0.01" min="0" defaultValue={p.preco} key={`${p.id}-${p.preco}`}
+                                onBlur={e => {
+                                  const v = parseFloat(e.target.value);
+                                  if (!isNaN(v) && v !== p.preco) atualizarValorPedido(p.id, v);
+                                }}
+                                style={{ width: 88, border: '1px solid #d1d5db', borderRadius: 5, padding: '4px 6px', fontSize: 13, fontWeight: 700, color: '#16a34a', fontFamily: 'inherit' }} />
+                            </div>
+                          </td>
                           <td style={{ padding: '11px 14px' }}>
                             <select value={p.status} onChange={e => atualizarStatusPedido(p.id, e.target.value)}
                               style={{ background: cc.bg, color: cc.text, border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
