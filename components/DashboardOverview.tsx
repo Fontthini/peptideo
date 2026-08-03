@@ -104,6 +104,13 @@ export function DashboardOverview({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Estilos usados aqui podem nao estar definidos na pagina que renderiza
+          este componente (ex: portal da equipe) — declarados localmente para
+          o Dashboard ficar identico em qualquer lugar que for usado. */}
+      <style>{`
+        .admin-grid-auto { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+        .admin-table-scroll { overflow-x: auto; }
+      `}</style>
       <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>Dashboard Geral</h2>
 
       {/* KPIs */}
