@@ -3,6 +3,7 @@ import { isAdminKeyValid, adminAtorFromKey } from '@/lib/admin-auth';
 import { mem_buscarId, mem_aprovar, mem_registrarLog } from '@/lib/db-memory';
 import { enviarEmailAprovacao } from '@/lib/email';
 import { enviarWhatsApp } from '@/lib/whatsapp';
+import { reloadFromSupabase } from '@/lib/ensure-equipe';
 import { v4 as uuidv4 } from 'uuid';
 
 function checkAdmin(req: NextRequest) {
@@ -14,6 +15,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
   try {
+    await reloadFromSupabase();
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
 

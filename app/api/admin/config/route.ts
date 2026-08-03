@@ -29,8 +29,11 @@ export async function POST(req: NextRequest) {
   }
   const updated = mem_setConfig(data);
   try {
+    // So envia os campos realmente submetidos (data), nunca o objeto
+    // mesclado inteiro (updated) — evita apagar campos como cliques_cards
+    // caso o cache local desta instancia nao tenha carregado tudo do Supabase.
     const { sbSaveConfig } = await import('@/lib/supabase-sync');
-    await sbSaveConfig(updated);
+    await sbSaveConfig(data);
   } catch (e) {
     console.error('[CONFIG] Supabase save error:', e);
   }
