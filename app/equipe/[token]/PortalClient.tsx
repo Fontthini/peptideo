@@ -21,6 +21,10 @@ type Indicacao = {
   nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string;
   status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string;
 };
+type Despesa = { id: string; tipo: 'entrada' | 'saida'; categoria: string; descricao: string; valor: number; data: string; comprovante_url?: string; created_at: string; };
+type MentoriaCliqueLog = { id: string; medico_id: string; medico_nome: string; created_at: string; };
+type Material = { nome: string; url: string };
+type Artigo = { id: string; titulo: string; conteudo: string; imagem?: string; video?: string; categoria?: string; materiais: Material[]; publicado: boolean; created_at: string; updated_at: string; };
 
 type Props = { membro: Membro; leads: Cadastro[]; equipe: Membro[]; token: string; logo?: string; };
 
@@ -62,10 +66,14 @@ function formatDate(iso: string) {
 }
 
 const ABA_NAV: { key: string; icon: string; label: string; color: string; gerenteOnly?: boolean }[] = [
+  { key: 'dashboard', icon: '#', label: 'Dashboard', color: '#4f46e5', gerenteOnly: true },
   { key: 'leads', icon: 'L', label: 'Leads', color: '#16a34a' },
   { key: 'pedidos', icon: 'P', label: 'Pedidos', color: '#4f46e5' },
   { key: 'indicacoes', icon: 'I', label: 'Indicações', color: '#0d9488' },
   { key: 'indicacoes-medicas', icon: 'M', label: 'Indicações Médicas', color: '#0891b2', gerenteOnly: true },
+  { key: 'financeiro', icon: '$', label: 'Financeiro', color: '#ca8a04', gerenteOnly: true },
+  { key: 'mentoria', icon: '%', label: 'Mentoria', color: '#0d9488', gerenteOnly: true },
+  { key: 'blog', icon: 'B', label: 'Blog', color: '#db2777', gerenteOnly: true },
 ];
 
 function SideNav({ aba, handlers, gerenteOnly }: { aba: string; handlers: Record<string, () => void>; gerenteOnly?: boolean }) {
@@ -621,9 +629,22 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
   const [selectedLead, setSelectedLead] = useState<Cadastro | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [indicacoes, setIndicacoes] = useState<Indicacao[]>([]);
-  const [aba, setAba] = useState<'leads' | 'pedidos' | 'indicacoes' | 'indicacoes-medicas'>('leads');
+  const [aba, setAba] = useState<'dashboard' | 'leads' | 'pedidos' | 'indicacoes' | 'indicacoes-medicas' | 'financeiro' | 'mentoria' | 'blog'>('leads');
   const [buscaMedico, setBuscaMedico] = useState('');
   const [buscaIndicacao, setBuscaIndicacao] = useState('');
+
+  const [despesas, setDespesas] = useState<Despesa[]>([]);
+  const [loadingDespesas, setLoadingDespesas] = useState(false);
+  const [mentoriaCliques, setMentoriaCliques] = useState<MentoriaCliqueLog[]>([]);
+  const [loadingMentoria, setLoadingMentoria] = useState(false);
+
+  const [artigos, setArtigos] = useState<Artigo[]>([]);
+  const [loadingArtigos, setLoadingArtigos] = useState(false);
+  const [categoriasBlog, setCategoriasBlog] = useState<string[]>([]);
+  const [novoArtigo, setNovoArtigo] = useState({ titulo: '', conteudo: '', imagem: '', categoria: '', publicado: false });
+  const [editandoArtigo, setEditandoArtigo] = useState<Artigo | null>(null);
+  const [uploadandoArtigo, setUploadandoArtigo] = useState(false);
+  const [msgBlog, setMsgBlog] = useState('');
 
   const pendentes = lista.filter(l => l.status === 'pendente');
   const emAnalise = lista.filter(l => l.status === 'em_analise');
@@ -661,6 +682,89 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
     setAba(destino);
   }
 
+  async function carregarDashboard() {
+    setAba('dashboard');
+    if (pedidos.length === 0) carregarPedidosSilencioso();
+    if (indicacoes.length === 0) {
+      const r = await fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } });
+      if (r.ok) setIndicacoes(await r.json());
+    }
+  }
+  async function carregarPedidosSilencioso() {
+    const r = await fetch('/api/portal/pedidos', { headers: { 'x-member-token': token } });
+    if (r.ok) setPedidos(await r.json());
+  }
+
+  async function carregarFinanceiro() {
+    setAba('financeiro');
+    setLoadingDespesas(true);
+    try {
+      const r = await fetch('/api/portal/despesas', { headers: { 'x-member-token': token } });
+      if (r.ok) setDespesas(await r.json());
+    } finally { setLoadingDespesas(false); }
+  }
+
+  async function carregarMentoria() {
+    setAba('mentoria');
+    setLoadingMentoria(true);
+    try {
+      const r = await fetch('/api/portal/mentoria-cliques', { headers: { 'x-member-token': token } });
+      if (r.ok) setMentoriaCliques(await r.json());
+    } finally { setLoadingMentoria(false); }
+  }
+
+  async function carregarBlog() {
+    setAba('blog');
+    setLoadingArtigos(true);
+    try {
+      const [ra, rc] = await Promise.all([
+        fetch('/api/portal/designer/artigos', { headers: { 'x-member-token': token } }),
+        fetch('/api/portal/designer/categorias-blog', { headers: { 'x-member-token': token } }),
+      ]);
+      if (ra.ok) setArtigos(await ra.json());
+      if (rc.ok) setCategoriasBlog(await rc.json());
+    } finally { setLoadingArtigos(false); }
+  }
+
+  async function uploadImagemArtigo(file: File, onUrl: (url: string) => void) {
+    setUploadandoArtigo(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await fetch('/api/portal/upload', { method: 'POST', headers: { 'x-member-token': token }, body: fd });
+      const d = await r.json();
+      if (r.ok) { onUrl(d.url); setMsgBlog('OK: Imagem carregada!'); }
+      else setMsgBlog('R ' + (d.error || 'Erro ao enviar'));
+    } finally { setUploadandoArtigo(false); }
+  }
+
+  async function salvarArtigo(e: React.FormEvent) {
+    e.preventDefault();
+    const r = await fetch('/api/portal/designer/artigos', {
+      method: editandoArtigo ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-member-token': token },
+      body: JSON.stringify(editandoArtigo ? editandoArtigo : novoArtigo),
+    });
+    if (r.ok) {
+      setMsgBlog(editandoArtigo ? 'OK: Artigo atualizado!' : 'OK: Artigo criado!');
+      setEditandoArtigo(null);
+      setNovoArtigo({ titulo: '', conteudo: '', imagem: '', categoria: '', publicado: false });
+      carregarBlog();
+    } else {
+      const d = await r.json().catch(() => ({}));
+      setMsgBlog('R ' + (d.error || 'Erro ao salvar'));
+    }
+    setTimeout(() => setMsgBlog(''), 4000);
+  }
+
+  async function togglePublicarArtigo(a: Artigo) {
+    const r = await fetch('/api/portal/designer/artigos', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
+      body: JSON.stringify({ id: a.id, publicado: !a.publicado }),
+    });
+    if (r.ok) carregarBlog();
+  }
+
   const totalPedidos = pedidos.length;
   const valorPedidos = pedidos.reduce((s, p) => s + p.preco, 0);
   const pedidosVendidos = pedidos.filter(p => p.status === 'pago');
@@ -676,21 +780,75 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
       )}
 
       <SideNav aba={aba} gerenteOnly handlers={{
+        dashboard: carregarDashboard,
         leads: () => setAba('leads'),
         pedidos: carregarPedidos,
         indicacoes: () => carregarIndicacoes('indicacoes'),
         'indicacoes-medicas': () => carregarIndicacoes('indicacoes-medicas'),
+        financeiro: carregarFinanceiro,
+        mentoria: carregarMentoria,
+        blog: carregarBlog,
       }} />
 
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* KPIs */}
-      <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
-        <StatCard label="Total Leads" value={lista.length} color="#111827" />
-        <StatCard label="Pendentes" value={pendentes.length} color="#f59e0b" />
-        <StatCard label="Em Analise" value={emAnalise.length} sub="solicitacoes" color="#3b82f6" />
-        <StatCard label="Aprovados" value={aprovados.length} color="#16a34a" />
-        <StatCard label="Rejeitados" value={rejeitados.length} color="#dc2626" />
-      </div>
+      {!['dashboard', 'financeiro', 'mentoria', 'blog'].includes(aba) && (
+        <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+          <StatCard label="Total Leads" value={lista.length} color="#111827" />
+          <StatCard label="Pendentes" value={pendentes.length} color="#f59e0b" />
+          <StatCard label="Em Analise" value={emAnalise.length} sub="solicitacoes" color="#3b82f6" />
+          <StatCard label="Aprovados" value={aprovados.length} color="#16a34a" />
+          <StatCard label="Rejeitados" value={rejeitados.length} color="#dc2626" />
+        </div>
+      )}
+
+      {/* ABA DASHBOARD */}
+      {aba === 'dashboard' && (() => {
+        const indicacoesPacientes = indicacoes.filter(i => i.tipo !== 'medico').length;
+        const indicacoesMedicas = indicacoes.filter(i => i.tipo === 'medico').length;
+        const valorPago = pedidos.filter(p => p.status === 'pago').reduce((s, p) => s + p.preco, 0);
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+              <StatCard label="Total Leads" value={lista.length} color="#111827" />
+              <StatCard label="Pendentes" value={pendentes.length} color="#f59e0b" />
+              <StatCard label="Aprovados" value={aprovados.length} color="#16a34a" />
+              <StatCard label="Pedidos" value={pedidos.length} color="#4f46e5" />
+              <StatCard label="Valor Pago" value={`R$ ${valorPago.toFixed(2)}`} color="#16a34a" />
+              <StatCard label="Indicações" value={indicacoesPacientes} color="#0d9488" />
+              <StatCard label="Indicações Médicas" value={indicacoesMedicas} color="#0891b2" />
+            </div>
+
+            {perf.length > 0 && (
+              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Performance por Vendedor</div>
+                <div className="portal-table-scroll">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                      {['Vendedor', 'Leads', 'Aprovados', 'Pedidos Pagos', 'Valor Pago'].map(h => (
+                        <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {perf.map(v => (
+                      <tr key={v.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 700, color: '#111827' }}>{v.nome}</td>
+                        <td style={{ padding: '10px 14px', color: '#374151' }}>{v.leads}</td>
+                        <td style={{ padding: '10px 14px', color: '#15803d', fontWeight: 700 }}>{v.aprovados}</td>
+                        <td style={{ padding: '10px 14px', color: '#7c3aed', fontWeight: 700 }}>{v.pedidosVendidos}</td>
+                        <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 800 }}>R$ {v.valorVendido.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ABA PEDIDOS */}
       {aba === 'pedidos' && (
@@ -943,6 +1101,212 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
         </div>
       )}
 
+      {/* ABA FINANCEIRO (somente visualizacao) */}
+      {aba === 'financeiro' && (() => {
+        const totalEntradas = despesas.filter(d => d.tipo === 'entrada').reduce((s, d) => s + d.valor, 0);
+        const totalSaidas = despesas.filter(d => d.tipo === 'saida').reduce((s, d) => s + d.valor, 0);
+        const saldo = totalEntradas - totalSaidas;
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+              <StatCard label="Total Entradas" value={`R$ ${totalEntradas.toFixed(2)}`} color="#16a34a" />
+              <StatCard label="Total Saídas" value={`R$ ${totalSaidas.toFixed(2)}`} color="#dc2626" />
+              <StatCard label="Saldo" value={`R$ ${saldo.toFixed(2)}`} color={saldo >= 0 ? '#4f46e5' : '#dc2626'} />
+            </div>
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Lançamentos</div>
+              {loadingDespesas ? (
+                <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+              ) : despesas.length === 0 ? (
+                <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Nenhum lançamento ainda.</div>
+              ) : (
+                <div className="portal-table-scroll">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                      {['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor'].map(h => (
+                        <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {despesas.map(d => (
+                      <tr key={d.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(d.data + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: d.tipo === 'entrada' ? '#dcfce7' : '#fee2e2', color: d.tipo === 'entrada' ? '#15803d' : '#dc2626' }}>
+                            {d.tipo === 'entrada' ? 'Entrada' : 'Saída'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 14px', color: '#374151' }}>{d.categoria}</td>
+                        <td style={{ padding: '10px 14px', color: '#6b7280' }}>{d.descricao}</td>
+                        <td style={{ padding: '10px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626' }}>R$ {d.valor.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ABA MENTORIA (somente visualizacao) */}
+      {aba === 'mentoria' && (() => {
+        const porMedico = new Map<string, number>();
+        mentoriaCliques.forEach(c => porMedico.set(c.medico_nome, (porMedico.get(c.medico_nome) || 0) + 1));
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+              <StatCard label="Cliques totais" value={mentoriaCliques.length} color="#0d9488" />
+              <StatCard label="Médicos" value={porMedico.size} color="#4f46e5" />
+            </div>
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+              {loadingMentoria ? (
+                <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+              ) : mentoriaCliques.length === 0 ? (
+                <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Ninguém clicou no card Mentoria ainda.</div>
+              ) : (
+                <div className="portal-table-scroll">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                      {['Médico', 'Quando'].map(h => (
+                        <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mentoriaCliques.map(c => (
+                      <tr key={c.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 700, color: '#111827' }}>{c.medico_nome}</td>
+                        <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{new Date(c.created_at).toLocaleString('pt-BR')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ABA BLOG (criar/editar, sem excluir) */}
+      {aba === 'blog' && (
+        <div className="portal-split-380" style={{ display: 'grid', gap: 24, alignItems: 'start' }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>
+                Blog <span style={{ color: '#6b7280', fontSize: 13, fontWeight: 400 }}>({artigos.filter(a => a.publicado).length}/{artigos.length} publicados)</span>
+              </div>
+            </div>
+            {msgBlog && (
+              <div style={{ marginBottom: 14, background: msgBlog.startsWith('OK:') ? '#f0fdf4' : '#fef2f2', border: `1px solid ${msgBlog.startsWith('OK:') ? '#86efac' : '#fecaca'}`, color: msgBlog.startsWith('OK:') ? '#15803d' : '#dc2626', padding: '10px 14px', borderRadius: 8, fontSize: 13 }}>
+                {msgBlog.replace(/^(OK|R):\s*/, '')}
+              </div>
+            )}
+            {loadingArtigos ? (
+              <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+            ) : artigos.length === 0 ? (
+              <div style={{ padding: 40, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                Nenhum artigo. Crie um ao lado.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {artigos.map(a => (
+                  <div key={a.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', display: 'flex', opacity: a.publicado ? 1 : 0.7 }}>
+                    {a.imagem ? (
+                      <div style={{ width: 90, flexShrink: 0, background: '#f9fafb' }}>
+                        <img src={a.imagem} alt={a.titulo} style={{ width: '100%', height: 70, objectFit: 'cover', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                      </div>
+                    ) : (
+                      <div style={{ width: 70, flexShrink: 0, background: 'linear-gradient(135deg, #0f172a, #db2777)' }} />
+                    )}
+                    <div style={{ flex: 1, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: '#111827' }}>{a.titulo}</div>
+                        <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: a.publicado ? '#dcfce7' : '#f3f4f6', color: a.publicado ? '#15803d' : '#6b7280' }}>
+                          {a.publicado ? 'Publicado' : 'Rascunho'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                        <button onClick={() => togglePublicarArtigo(a)}
+                          style={{ background: '#f9fafb', color: '#374151', border: '1px solid #e5e7eb', padding: '5px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}>
+                          {a.publicado ? 'Ocultar' : 'Publicar'}
+                        </button>
+                        <button onClick={() => setEditandoArtigo({ ...a })}
+                          style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}>
+                          Editar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ position: 'sticky', top: 24, background: '#fff', border: `1px solid ${editandoArtigo ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 12, padding: 22 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontWeight: 800, fontSize: 15, color: '#111827' }}>{editandoArtigo ? 'Editar Artigo' : 'Novo Artigo'}</div>
+              {editandoArtigo && <button type="button" onClick={() => setEditandoArtigo(null)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 20 }}>-</button>}
+            </div>
+            <form onSubmit={salvarArtigo} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: 5, fontSize: 11, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Título *</label>
+                <input value={editandoArtigo ? editandoArtigo.titulo : novoArtigo.titulo}
+                  onChange={e => editandoArtigo ? setEditandoArtigo(a => a && ({ ...a, titulo: e.target.value })) : setNovoArtigo(a => ({ ...a, titulo: e.target.value }))}
+                  required placeholder="Título do artigo"
+                  style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 5, fontSize: 11, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Categoria</label>
+                <select value={editandoArtigo ? (editandoArtigo.categoria || '') : novoArtigo.categoria}
+                  onChange={e => editandoArtigo ? setEditandoArtigo(a => a && ({ ...a, categoria: e.target.value })) : setNovoArtigo(a => ({ ...a, categoria: e.target.value }))}
+                  style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box', cursor: 'pointer' }}>
+                  <option value="">Selecione...</option>
+                  {categoriasBlog.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 5, fontSize: 11, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Imagem</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input value={editandoArtigo ? (editandoArtigo.imagem || '') : novoArtigo.imagem}
+                    onChange={e => editandoArtigo ? setEditandoArtigo(a => a && ({ ...a, imagem: e.target.value })) : setNovoArtigo(a => ({ ...a, imagem: e.target.value }))}
+                    placeholder="URL da imagem"
+                    style={{ flex: 1, minWidth: 0, border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box' }} />
+                  <label style={{ background: uploadandoArtigo ? '#e5e7eb' : '#f9fafb', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
+                    {uploadandoArtigo ? '...' : 'Enviar'}
+                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async e => {
+                      const f = e.target.files?.[0]; if (!f) return;
+                      await uploadImagemArtigo(f, url => editandoArtigo ? setEditandoArtigo(a => a && ({ ...a, imagem: url })) : setNovoArtigo(a => ({ ...a, imagem: url })));
+                      e.target.value = '';
+                    }} />
+                  </label>
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 5, fontSize: 11, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Conteúdo</label>
+                <textarea value={editandoArtigo ? editandoArtigo.conteudo : novoArtigo.conteudo}
+                  onChange={e => editandoArtigo ? setEditandoArtigo(a => a && ({ ...a, conteudo: e.target.value })) : setNovoArtigo(a => ({ ...a, conteudo: e.target.value }))}
+                  rows={8} placeholder="Texto do artigo..."
+                  style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box', resize: 'vertical' }} />
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#374151', cursor: 'pointer' }}>
+                <input type="checkbox" checked={editandoArtigo ? editandoArtigo.publicado : novoArtigo.publicado}
+                  onChange={e => editandoArtigo ? setEditandoArtigo(a => a && ({ ...a, publicado: e.target.checked })) : setNovoArtigo(a => ({ ...a, publicado: e.target.checked }))} />
+                Publicar imediatamente
+              </label>
+              <button type="submit" style={{ background: '#111827', color: '#fff', fontWeight: 700, padding: '12px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
+                {editandoArtigo ? 'Salvar Alterações' : 'Criar Artigo'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ABA LEADS */}
       {aba === 'leads' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -1071,6 +1435,8 @@ export default function PortalClient({ membro, leads, equipe, token, logo }: Pro
 
         .portal-grid-auto { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
         .portal-table-scroll { overflow-x: auto; }
+        .portal-split-380 { grid-template-columns: 1fr 380px; }
+        @media (max-width: 900px) { .portal-split-380 { grid-template-columns: 1fr; } }
       `}</style>
       <header className="portal-header" style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>

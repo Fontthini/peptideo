@@ -42,6 +42,8 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const membro = await checkDesigner(req);
   if (!membro) return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
+  // Gerente pode criar/editar o blog, mas nao excluir — so designer/superadmin.
+  if (membro.cargo === 'gerente') return NextResponse.json({ error: 'Apenas designer ou superadmin podem excluir.' }, { status: 403 });
   await reloadFromSupabase();
   const { id } = await req.json();
   const alvo = mem_listarArtigos().find(a => a.id === id);
