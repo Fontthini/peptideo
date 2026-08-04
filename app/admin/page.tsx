@@ -109,6 +109,42 @@ export default function AdminPage() {
   const [buscaLead, setBuscaLead] = useState('');
   const [filtroEtiqueta, setFiltroEtiqueta] = useState('todas');
   const [buscaIndicacao, setBuscaIndicacao] = useState('');
+  const [novoCadastroTipo, setNovoCadastroTipo] = useState<'escolher' | 'medico' | 'paciente' | null>(null);
+  const [novoMedico, setNovoMedico] = useState({ nome: '', sobrenome: '', email: '', whatsapp: '', endereco: '', crm: '', onde_conheceu: '' });
+  const [novoPaciente, setNovoPaciente] = useState({ medico_id: '', nome: '', sobrenome: '', whatsapp: '', email: '', endereco: '' });
+  const [buscaMedicoIndicador, setBuscaMedicoIndicador] = useState('');
+  const [salvandoNovoCadastro, setSalvandoNovoCadastro] = useState(false);
+
+  const fecharNovoCadastro = () => {
+    setNovoCadastroTipo(null);
+    setNovoMedico({ nome: '', sobrenome: '', email: '', whatsapp: '', endereco: '', crm: '', onde_conheceu: '' });
+    setNovoPaciente({ medico_id: '', nome: '', sobrenome: '', whatsapp: '', email: '', endereco: '' });
+    setBuscaMedicoIndicador('');
+  };
+
+  const criarMedicoManual = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSalvandoNovoCadastro(true);
+    const r = await fetch('/api/admin/cadastros', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify(novoMedico),
+    });
+    setSalvandoNovoCadastro(false);
+    if (r.ok) { showMsg('OK: Médico cadastrado!'); fecharNovoCadastro(); carregarCadastros(); }
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao cadastrar médico')); }
+  };
+
+  const criarPacienteManual = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSalvandoNovoCadastro(true);
+    const r = await fetch('/api/admin/indicacoes', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify(novoPaciente),
+    });
+    setSalvandoNovoCadastro(false);
+    if (r.ok) { showMsg('OK: Paciente cadastrado!'); fecharNovoCadastro(); carregarIndicacoes(); }
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao cadastrar paciente')); }
+  };
   const [filtroIndicacao, setFiltroIndicacao] = useState('todos');
   const [filtroPedido, setFiltroPedido] = useState('todos');
 
@@ -202,7 +238,7 @@ export default function AdminPage() {
       const flagSalva = localStorage.getItem(ADMIN_SUPERADMIN_LOCAL);
       setAdminNome(localStorage.getItem(ADMIN_NOME_LOCAL) || 'Superadmin');
       setIsSuperadmin(flagSalva === null ? true : flagSalva === '1');
-      carregarCadastros(k); carregarConfig();
+      carregarCadastros(k); carregarConfig(); carregarIndicacoes();
     }
   }, []);
 
@@ -372,7 +408,8 @@ export default function AdminPage() {
     if (a === 'equipe') carregarEquipe();
     if (a === 'indicacoes' || a === 'indicacoes-medicas') carregarIndicacoes();
     if (a === 'pedidos') carregarPedidos();
-    if (a === 'dashboard') { carregarCadastros(); carregarEquipe(); carregarPedidos(); if (produtos.length === 0) carregarProdutos(); }
+    if (a === 'dashboard') { carregarCadastros(); carregarEquipe(); carregarPedidos(); carregarIndicacoes(); if (produtos.length === 0) carregarProdutos(); }
+    if (a === 'leads' && indicacoes.length === 0) carregarIndicacoes();
     if (a === 'logs') carregarLogs();
     if (a === 'mentoria') carregarMentoriaCliques();
     if (a === 'despesas') { carregarDespesas(); carregarCategoriasFinanceiras(); }
@@ -748,6 +785,7 @@ export default function AdminPage() {
     aprovado: cadastros.filter(c => c.status === 'aprovado').length,
     rejeitado: cadastros.filter(c => c.status === 'rejeitado').length,
   };
+  const totalPacientes = indicacoes.filter(i => i.tipo !== 'medico').length;
 
   const NAV_COLOR: Record<string, string> = {
     dashboard: '#4f46e5', leads: '#16a34a', produtos: '#7c3aed', banners: '#f59e0b',
@@ -871,12 +909,31 @@ export default function AdminPage() {
           {/* ======== ABA LEADS ======== */}
           {aba === 'leads' && (
             <>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 20, marginTop: 0 }}>Leads</h2>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>Leads</h2>
+                <button onClick={() => setNovoCadastroTipo('escolher')}
+                  style={{ background: '#111827', color: '#fff', border: 'none', padding: '9px 16px', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
+                  + Cadastro Novo
+                </button>
+              </div>
 
-              {/* Stats */}
+              {/* Total / Médicos / Pacientes */}
+              <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 14 }}>
+                {[
+                  { label: 'Total', val: counts.todos + totalPacientes, cor: '#111827', bg: '#f9fafb' },
+                  { label: 'Médicos', val: counts.todos, cor: '#0891b2', bg: '#ecfeff' },
+                  { label: 'Pacientes', val: totalPacientes, cor: '#db2777', bg: '#fdf2f8' },
+                ].map(s => (
+                  <div key={s.label} style={{ background: s.bg, border: `1px solid ${s.cor}33`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${s.cor}` }}>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: s.cor }}>{s.val}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Stats médicos */}
               <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 24 }}>
                 {[
-                  { label: 'Total', val: counts.todos, cor: '#4f46e5', bg: '#eef2ff' },
                   { label: 'Pendentes', val: counts.pendente, cor: '#d97706', bg: '#fffbeb' },
                   { label: 'Aprovados', val: counts.aprovado, cor: '#15803d', bg: '#f0fdf4' },
                   { label: 'Rejeitados', val: counts.rejeitado, cor: '#dc2626', bg: '#fef2f2' },
@@ -1115,6 +1172,159 @@ export default function AdminPage() {
                         {salvandoLead ? 'Salvando...' : 'Salvar'}
                       </button>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal: novo cadastro (médico ou paciente) */}
+              {novoCadastroTipo && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 700, overflowY: 'auto', padding: '24px 16px' }}>
+                  <div onClick={fecharNovoCadastro} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
+                  <div style={{ position: 'relative', maxWidth: 520, margin: '0 auto', background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
+                    <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontWeight: 800, fontSize: 17, color: '#111827' }}>
+                        {novoCadastroTipo === 'escolher' ? 'Cadastro Novo' : novoCadastroTipo === 'medico' ? 'Cadastrar Médico' : 'Cadastrar Paciente'}
+                      </div>
+                      <button onClick={fecharNovoCadastro} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#6b7280' }}>×</button>
+                    </div>
+
+                    {novoCadastroTipo === 'escolher' && (
+                      <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <button onClick={() => setNovoCadastroTipo('medico')}
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: '#ecfeff', border: '1px solid #a5f3fc', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                          <span style={{ fontSize: 24 }}>🩺</span>
+                          <span>
+                            <div style={{ fontWeight: 800, color: '#0e7490', fontSize: 14 }}>Cadastrar Médico</div>
+                            <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>Registrar um novo profissional diretamente</div>
+                          </span>
+                        </button>
+                        <button onClick={() => setNovoCadastroTipo('paciente')}
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: '#fdf2f8', border: '1px solid #fbcfe8', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                          <span style={{ fontSize: 24 }}>🧑</span>
+                          <span>
+                            <div style={{ fontWeight: 800, color: '#be185d', fontSize: 14 }}>Cadastrar Paciente</div>
+                            <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>Registrar um paciente indicado por um médico</div>
+                          </span>
+                        </button>
+                      </div>
+                    )}
+
+                    {novoCadastroTipo === 'medico' && (
+                      <form onSubmit={criarMedicoManual} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                          <div>
+                            <label style={labelStyle}>Nome *</label>
+                            <input value={novoMedico.nome} onChange={e => setNovoMedico(p => ({ ...p, nome: e.target.value }))} required style={inputStyle} />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Sobrenome</label>
+                            <input value={novoMedico.sobrenome} onChange={e => setNovoMedico(p => ({ ...p, sobrenome: e.target.value }))} style={inputStyle} />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={labelStyle}>E-mail *</label>
+                          <input type="email" value={novoMedico.email} onChange={e => setNovoMedico(p => ({ ...p, email: e.target.value }))} required style={inputStyle} />
+                        </div>
+                        <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                          <div>
+                            <label style={labelStyle}>WhatsApp *</label>
+                            <input value={novoMedico.whatsapp} onChange={e => setNovoMedico(p => ({ ...p, whatsapp: e.target.value }))} required style={inputStyle} />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>CRM</label>
+                            <input value={novoMedico.crm} onChange={e => setNovoMedico(p => ({ ...p, crm: e.target.value }))} style={inputStyle} />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Endereço</label>
+                          <input value={novoMedico.endereco} onChange={e => setNovoMedico(p => ({ ...p, endereco: e.target.value }))} style={inputStyle} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Onde Conheceu</label>
+                          <select value={novoMedico.onde_conheceu} onChange={e => setNovoMedico(p => ({ ...p, onde_conheceu: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
+                            <option value="">Selecione...</option>
+                            {['Convidado pela PeptideZ Health', 'Pós Graduação LR', 'Indicação de Médico', 'Mentoria ICS', 'Blog da PeptideZ Health', 'Outro'].map(o => (
+                              <option key={o} value={o}>{o}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                          <button type="button" onClick={() => setNovoCadastroTipo('escolher')} style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                            Voltar
+                          </button>
+                          <button type="submit" disabled={salvandoNovoCadastro} style={{ flex: 1, background: '#111827', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoNovoCadastro ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoNovoCadastro ? 0.6 : 1 }}>
+                            {salvandoNovoCadastro ? 'Salvando...' : 'Cadastrar Médico'}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+
+                    {novoCadastroTipo === 'paciente' && (
+                      <form onSubmit={criarPacienteManual} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        <div>
+                          <label style={labelStyle}>Médico Indicador *</label>
+                          {novoPaciente.medico_id ? (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>
+                                {cadastros.find(c => c.id === novoPaciente.medico_id)?.nome} {cadastros.find(c => c.id === novoPaciente.medico_id)?.sobrenome}
+                              </span>
+                              <button type="button" onClick={() => setNovoPaciente(p => ({ ...p, medico_id: '' }))} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Trocar</button>
+                            </div>
+                          ) : (
+                            <>
+                              <input value={buscaMedicoIndicador} onChange={e => setBuscaMedicoIndicador(e.target.value)}
+                                placeholder="Buscar médico aprovado por nome..." style={inputStyle} />
+                              {buscaMedicoIndicador.trim().length >= 2 && (
+                                <div style={{ marginTop: 6, border: '1px solid #e5e7eb', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
+                                  {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoIndicador.trim().toLowerCase())).slice(0, 8).map(c => (
+                                    <div key={c.id} onClick={() => { setNovoPaciente(p => ({ ...p, medico_id: c.id })); setBuscaMedicoIndicador(''); }}
+                                      style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #f3f4f6' }}>
+                                      <span style={{ fontWeight: 700, color: '#111827' }}>{c.nome} {c.sobrenome}</span>
+                                      {c.crm && <span style={{ color: '#6b7280' }}> · {c.crm}</span>}
+                                    </div>
+                                  ))}
+                                  {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoIndicador.trim().toLowerCase())).length === 0 && (
+                                    <div style={{ padding: '9px 12px', fontSize: 12, color: '#6b7280' }}>Nenhum médico aprovado encontrado.</div>
+                                  )}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                        <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                          <div>
+                            <label style={labelStyle}>Nome *</label>
+                            <input value={novoPaciente.nome} onChange={e => setNovoPaciente(p => ({ ...p, nome: e.target.value }))} required style={inputStyle} />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Sobrenome</label>
+                            <input value={novoPaciente.sobrenome} onChange={e => setNovoPaciente(p => ({ ...p, sobrenome: e.target.value }))} style={inputStyle} />
+                          </div>
+                        </div>
+                        <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                          <div>
+                            <label style={labelStyle}>WhatsApp *</label>
+                            <input value={novoPaciente.whatsapp} onChange={e => setNovoPaciente(p => ({ ...p, whatsapp: e.target.value }))} required style={inputStyle} />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>E-mail</label>
+                            <input type="email" value={novoPaciente.email} onChange={e => setNovoPaciente(p => ({ ...p, email: e.target.value }))} style={inputStyle} />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Endereço</label>
+                          <input value={novoPaciente.endereco} onChange={e => setNovoPaciente(p => ({ ...p, endereco: e.target.value }))} style={inputStyle} />
+                        </div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                          <button type="button" onClick={() => setNovoCadastroTipo('escolher')} style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                            Voltar
+                          </button>
+                          <button type="submit" disabled={salvandoNovoCadastro || !novoPaciente.medico_id} style={{ flex: 1, background: '#111827', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: (salvandoNovoCadastro || !novoPaciente.medico_id) ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: (salvandoNovoCadastro || !novoPaciente.medico_id) ? 0.6 : 1 }}>
+                            {salvandoNovoCadastro ? 'Salvando...' : 'Cadastrar Paciente'}
+                          </button>
+                        </div>
+                      </form>
+                    )}
                   </div>
                 </div>
               )}
@@ -1806,6 +2016,7 @@ export default function AdminPage() {
             <DashboardOverview
               cadastros={cadastros} pedidos={pedidos} equipe={equipe} produtos={produtos} config={config}
               onVerTodosLeads={() => mudarAba('leads')}
+              totalPacientes={totalPacientes}
             />
           )}
 

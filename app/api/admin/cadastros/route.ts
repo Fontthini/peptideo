@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminKeyValid, isSuperadminKey, adminAtorFromKey } from '@/lib/admin-auth';
-import { mem_listar, mem_deletarCadastro, mem_editarCadastro, mem_buscarId, mem_registrarLog } from '@/lib/db-memory';
+import { mem_listar, mem_deletarCadastro, mem_editarCadastro, mem_buscarId, mem_registrarLog, mem_criar, mem_buscarEmail, mem_proximoVendedor, mem_atribuirVendedor } from '@/lib/db-memory';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 function checkAdmin(req: NextRequest) {
@@ -13,6 +13,32 @@ export async function GET(req: NextRequest) {
   }
   await reloadFromSupabase();
   return NextResponse.json(mem_listar());
+}
+
+export async function POST(req: NextRequest) {
+  if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  await reloadFromSupabase();
+  const { nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu } = await req.json();
+  if (!nome || !email || !whatsapp) return NextResponse.json({ error: 'Nome, e-mail e WhatsApp são obrigatórios' }, { status: 400 });
+  if (mem_buscarEmail(email)) return NextResponse.json({ error: 'E-mail já cadastrado.' }, { status: 409 });
+
+  const c = mem_criar({ nome, sobrenome: sobrenome || '', email, whatsapp, endereco: endereco || '', crm: crm || null, onde_conheceu: onde_conheceu || null });
+  const vendedorId = mem_proximoVendedor();
+  if (vendedorId) mem_atribuirVendedor(c.id, vendedorId);
+
+  try {
+    const { sbSaveCadastro } = await import('@/lib/supabase-sync');
+    await sbSaveCadastro({ ...c, vendedor_id: vendedorId || undefined });
+  } catch (e) {
+    console.error('[CADASTRO] Supabase save error:', e);
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes('cadastros_email_key') || msg.includes('23505')) {
+      return NextResponse.json({ error: 'E-mail já cadastrado.' }, { status: 409 });
+    }
+  }
+
+  mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Cadastrou médico manualmente', `${c.nome} ${c.sobrenome || ''}`.trim());
+  return NextResponse.json({ ...c, vendedor_id: vendedorId || undefined }, { status: 201 });
 }
 
 export async function PUT(req: NextRequest) {

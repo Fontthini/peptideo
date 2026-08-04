@@ -35,10 +35,10 @@ const CARDS_INICIO: { key: string; label: string }[] = [
 ];
 
 export function DashboardOverview({
-  cadastros, pedidos, equipe, produtos, config, onVerTodosLeads,
+  cadastros, pedidos, equipe, produtos, config, onVerTodosLeads, totalPacientes = 0,
 }: {
   cadastros: DashCadastro[]; pedidos: DashPedido[]; equipe: DashMembro[]; produtos: DashProduto[]; config: DashConfig;
-  onVerTodosLeads?: () => void;
+  onVerTodosLeads?: () => void; totalPacientes?: number;
 }) {
   const total = cadastros.length;
   const aprovados = cadastros.filter(c => c.status === 'aprovado').length;
@@ -112,6 +112,20 @@ export function DashboardOverview({
         .admin-table-scroll { overflow-x: auto; }
       `}</style>
       <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>Dashboard Geral</h2>
+
+      {/* Total / Médicos / Pacientes */}
+      <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+        {[
+          { label: 'Total', value: total + totalPacientes, color: '#111827' },
+          { label: 'Médicos', value: total, color: '#0891b2' },
+          { label: 'Pacientes', value: totalPacientes, color: '#db2777' },
+        ].map(k => (
+          <div key={k.label} style={{ background: `${k.color}0d`, border: `1px solid ${k.color}33`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${k.color}` }}>
+            <div style={{ fontSize: 26, fontWeight: 800, color: k.color }}>{k.value}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>{k.label}</div>
+          </div>
+        ))}
+      </div>
 
       {/* KPIs */}
       <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>

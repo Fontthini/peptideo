@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminKeyValid, isSuperadminKey, adminAtorFromKey } from '@/lib/admin-auth';
-import { mem_listarIndicacoes, mem_editarIndicacao, mem_deletarIndicacao, mem_registrarLog } from '@/lib/db-memory';
+import { mem_listarIndicacoes, mem_editarIndicacao, mem_deletarIndicacao, mem_registrarLog, mem_criarIndicacao, mem_buscarId } from '@/lib/db-memory';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 function checkAdmin(req: NextRequest) {
@@ -11,6 +11,24 @@ export async function GET(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   await reloadFromSupabase();
   return NextResponse.json(mem_listarIndicacoes());
+}
+
+export async function POST(req: NextRequest) {
+  if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  await reloadFromSupabase();
+  const { medico_id, nome, sobrenome, whatsapp, email, endereco } = await req.json();
+  if (!medico_id || !nome || !whatsapp) return NextResponse.json({ error: 'Médico, nome e WhatsApp são obrigatórios' }, { status: 400 });
+  const medico = mem_buscarId(medico_id);
+  if (!medico) return NextResponse.json({ error: 'Médico não encontrado' }, { status: 404 });
+
+  const i = mem_criarIndicacao({
+    medico_id, medico_nome: `${medico.nome} ${medico.sobrenome || ''}`.trim(),
+    nome, sobrenome: sobrenome || '', whatsapp, email: email || '', endereco: endereco || '',
+    tipo: 'paciente',
+  });
+  try { const { sbSaveIndicacao } = await import('@/lib/supabase-sync'); await sbSaveIndicacao(i); } catch (e) { console.error('[INDICACAO] save error:', e); }
+  mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Cadastrou paciente manualmente', `${i.nome} ${i.sobrenome || ''}`.trim());
+  return NextResponse.json(i, { status: 201 });
 }
 
 export async function PATCH(req: NextRequest) {
