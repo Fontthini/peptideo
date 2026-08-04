@@ -77,6 +77,7 @@ const ABA_NAV: { key: string; icon: string; label: string; color: string; gerent
   { key: 'financeiro', icon: '$', label: 'Financeiro', color: '#ca8a04', gerenteOnly: true },
   { key: 'mentoria', icon: '%', label: 'Mentoria', color: '#0d9488', gerenteOnly: true },
   { key: 'blog', icon: 'B', label: 'Blog', color: '#db2777', gerenteOnly: true },
+  { key: 'rastreio', icon: 'R', label: 'Link de Rastreio', color: '#0891b2', gerenteOnly: true },
 ];
 
 function SideNav({ aba, handlers, gerenteOnly }: { aba: string; handlers: Record<string, () => void>; gerenteOnly?: boolean }) {
@@ -626,13 +627,13 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
 /* =========================================================
    GERENTE VIEW
    ========================================================= */
-function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
+function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
   const [lista, setLista] = useState(leadsInit);
   const [filtro, setFiltro] = useState('todos');
   const [selectedLead, setSelectedLead] = useState<Cadastro | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [indicacoes, setIndicacoes] = useState<Indicacao[]>([]);
-  const [aba, setAba] = useState<'dashboard' | 'leads' | 'pedidos' | 'indicacoes' | 'indicacoes-medicas' | 'financeiro' | 'mentoria' | 'blog'>('leads');
+  const [aba, setAba] = useState<'dashboard' | 'leads' | 'pedidos' | 'indicacoes' | 'indicacoes-medicas' | 'financeiro' | 'mentoria' | 'blog' | 'rastreio'>('leads');
   const [buscaMedico, setBuscaMedico] = useState('');
   const [buscaIndicacao, setBuscaIndicacao] = useState('');
 
@@ -657,6 +658,10 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
   const [novaDespesa, setNovaDespesa] = useState({ tipo: 'saida' as 'entrada' | 'saida', categoria: '', descricao: '', valor: '', data: new Date().toISOString().slice(0, 10), comprovante_url: '' });
   const [editandoDespesa, setEditandoDespesa] = useState<Despesa | null>(null);
   const [msgFinanceiro, setMsgFinanceiro] = useState('');
+
+  const [buscaRastreio, setBuscaRastreio] = useState('');
+  const [rastreioSelecionado, setRastreioSelecionado] = useState<{ id: string; nome: string; whatsapp: string; tipo: 'medico' | 'paciente' } | null>(null);
+  const [linkRastreio, setLinkRastreio] = useState('');
 
   const pendentes = lista.filter(l => l.status === 'pendente');
   const emAnalise = lista.filter(l => l.status === 'em_analise');
@@ -841,11 +846,18 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
         financeiro: carregarFinanceiro,
         mentoria: carregarMentoria,
         blog: carregarBlog,
+        rastreio: async () => {
+          setAba('rastreio');
+          if (indicacoes.length === 0) {
+            const r = await fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } });
+            if (r.ok) setIndicacoes(await r.json());
+          }
+        },
       }} />
 
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* KPIs */}
-      {!['dashboard', 'financeiro', 'mentoria', 'blog'].includes(aba) && (
+      {!['dashboard', 'financeiro', 'mentoria', 'blog', 'rastreio'].includes(aba) && (
         <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
           <StatCard label="Total Leads" value={lista.length} color="#111827" />
           <StatCard label="Pendentes" value={pendentes.length} color="#f59e0b" />
@@ -1424,6 +1436,135 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
         </div>
       )}
 
+      {/* ABA LINK DE RASTREIO */}
+      {aba === 'rastreio' && (() => {
+        const q = buscaRastreio.trim().toLowerCase();
+        const medicosEncontrados = q.length < 2 ? [] : lista
+          .filter(c => `${c.nome} ${c.sobrenome}`.toLowerCase().includes(q))
+          .slice(0, 8)
+          .map(c => ({ id: c.id, nome: `${c.nome} ${c.sobrenome || ''}`.trim(), whatsapp: c.whatsapp, tipo: 'medico' as const }));
+        const pacientesEncontrados = q.length < 2 ? [] : indicacoes
+          .filter(i => i.tipo !== 'medico' && `${i.nome} ${i.sobrenome}`.toLowerCase().includes(q))
+          .slice(0, 8)
+          .map(i => ({ id: i.id, nome: `${i.nome} ${i.sobrenome || ''}`.trim(), whatsapp: i.whatsapp, tipo: 'paciente' as const }));
+        const resultados = [...medicosEncontrados, ...pacientesEncontrados];
+
+        const primeiroNome = rastreioSelecionado?.nome.split(' ')[0] || '';
+        const mensagem = `Olá, ${primeiroNome}! 👋\n\nSeu pedido da *PeptideZ Health* já está a caminho! 📦\n\n🔗 Acompanhe a entrega em tempo real:\n${linkRastreio}\n\nQualquer dúvida, estamos à disposição!`;
+        const numeroWhats = rastreioSelecionado
+          ? (rastreioSelecionado.tipo === 'medico' ? `55${(rastreioSelecionado.whatsapp || '').replace(/\D/g, '')}` : (rastreioSelecionado.whatsapp || '').replace(/\D/g, ''))
+          : '';
+
+        return (
+          <div style={{ maxWidth: 720 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>Link de Rastreio</h2>
+            <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>
+              Encontre o médico ou paciente, cole o link de rastreio do pedido e envie pelo WhatsApp.
+            </p>
+
+            {!rastreioSelecionado ? (
+              <>
+                <input value={buscaRastreio} onChange={e => setBuscaRastreio(e.target.value)}
+                  placeholder="Buscar médico ou paciente por nome..." autoFocus
+                  style={{ maxWidth: 420, border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 13px', fontSize: 14, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box', marginBottom: 16, display: 'block', width: '100%' }} />
+
+                {q.length < 2 ? (
+                  <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 13, background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                    Digite ao menos 2 letras do nome para buscar.
+                  </div>
+                ) : resultados.length === 0 ? (
+                  <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 13, background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                    Nenhum médico ou paciente encontrado para &quot;{buscaRastreio}&quot;.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {resultados.map(r => (
+                      <button key={`${r.tipo}-${r.id}`} onClick={() => { setRastreioSelecionado(r); setLinkRastreio(''); }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 16px', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
+                        <div>
+                          <div style={{ fontWeight: 700, color: '#111827', fontSize: 14 }}>{r.nome}</div>
+                          <div style={{ color: '#6b7280', fontSize: 12 }}>{r.whatsapp || 'sem WhatsApp cadastrado'}</div>
+                        </div>
+                        <span style={{
+                          padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                          background: r.tipo === 'medico' ? '#eff6ff' : '#f0fdf4', color: r.tipo === 'medico' ? '#1d4ed8' : '#15803d',
+                        }}>
+                          {r.tipo === 'medico' ? 'Médico' : 'Paciente'}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 16px' }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#111827', fontSize: 14 }}>{rastreioSelecionado.nome}</div>
+                    <div style={{ color: '#6b7280', fontSize: 12 }}>{rastreioSelecionado.whatsapp || 'sem WhatsApp cadastrado'} · {rastreioSelecionado.tipo === 'medico' ? 'Médico' : 'Paciente'}</div>
+                  </div>
+                  <button onClick={() => { setRastreioSelecionado(null); setBuscaRastreio(''); setLinkRastreio(''); }}
+                    style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>
+                    Trocar
+                  </button>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: 5, fontSize: 11, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Link de rastreio *</label>
+                  <input value={linkRastreio} onChange={e => setLinkRastreio(e.target.value)}
+                    placeholder="https://..." style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 13px', fontSize: 14, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box' }} />
+                </div>
+
+                {/* Cartao / arte de pre-visualizacao */}
+                <div style={{
+                  background: 'linear-gradient(160deg, #0f172a, #111827)', borderRadius: 20, padding: '32px 28px',
+                  textAlign: 'center', boxShadow: '0 12px 32px rgba(15,23,42,0.25)',
+                }}>
+                  <img src={logo || 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg'}
+                    alt="PeptideZ" style={{ height: 44, maxWidth: 170, objectFit: 'contain', display: 'inline-block', background: '#fff', borderRadius: 10, padding: '4px 10px', marginBottom: 20 }} />
+                  <div style={{ fontSize: 22, marginBottom: 6 }}>📦</div>
+                  <div style={{ color: '#fff', fontSize: 16, fontWeight: 800, marginBottom: 6 }}>
+                    Olá, {primeiroNome || '...'}!
+                  </div>
+                  <div style={{ color: '#cbd5e1', fontSize: 13, marginBottom: 22, lineHeight: 1.5 }}>
+                    Seu pedido da PeptideZ Health já está a caminho.<br />Acompanhe a entrega em tempo real:
+                  </div>
+                  <div style={{
+                    display: 'inline-block', maxWidth: '100%', background: 'rgba(22,163,74,0.12)', border: '1px solid #16a34a55',
+                    borderRadius: 12, padding: '12px 20px', color: '#4ade80', fontSize: 13, fontWeight: 700,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    🔗 {linkRastreio || 'seu-link-de-rastreio-aparece-aqui.com'}
+                  </div>
+                  <div style={{ color: '#64748b', fontSize: 11, marginTop: 22 }}>PeptideZ Health · Otimização Bioativa</div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <button onClick={() => { navigator.clipboard.writeText(mensagem); }}
+                    disabled={!linkRastreio.trim()}
+                    style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '11px 18px', borderRadius: 8, cursor: linkRastreio.trim() ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', opacity: linkRastreio.trim() ? 1 : 0.5 }}>
+                    Copiar mensagem
+                  </button>
+                  <a href={linkRastreio.trim() && numeroWhats ? `https://wa.me/${numeroWhats}?text=${encodeURIComponent(mensagem)}` : undefined}
+                    target="_blank" rel="noreferrer"
+                    onClick={e => { if (!linkRastreio.trim() || !numeroWhats) e.preventDefault(); }}
+                    style={{
+                      background: linkRastreio.trim() && numeroWhats ? '#16a34a' : '#e5e7eb', color: linkRastreio.trim() && numeroWhats ? '#fff' : '#9ca3af',
+                      border: 'none', padding: '11px 22px', borderRadius: 8, cursor: linkRastreio.trim() && numeroWhats ? 'pointer' : 'not-allowed',
+                      fontSize: 13, fontWeight: 700, fontFamily: 'inherit', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8,
+                    }}>
+                    Enviar via WhatsApp →
+                  </a>
+                </div>
+                {!numeroWhats && (
+                  <div style={{ color: '#dc2626', fontSize: 12 }}>Esse contato não tem WhatsApp cadastrado.</div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* ABA LEADS */}
       {aba === 'leads' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -1580,8 +1721,8 @@ export default function PortalClient({ membro, leads, equipe, token, logo }: Pro
         </h1>
 
         {cargo === 'vendedor' && <VendedorView membro={membro} leads={leads} equipe={equipe} token={token} />}
-        {cargo === 'gerente' && <GerenteView membro={membro} leads={leads} equipe={equipe} token={token} />}
-        {cargo === 'superadmin' && <GerenteView membro={membro} leads={leads} equipe={equipe} token={token} />}
+        {cargo === 'gerente' && <GerenteView membro={membro} leads={leads} equipe={equipe} token={token} logo={logo} />}
+        {cargo === 'superadmin' && <GerenteView membro={membro} leads={leads} equipe={equipe} token={token} logo={logo} />}
       </main>
     </div>
   );
