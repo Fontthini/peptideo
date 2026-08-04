@@ -2427,15 +2427,19 @@ export default function AdminPage() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-                          {['Médico', 'Quando', 'Ações'].map(h => (
+                          {['Médico', 'WhatsApp', 'E-mail', 'Quando', 'Ações'].map(h => (
                             <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {mentoriaCliques.map((c, idx) => (
+                        {mentoriaCliques.map((c, idx) => {
+                          const medico = cadastros.find(cad => cad.id === c.medico_id);
+                          return (
                           <tr key={c.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
                             <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{c.medico_nome}</td>
+                            <td style={{ padding: '11px 14px', color: '#374151' }}>{medico?.whatsapp || '—'}</td>
+                            <td style={{ padding: '11px 14px', color: '#374151' }}>{medico?.email || '—'}</td>
                             <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
                               {new Date(c.created_at).toLocaleString('pt-BR')}
                             </td>
@@ -2448,7 +2452,8 @@ export default function AdminPage() {
                               )}
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                     </div>

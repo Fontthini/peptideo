@@ -1284,18 +1284,23 @@ function GerenteView({ membro, leads: leadsInit, equipe, token }: Props) {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
                     <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                      {['Médico', 'Quando'].map(h => (
+                      {['Médico', 'WhatsApp', 'E-mail', 'Quando'].map(h => (
                         <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {mentoriaCliques.map(c => (
+                    {mentoriaCliques.map(c => {
+                      const medico = lista.find(l => l.id === c.medico_id);
+                      return (
                       <tr key={c.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                         <td style={{ padding: '10px 14px', fontWeight: 700, color: '#111827' }}>{c.medico_nome}</td>
+                        <td style={{ padding: '10px 14px', color: '#374151' }}>{medico?.whatsapp || '—'}</td>
+                        <td style={{ padding: '10px 14px', color: '#374151' }}>{medico?.email || '—'}</td>
                         <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{new Date(c.created_at).toLocaleString('pt-BR')}</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
                 </div>
