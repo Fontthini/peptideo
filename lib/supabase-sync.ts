@@ -101,7 +101,7 @@ export async function sbSaveProduto(p: ProdutoMemory) {
   const { error } = await supabase.from('produtos').upsert({
     id: p.id, nome: p.nome, dose: p.dose || '', preco: p.preco,
     categoria: p.categoria || '', categoria2: p.categoria2 || null, descricao: p.descricao || '',
-    imagem: p.imagem || '', video: p.video || '',
+    imagem: p.imagem || '', video: p.video || '', protocolo: p.protocolo || '',
     galeria: p.galeria || [], created_at: p.created_at,
     views: p.views || 0, cart_adds: p.cart_adds || 0,
     views_hoje: p.views_hoje || 0, cart_adds_hoje: p.cart_adds_hoje || 0,
@@ -115,7 +115,7 @@ export async function sbSaveProdutos(produtos: ProdutoMemory[]) {
   await supabase.from('produtos').upsert(produtos.map(p => ({
     id: p.id, nome: p.nome, dose: p.dose || '', preco: p.preco,
     categoria: p.categoria || '', categoria2: p.categoria2 || null, descricao: p.descricao || '',
-    imagem: p.imagem || '', video: p.video || '',
+    imagem: p.imagem || '', video: p.video || '', protocolo: p.protocolo || '',
     galeria: p.galeria || [], created_at: p.created_at,
     views: p.views || 0, cart_adds: p.cart_adds || 0,
     views_hoje: p.views_hoje || 0, cart_adds_hoje: p.cart_adds_hoje || 0,

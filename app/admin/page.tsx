@@ -16,7 +16,7 @@ type Cadastro = {
 type Produto = {
   id: string; nome: string; dose: string; preco: number;
   categoria: string; categoria2?: string | null; descricao: string; imagem: string;
-  video?: string; galeria?: string[];
+  video?: string; galeria?: string[]; protocolo?: string;
   custom: boolean;
   views?: number; cart_adds?: number;
   views_hoje?: number; cart_adds_hoje?: number;
@@ -150,11 +150,13 @@ export default function AdminPage() {
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loadingProd, setLoadingProd] = useState(false);
-  const [novoProd, setNovoProd] = useState({ nome: '', dose: '', preco: '', categoria: 'Emagrecimento', categoria2: '', descricao: '', imagem: '', video: '' });
+  const [novoProd, setNovoProd] = useState({ nome: '', dose: '', preco: '', categoria: 'Emagrecimento', categoria2: '', descricao: '', imagem: '', video: '', protocolo: '' });
   const [editando, setEditando] = useState<Produto | null>(null);
   const [galeriaUrls, setGaleriaUrls] = useState<string[]>([]);
   const [mostrarGaleria, setMostrarGaleria] = useState(false);
   const [galeriaAlvo, setGaleriaAlvo] = useState<'imagem' | 'galeria'>('imagem');
+  const [mostrarProtocoloNovo, setMostrarProtocoloNovo] = useState(false);
+  const [mostrarProtocoloEdit, setMostrarProtocoloEdit] = useState(false);
 
   const [config, setConfig] = useState<Config>({ mercadopago_token: '', resend_api_key: '', whatsapp_numero: '', base_url: '', banner_titulo: '', banner_subtitulo: '', banner_imagem: '', logo: '', corPrimaria: '#111827', corAcento: '#16a34a', limite_emails_dia: 100, limite_emails_mes: 3000 });
   const [uploadando, setUploadando] = useState<string | null>(null);
@@ -451,7 +453,8 @@ export default function AdminPage() {
     });
     if (r.ok) {
       showMsg('OK: Produto adicionado!');
-      setNovoProd({ nome: '', dose: '', preco: '', categoria: 'Emagrecimento', categoria2: '', descricao: '', imagem: '', video: '' });
+      setNovoProd({ nome: '', dose: '', preco: '', categoria: 'Emagrecimento', categoria2: '', descricao: '', imagem: '', video: '', protocolo: '' });
+      setMostrarProtocoloNovo(false);
       carregarProdutos();
     }
   };
@@ -1154,7 +1157,7 @@ export default function AdminPage() {
                           </div>
                           <div style={{ display: 'flex', gap: 5, marginTop: 8 }}>
                             <button
-                              onClick={() => setEditando({ ...p })}
+                              onClick={() => { setEditando({ ...p }); setMostrarProtocoloEdit(false); }}
                               style={{ flex: 1, background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 0', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}>
                               Editar
                             </button>
@@ -1355,6 +1358,19 @@ export default function AdminPage() {
                         <label style={labelStyle}>Descrição</label>
                         <textarea value={editando.descricao} onChange={e => setEditando(p => p && ({ ...p, descricao: e.target.value }))} placeholder="Descrição detalhada do produto..." rows={4} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.55 }} />
                       </div>
+                      <div>
+                        {!mostrarProtocoloEdit && !editando.protocolo ? (
+                          <button type="button" onClick={() => setMostrarProtocoloEdit(true)}
+                            style={{ background: '#f9fafb', color: '#374151', border: '1px dashed #d1d5db', padding: '10px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', width: '100%' }}>
+                            + Protocolo Básico
+                          </button>
+                        ) : (
+                          <>
+                            <label style={labelStyle}>Protocolo Básico <span style={{ color: '#6b7280', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
+                            <textarea value={editando.protocolo || ''} onChange={e => setEditando(p => p && ({ ...p, protocolo: e.target.value }))} placeholder="Escreva aqui o protocolo básico de uso..." rows={5} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.55 }} />
+                          </>
+                        )}
+                      </div>
                       <div style={{ display: 'flex', gap: 10 }}>
                         <button type="submit" style={{ flex: 1, background: '#111827', color: '#fff', fontWeight: 700, padding: '11px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
                           Salvar Alterações
@@ -1418,6 +1434,19 @@ export default function AdminPage() {
                       <div>
                         <label style={labelStyle}>Descrição</label>
                         <textarea value={novoProd.descricao} onChange={e => setNovoProd(p => ({ ...p, descricao: e.target.value }))} placeholder="Descrição detalhada do produto..." rows={3} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.55 }} />
+                      </div>
+                      <div>
+                        {!mostrarProtocoloNovo && !novoProd.protocolo ? (
+                          <button type="button" onClick={() => setMostrarProtocoloNovo(true)}
+                            style={{ background: '#f9fafb', color: '#374151', border: '1px dashed #d1d5db', padding: '10px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', width: '100%' }}>
+                            + Protocolo Básico
+                          </button>
+                        ) : (
+                          <>
+                            <label style={labelStyle}>Protocolo Básico <span style={{ color: '#6b7280', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
+                            <textarea value={novoProd.protocolo} onChange={e => setNovoProd(p => ({ ...p, protocolo: e.target.value }))} placeholder="Escreva aqui o protocolo básico de uso..." rows={5} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.55 }} />
+                          </>
+                        )}
                       </div>
                       <div>
                         <label style={labelStyle}>Vídeo YouTube <span style={{ color: '#6b7280', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>

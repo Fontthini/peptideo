@@ -63,6 +63,7 @@ export type ProdutoMemory = {
   imagem: string;
   video?: string;
   galeria?: string[];
+  protocolo?: string;
   created_at: string;
   views?: number;
   cart_adds?: number;
