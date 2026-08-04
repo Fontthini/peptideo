@@ -3,6 +3,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardOverview, type DashProduto, type DashConfig } from '@/components/DashboardOverview';
 import { HBarChart } from '@/components/DashboardCharts';
+import { corDaEtiqueta } from '@/lib/etiquetas';
 
 type Cadastro = {
   id: string; nome: string; sobrenome: string; email: string; whatsapp: string;
@@ -11,7 +12,24 @@ type Cadastro = {
   vendedor_id?: string | null; solicitacao?: string | null;
   obs?: string; motivo_rejeicao?: string;
   last_seen_loja?: string | null; last_seen_blog?: string | null;
+  tags?: string[];
 };
+
+function TagsLead({ tags }: { tags?: string[] }) {
+  if (!tags || tags.length === 0) return null;
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 3 }}>
+      {tags.map(tag => {
+        const cor = corDaEtiqueta(tag);
+        return (
+          <span key={tag} style={{ background: `${cor}1a`, color: cor, border: `1px solid ${cor}55`, padding: '1px 7px', borderRadius: 20, fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap' }}>
+            {tag}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
 type Membro = { id: string; nome: string; email: string; cargo: string; ativo: boolean; created_at: string; };
 type PedidoItem = { nome: string; preco: number; quantidade: number };
 type Pedido = {
@@ -582,6 +600,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
                     <div style={{ fontWeight: 700, color: '#111827' }}>{l.nome} {l.sobrenome}</div>
                     <div style={{ fontSize: 11, color: '#6b7280' }}>{l.email}</div>
                     {l.obs && <div style={{ fontSize: 11, color: '#7c3aed', marginTop: 2 }}>📝 Com anotacao</div>}
+                    <TagsLead tags={l.tags} />
                   </td>
                   <td style={{ padding: '11px 14px' }}>
                     <Badge status={l.status} map={STATUS_COLOR} />
@@ -1666,6 +1685,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                       <td style={{ padding: '11px 14px' }}>
                         <div style={{ fontWeight: 700, color: '#111827' }}>{l.nome} {l.sobrenome}</div>
                         <div style={{ fontSize: 11, color: '#6b7280' }}>{l.email}</div>
+                        <TagsLead tags={l.tags} />
                       </td>
                       <td style={{ padding: '11px 14px' }}><Badge status={l.status} map={STATUS_COLOR} /></td>
                       <td style={{ padding: '11px 14px', color: '#111827', fontSize: 12 }}>{vendNome || <span style={{ color: '#6b7280' }}>Livre</span>}</td>

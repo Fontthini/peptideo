@@ -85,6 +85,7 @@ export async function sbSaveCadastro(c: Cadastro) {
     motivo_rejeicao: c.motivo_rejeicao || '', obs: c.obs || '',
     created_at: c.created_at,
     last_seen_loja: c.last_seen_loja || null, last_seen_blog: c.last_seen_blog || null,
+    tags: c.tags || [],
   });
   if (error) throw new Error(`sbSaveCadastro: ${error.message} (${error.code})`);
 }

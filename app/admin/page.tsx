@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { CATEGORIAS } from '@/lib/produtos';
 import { estaOnline, HBarChart, LeadsChart30d, type HBarItem } from '@/components/DashboardCharts';
 import { DashboardOverview } from '@/components/DashboardOverview';
+import { corDaEtiqueta } from '@/lib/etiquetas';
 
 type Cadastro = {
   id: string; nome: string; sobrenome: string; email: string; whatsapp: string;
@@ -10,6 +11,7 @@ type Cadastro = {
   status: string; token: string | null; created_at: string;
   updated_at?: string; vendedor_id?: string | null; solicitacao?: string | null;
   last_seen_loja?: string | null; last_seen_blog?: string | null;
+  tags?: string[];
 };
 type Produto = {
   id: string; nome: string; dose: string; preco: number;
@@ -133,6 +135,17 @@ export default function AdminPage() {
   const [editandoLead, setEditandoLead] = useState<Cadastro | null>(null);
   const [salvandoLead, setSalvandoLead] = useState(false);
   const [reenviandoId, setReenviandoId] = useState<string | null>(null);
+  const [editandoTagsId, setEditandoTagsId] = useState<string | null>(null);
+  const [novaTagInput, setNovaTagInput] = useState('');
+
+  const atualizarTagsLead = async (id: string, tags: string[]) => {
+    setCadastros(prev => prev.map(c => c.id === id ? { ...c, tags } : c));
+    const r = await fetch('/api/admin/cadastros/tags', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify({ id, tags }),
+    });
+    if (!r.ok) { showMsg('R Erro ao salvar etiquetas'); carregarCadastros(); }
+  };
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loadingProd, setLoadingProd] = useState(false);
@@ -895,7 +908,7 @@ export default function AdminPage() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-                          {['Nome','Sobrenome','E-mail','WhatsApp','CRM','Onde Conheceu','Endereço','Status','Data','Ações'].map(h => (
+                          {['Nome','Sobrenome','E-mail','WhatsApp','CRM','Onde Conheceu','Etiquetas','Endereço','Status','Data','Ações'].map(h => (
                             <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', position: 'sticky', top: 0, background: '#f9fafb', zIndex: 1 }}>{h}</th>
                           ))}
                         </tr>
@@ -921,6 +934,40 @@ export default function AdminPage() {
                             </td>
                             <td style={{ padding: '11px 14px', color: '#6b7280' }}>{c.crm || '-'}</td>
                             <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap' }}>{c.onde_conheceu || '-'}</td>
+                            <td style={{ padding: '11px 14px', minWidth: 160 }} onClick={e => e.stopPropagation()}>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                                {(c.tags || []).map(tag => {
+                                  const cor = corDaEtiqueta(tag);
+                                  return (
+                                    <span key={tag} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: `${cor}1a`, color: cor, border: `1px solid ${cor}55`, padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                                      {tag}
+                                      <button onClick={() => atualizarTagsLead(c.id, (c.tags || []).filter(t => t !== tag))}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: cor, fontSize: 13, lineHeight: 1, padding: 0, fontWeight: 900 }}
+                                        title="Remover etiqueta">×</button>
+                                    </span>
+                                  );
+                                })}
+                                {editandoTagsId === c.id ? (
+                                  <input autoFocus value={novaTagInput}
+                                    onChange={e => setNovaTagInput(e.target.value)}
+                                    onBlur={() => { setEditandoTagsId(null); setNovaTagInput(''); }}
+                                    onKeyDown={e => {
+                                      if (e.key === 'Enter') {
+                                        const v = novaTagInput.trim();
+                                        if (v && !(c.tags || []).includes(v)) atualizarTagsLead(c.id, [...(c.tags || []), v]);
+                                        setNovaTagInput(''); setEditandoTagsId(null);
+                                      } else if (e.key === 'Escape') { setNovaTagInput(''); setEditandoTagsId(null); }
+                                    }}
+                                    placeholder="nova..."
+                                    style={{ width: 76, border: '1px solid #d1d5db', borderRadius: 20, padding: '2px 8px', fontSize: 11, fontFamily: 'inherit' }} />
+                                ) : (
+                                  <button onClick={() => setEditandoTagsId(c.id)}
+                                    style={{ background: '#f3f4f6', color: '#6b7280', border: '1px dashed #d1d5db', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                                    + tag
+                                  </button>
+                                )}
+                              </div>
+                            </td>
                             <td style={{ padding: '11px 14px', color: '#6b7280', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.endereco}</td>
                             <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                               <span style={{

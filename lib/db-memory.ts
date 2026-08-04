@@ -49,6 +49,7 @@ export type Cadastro = {
   motivo_rejeicao?: string;
   last_seen_loja?: string | null;
   last_seen_blog?: string | null;
+  tags?: string[];
 };
 
 export type ProdutoMemory = {
@@ -295,6 +296,15 @@ export function mem_editarCadastro(id: string, data: Partial<Pick<Cadastro, 'nom
   const c = getStore().find(c => c.id === id);
   if (!c) return null;
   Object.assign(c, data);
+  c.updated_at = new Date().toISOString();
+  salvarCadastros(); persist(sb()?.sbSaveCadastro(c));
+  return c;
+}
+
+export function mem_definirTags(id: string, tags: string[]): Cadastro | null {
+  const c = getStore().find(c => c.id === id);
+  if (!c) return null;
+  c.tags = tags;
   c.updated_at = new Date().toISOString();
   salvarCadastros(); persist(sb()?.sbSaveCadastro(c));
   return c;
