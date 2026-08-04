@@ -662,6 +662,25 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
   const [buscaRastreio, setBuscaRastreio] = useState('');
   const [rastreioSelecionado, setRastreioSelecionado] = useState<{ id: string; nome: string; whatsapp: string; tipo: 'medico' | 'paciente' } | null>(null);
   const [linkRastreio, setLinkRastreio] = useState('');
+  const [baixandoArteRastreio, setBaixandoArteRastreio] = useState(false);
+  const [msgRastreio, setMsgRastreio] = useState('');
+  const baixarArteRastreio = async (nomeArquivo: string, nome: string, link: string) => {
+    setBaixandoArteRastreio(true);
+    try {
+      const { gerarArteRastreioPNG } = await import('@/lib/gerar-arte-rastreio');
+      const dataUrl = gerarArteRastreioPNG(nome, link);
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `rastreio-${nomeArquivo}.png`;
+      a.click();
+    } catch (e) {
+      console.error('[RASTREIO] Erro ao gerar imagem:', e);
+      setMsgRastreio('Não consegui gerar a imagem. Tente novamente.');
+      setTimeout(() => setMsgRastreio(''), 4000);
+    } finally {
+      setBaixandoArteRastreio(false);
+    }
+  };
 
   const pendentes = lista.filter(l => l.status === 'pendente');
   const emAnalise = lista.filter(l => l.status === 'em_analise');
@@ -1520,8 +1539,9 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                   background: 'linear-gradient(160deg, #0f172a, #111827)', borderRadius: 20, padding: '32px 28px',
                   textAlign: 'center', boxShadow: '0 12px 32px rgba(15,23,42,0.25)',
                 }}>
-                  <img src={logo || 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg'}
-                    alt="PeptideZ" style={{ height: 44, maxWidth: 170, objectFit: 'contain', display: 'inline-block', background: '#fff', borderRadius: 10, padding: '4px 10px', marginBottom: 20 }} />
+                  <div style={{ color: '#fff', fontSize: 15, fontWeight: 900, letterSpacing: 1.5, marginBottom: 20, textTransform: 'uppercase' }}>
+                    <span style={{ color: '#4ade80' }}>Peptide</span>Z Health
+                  </div>
                   <div style={{ fontSize: 22, marginBottom: 6 }}>📦</div>
                   <div style={{ color: '#fff', fontSize: 16, fontWeight: 800, marginBottom: 6 }}>
                     Olá, {primeiroNome || '...'}!
@@ -1539,7 +1559,18 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                   <div style={{ color: '#64748b', fontSize: 11, marginTop: 22 }}>PeptideZ Health · Otimização Bioativa</div>
                 </div>
 
+                {msgRastreio && <div style={{ color: '#dc2626', fontSize: 12 }}>{msgRastreio}</div>}
+
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <button onClick={() => baixarArteRastreio(rastreioSelecionado.nome.toLowerCase().replace(/\s+/g, '-'), rastreioSelecionado.nome, linkRastreio)}
+                    disabled={!linkRastreio.trim() || baixandoArteRastreio}
+                    style={{
+                      background: linkRastreio.trim() ? '#16a34a' : '#e5e7eb', color: linkRastreio.trim() ? '#fff' : '#9ca3af',
+                      border: 'none', padding: '11px 22px', borderRadius: 8, cursor: linkRastreio.trim() && !baixandoArteRastreio ? 'pointer' : 'not-allowed',
+                      fontSize: 13, fontWeight: 700, fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 8,
+                    }}>
+                    {baixandoArteRastreio ? 'Gerando...' : '⬇ Baixar Imagem'}
+                  </button>
                   <button onClick={() => { navigator.clipboard.writeText(mensagem); }}
                     disabled={!linkRastreio.trim()}
                     style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '11px 18px', borderRadius: 8, cursor: linkRastreio.trim() ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', opacity: linkRastreio.trim() ? 1 : 0.5 }}>
@@ -1549,12 +1580,15 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                     target="_blank" rel="noreferrer"
                     onClick={e => { if (!linkRastreio.trim() || !numeroWhats) e.preventDefault(); }}
                     style={{
-                      background: linkRastreio.trim() && numeroWhats ? '#16a34a' : '#e5e7eb', color: linkRastreio.trim() && numeroWhats ? '#fff' : '#9ca3af',
-                      border: 'none', padding: '11px 22px', borderRadius: 8, cursor: linkRastreio.trim() && numeroWhats ? 'pointer' : 'not-allowed',
+                      background: '#fff', color: linkRastreio.trim() && numeroWhats ? '#16a34a' : '#9ca3af',
+                      border: `1px solid ${linkRastreio.trim() && numeroWhats ? '#86efac' : '#e5e7eb'}`, padding: '11px 18px', borderRadius: 8, cursor: linkRastreio.trim() && numeroWhats ? 'pointer' : 'not-allowed',
                       fontSize: 13, fontWeight: 700, fontFamily: 'inherit', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8,
                     }}>
-                    Enviar via WhatsApp →
+                    Abrir WhatsApp →
                   </a>
+                </div>
+                <div style={{ color: '#9ca3af', fontSize: 11, marginTop: -6 }}>
+                  O WhatsApp não deixa anexar imagem automaticamente por link: baixe a imagem primeiro e anexe ela na conversa.
                 </div>
                 {!numeroWhats && (
                   <div style={{ color: '#dc2626', fontSize: 12 }}>Esse contato não tem WhatsApp cadastrado.</div>
