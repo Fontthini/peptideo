@@ -107,6 +107,7 @@ export default function AdminPage() {
   const [loadingLeads, setLoadingLeads] = useState(false);
   const [filtro, setFiltro] = useState('todos');
   const [buscaLead, setBuscaLead] = useState('');
+  const [filtroEtiqueta, setFiltroEtiqueta] = useState('todas');
   const [buscaIndicacao, setBuscaIndicacao] = useState('');
   const [filtroIndicacao, setFiltroIndicacao] = useState('todos');
   const [filtroPedido, setFiltroPedido] = useState('todos');
@@ -725,7 +726,9 @@ export default function AdminPage() {
     );
   }
 
+  const todasEtiquetas = Array.from(new Set(cadastros.flatMap(c => c.tags || []))).sort();
   const filtrados = (filtro === 'todos' ? cadastros : cadastros.filter(c => c.status === filtro))
+    .filter(c => filtroEtiqueta === 'todas' || (c.tags || []).includes(filtroEtiqueta))
     .filter(c => {
       const q = buscaLead.trim().toLowerCase();
       if (!q) return true;
@@ -891,6 +894,27 @@ export default function AdminPage() {
                   </button>
                 ))}
               </div>
+
+              {/* Filtro por etiqueta */}
+              {todasEtiquetas.length > 0 && (
+                <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 2 }}>Etiqueta:</span>
+                  <button onClick={() => setFiltroEtiqueta('todas')}
+                    style={{ background: filtroEtiqueta === 'todas' ? '#111827' : '#fff', color: filtroEtiqueta === 'todas' ? '#fff' : '#374151', border: `1px solid ${filtroEtiqueta === 'todas' ? '#111827' : '#d1d5db'}`, padding: '3px 12px', borderRadius: 20, cursor: 'pointer', fontWeight: filtroEtiqueta === 'todas' ? 700 : 500, fontFamily: 'inherit', fontSize: 12 }}>
+                    Todas
+                  </button>
+                  {todasEtiquetas.map(tag => {
+                    const cor = corDaEtiqueta(tag);
+                    const ativo = filtroEtiqueta === tag;
+                    return (
+                      <button key={tag} onClick={() => setFiltroEtiqueta(ativo ? 'todas' : tag)}
+                        style={{ background: ativo ? cor : `${cor}1a`, color: ativo ? '#fff' : cor, border: `1px solid ${cor}55`, padding: '3px 12px', borderRadius: 20, cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit', fontSize: 12 }}>
+                        {tag} ({cadastros.filter(c => (c.tags || []).includes(tag)).length})
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Busca */}
               <input value={buscaLead} onChange={e => setBuscaLead(e.target.value)}

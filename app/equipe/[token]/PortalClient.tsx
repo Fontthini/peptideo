@@ -655,6 +655,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
   const [aba, setAba] = useState<'dashboard' | 'leads' | 'pedidos' | 'indicacoes' | 'indicacoes-medicas' | 'financeiro' | 'mentoria' | 'blog' | 'rastreio'>('leads');
   const [buscaMedico, setBuscaMedico] = useState('');
   const [buscaIndicacao, setBuscaIndicacao] = useState('');
+  const [filtroEtiqueta, setFiltroEtiqueta] = useState('todas');
 
   const [despesas, setDespesas] = useState<Despesa[]>([]);
   const [loadingDespesas, setLoadingDespesas] = useState(false);
@@ -712,8 +713,11 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
     : filtro === 'rejeitado' ? rejeitados
     : lista;
   const buscaQ = buscaMedico.trim().toLowerCase();
-  const visivel = !buscaQ ? visivelPorStatus : visivelPorStatus.filter(l =>
+  const visivelPorEtiqueta = filtroEtiqueta === 'todas' ? visivelPorStatus
+    : visivelPorStatus.filter(l => (l.tags || []).includes(filtroEtiqueta));
+  const visivel = !buscaQ ? visivelPorEtiqueta : visivelPorEtiqueta.filter(l =>
     `${l.nome} ${l.sobrenome} ${l.email} ${l.whatsapp} ${l.crm || ''}`.toLowerCase().includes(buscaQ));
+  const todasEtiquetas = Array.from(new Set(lista.flatMap(l => l.tags || []))).sort();
 
   const vendedores = equipe.filter(e => e.cargo === 'vendedor' && e.ativo);
   const perf = vendedores.map(v => ({
@@ -1661,10 +1665,29 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                 </button>
               ))}
             </div>
-            <div style={{ padding: '12px 20px', borderBottom: '1px solid #f3f4f6' }}>
+            <div style={{ padding: '12px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <input value={buscaMedico} onChange={e => setBuscaMedico(e.target.value)}
                 placeholder="Buscar médico por nome, e-mail, WhatsApp ou CRM..."
                 style={{ width: '100%', maxWidth: 380, border: '1px solid #d1d5db', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box' }} />
+              {todasEtiquetas.length > 0 && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 2 }}>Etiqueta:</span>
+                  <button onClick={() => setFiltroEtiqueta('todas')}
+                    style={{ background: filtroEtiqueta === 'todas' ? '#111827' : '#fff', color: filtroEtiqueta === 'todas' ? '#fff' : '#374151', border: `1px solid ${filtroEtiqueta === 'todas' ? '#111827' : '#d1d5db'}`, padding: '3px 12px', borderRadius: 20, cursor: 'pointer', fontWeight: filtroEtiqueta === 'todas' ? 700 : 500, fontFamily: 'inherit', fontSize: 12 }}>
+                    Todas
+                  </button>
+                  {todasEtiquetas.map(tag => {
+                    const cor = corDaEtiqueta(tag);
+                    const ativo = filtroEtiqueta === tag;
+                    return (
+                      <button key={tag} onClick={() => setFiltroEtiqueta(ativo ? 'todas' : tag)}
+                        style={{ background: ativo ? cor : `${cor}1a`, color: ativo ? '#fff' : cor, border: `1px solid ${cor}55`, padding: '3px 12px', borderRadius: 20, cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit', fontSize: 12 }}>
+                        {tag} ({lista.filter(l => (l.tags || []).includes(tag)).length})
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <div className="portal-table-scroll">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
