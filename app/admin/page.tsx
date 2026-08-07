@@ -395,6 +395,15 @@ export default function AdminPage() {
     return () => clearInterval(id);
   }, [aba, logado]);
 
+  // "Online na Loja Agora" depende de last_seen_loja, que so muda quando o
+  // heartbeat da loja (a cada 45s) grava no banco — sem isto o admin so via
+  // quem estava online no momento em que entrou na aba, nao em tempo real.
+  useEffect(() => {
+    if (aba !== 'dashboard' || !logado) return;
+    const id = setInterval(() => { carregarCadastros(); }, 20000);
+    return () => clearInterval(id);
+  }, [aba, logado]);
+
   const login = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = await fetch('/api/admin/login', {
@@ -2752,7 +2761,7 @@ export default function AdminPage() {
                                   <div style={{ fontSize: 10.5, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
                                   <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
                                   {i.whatsapp && (
-                                    <a href={`https://wa.me/${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
+                                    <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
                                   )}
                                   <div onClick={e => e.stopPropagation()}>
                                     <select value={etapa} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
@@ -2789,7 +2798,7 @@ export default function AdminPage() {
                                 <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{i.nome} {i.sobrenome}</td>
                                 <td style={{ padding: '11px 14px' }}>
                                   {i.whatsapp && (
-                                    <a href={`https://wa.me/${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                                    <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
                                       style={{ color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>{i.whatsapp}</a>
                                   )}
                                 </td>
@@ -2814,7 +2823,7 @@ export default function AdminPage() {
                                 <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                                   <div style={{ display: 'flex', gap: 6 }}>
                                     {i.whatsapp && (
-                                      <a href={`https://wa.me/${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                                      <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
                                         style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
                                         WhatsApp
                                       </a>
@@ -2935,7 +2944,7 @@ export default function AdminPage() {
                               <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
                               {i.crm && <div style={{ fontSize: 11, color: '#6b7280' }}>CRM {i.crm}</div>}
                               {i.whatsapp && (
-                                <a href={`https://wa.me/${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
+                                <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
                               )}
                               <div onClick={e => e.stopPropagation()}>
                                 <select value={etapa} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
@@ -2974,7 +2983,7 @@ export default function AdminPage() {
                             <td style={{ padding: '11px 14px', color: '#6b7280' }}>{i.crm || '—'}</td>
                             <td style={{ padding: '11px 14px' }}>
                               {i.whatsapp && (
-                                <a href={`https://wa.me/${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                                <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
                                   style={{ color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>{i.whatsapp}</a>
                               )}
                             </td>
@@ -2998,7 +3007,7 @@ export default function AdminPage() {
                             <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                               <div style={{ display: 'flex', gap: 6 }}>
                                 {i.whatsapp && (
-                                  <a href={`https://wa.me/${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                                  <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
                                     style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
                                     WhatsApp
                                   </a>
@@ -3607,7 +3616,7 @@ export default function AdminPage() {
             const primeiroNome = rastreioSelecionado?.nome.split(' ')[0] || '';
             const mensagem = `Olá, ${primeiroNome}! 👋\n\nSeu pedido da *PeptideZ Health* já está a caminho! 📦\n\n🔗 Acompanhe a entrega em tempo real:\n${linkRastreio}\n\nQualquer dúvida, estamos à disposição!`;
             const numeroWhats = rastreioSelecionado
-              ? (rastreioSelecionado.tipo === 'medico' ? `55${(rastreioSelecionado.whatsapp || '').replace(/\D/g, '')}` : (rastreioSelecionado.whatsapp || '').replace(/\D/g, ''))
+              ? `55${(rastreioSelecionado.whatsapp || '').replace(/\D/g, '')}`
               : '';
 
             return (
@@ -3979,7 +3988,7 @@ export default function AdminPage() {
 
                   <div style={{ padding: '14px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {i.whatsapp && (
-                      <a href={`https://wa.me/${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                      <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
                         style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '7px 14px', borderRadius: 6, fontSize: 12.5, fontFamily: 'inherit', textDecoration: 'none' }}>
                         WhatsApp
                       </a>

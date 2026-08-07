@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mem_buscarMembroPorToken, mem_listar, mem_criar, mem_buscarEmail, mem_proximoVendedor, mem_atribuirVendedor, mem_registrarLog } from '@/lib/db-memory';
-import { reloadFromSupabase } from '@/lib/ensure-equipe';
+import { reloadFromSupabase, reloadCadastros, ensureEquipe } from '@/lib/ensure-equipe';
 
 function checkGerente(req: NextRequest) {
   const token = req.headers.get('x-member-token') || '';
@@ -9,7 +9,7 @@ function checkGerente(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  await reloadFromSupabase();
+  await Promise.all([reloadCadastros(), ensureEquipe()]);
   const token = req.headers.get('x-member-token') || '';
   const membro = mem_buscarMembroPorToken(token);
   if (!membro) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });

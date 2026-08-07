@@ -190,7 +190,7 @@ function LeadDetail({
 
   const waNome = `${lead.nome}${lead.sobrenome ? ' ' + lead.sobrenome : ''}`;
   const waLead = lead.whatsapp
-    ? `https://wa.me/${lead.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Ola ${waNome}! Aqui e a equipe PeptideZ Health. Estou entrando em contato sobre seu cadastro.`)}`
+    ? `https://wa.me/55${lead.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Ola ${waNome}! Aqui e a equipe PeptideZ Health. Estou entrando em contato sobre seu cadastro.`)}`
     : null;
 
   return (
@@ -249,7 +249,7 @@ function LeadDetail({
             const nomeCliente = `${lead.nome}${lead.sobrenome ? ' ' + lead.sobrenome : ''}`;
             const msg = `Olá ${nomeCliente}! 🎉\n\nSeu cadastro na PeptideZ Health foi *aprovado*!\n\nAcesse sua loja exclusiva pelo link abaixo:\n👉 ${lojaUrl}\n\nEm caso de dúvidas, entre em contato conosco.`;
             const waReenvio = lead.whatsapp
-              ? `https://wa.me/${lead.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`
+              ? `https://wa.me/55${lead.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`
               : null;
             return waReenvio ? (
               <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -506,7 +506,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
                       <div style={{ fontWeight: 600, color: '#111827' }}>{p.cadastro_nome}</div>
                       <div style={{ fontSize: 11, color: '#6b7280' }}>{p.cadastro_email}</div>
                       {p.cadastro_whatsapp && (
-                        <a href={`https://wa.me/${p.cadastro_whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                        <a href={`https://wa.me/55${p.cadastro_whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
                           style={{ fontSize: 11, color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>
                           WA: {p.cadastro_whatsapp}
                         </a>
@@ -563,7 +563,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
                   </td>
                   <td style={{ padding: '10px 14px' }}>
                     {i.whatsapp && (
-                      <a href={`https://wa.me/${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                      <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
                         style={{ fontSize: 12, color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>
                         {i.whatsapp}
                       </a>
@@ -680,6 +680,19 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // "Online na Loja Agora" depende de last_seen_loja, que so muda quando o
+  // heartbeat da loja (a cada 45s) grava no banco — sem isto o painel so via
+  // quem estava online no momento em que o token foi carregado, nunca depois.
+  useEffect(() => {
+    if (aba !== 'dashboard') return;
+    const atualizar = () => {
+      fetch('/api/portal/leads', { headers: { 'x-member-token': token } })
+        .then(r => r.ok ? r.json() : null).then(d => { if (d) setLista(d); });
+    };
+    const id = setInterval(atualizar, 20000);
+    return () => clearInterval(id);
+  }, [aba, token]);
 
   const fecharNovoCadastro = () => {
     setNovoCadastroTipo(null);
@@ -816,16 +829,18 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
     setAba('dashboard');
     setLoadingDashboard(true);
     try {
-      const [rp, ri, rprod, rcfg] = await Promise.all([
+      const [rp, ri, rprod, rcfg, rl] = await Promise.all([
         pedidos.length === 0 ? fetch('/api/portal/pedidos', { headers: { 'x-member-token': token } }) : null,
         indicacoes.length === 0 ? fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } }) : null,
         fetch('/api/portal/produtos', { headers: { 'x-member-token': token } }),
         fetch('/api/portal/config-summary', { headers: { 'x-member-token': token } }),
+        fetch('/api/portal/leads', { headers: { 'x-member-token': token } }),
       ]);
       if (rp?.ok) setPedidos(await rp.json());
       if (ri?.ok) setIndicacoes(await ri.json());
       if (rprod.ok) setProdutosDash(await rprod.json());
       if (rcfg.ok) setConfigDash(await rcfg.json());
+      if (rl.ok) setLista(await rl.json());
     } finally { setLoadingDashboard(false); }
   }
   async function carregarPedidosSilencioso() {
@@ -1053,7 +1068,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                       <td style={{ padding: '10px 14px' }}>
                         <div style={{ fontWeight: 600, color: '#111827' }}>{p.cadastro_nome}</div>
                         {p.cadastro_whatsapp && (
-                          <a href={`https://wa.me/${p.cadastro_whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                          <a href={`https://wa.me/55${p.cadastro_whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
                             style={{ fontSize: 11, color: '#25D366', textDecoration: 'none' }}>{p.cadastro_whatsapp}</a>
                         )}
                       </td>
@@ -1140,7 +1155,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                         </td>
                         <td style={{ padding: '10px 14px' }}>
                           {i.whatsapp && (
-                            <a href={`https://wa.me/${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                            <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
                               style={{ fontSize: 12, color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>
                               {i.whatsapp}
                             </a>
@@ -1223,7 +1238,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                         <td style={{ padding: '10px 14px', color: '#6b7280' }}>{i.crm || '—'}</td>
                         <td style={{ padding: '10px 14px' }}>
                           {i.whatsapp && (
-                            <a href={`https://wa.me/${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                            <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
                               style={{ fontSize: 12, color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>
                               {i.whatsapp}
                             </a>
@@ -1566,7 +1581,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
         const primeiroNome = rastreioSelecionado?.nome.split(' ')[0] || '';
         const mensagem = `Olá, ${primeiroNome}! 👋\n\nSeu pedido da *PeptideZ Health* já está a caminho! 📦\n\n🔗 Acompanhe a entrega em tempo real:\n${linkRastreio}\n\nQualquer dúvida, estamos à disposição!`;
         const numeroWhats = rastreioSelecionado
-          ? (rastreioSelecionado.tipo === 'medico' ? `55${(rastreioSelecionado.whatsapp || '').replace(/\D/g, '')}` : (rastreioSelecionado.whatsapp || '').replace(/\D/g, ''))
+          ? `55${(rastreioSelecionado.whatsapp || '').replace(/\D/g, '')}`
           : '';
 
         return (

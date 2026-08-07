@@ -70,7 +70,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
       // Link WhatsApp para o gerente clicar (abre conversa com o lead)
       const waLead = c.whatsapp
-        ? `https://wa.me/${c.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(msgAprovacao)}`
+        ? `https://wa.me/55${c.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(msgAprovacao)}`
         : null;
 
       // Enviar email via Resend
@@ -131,7 +131,7 @@ ${whatsappNumero ? `<p style="color:#9ca3af;font-size:12px;text-align:center;mar
       const nomeCliente = `${c.nome}${c.sobrenome ? ' ' + c.sobrenome : ''}`;
       const msgRejeicao = `Olá ${nomeCliente}, informamos que seu cadastro na PeptideZ Health não foi aprovado no momento. Entre em contato para mais informações.`;
       const waLead = c.whatsapp
-        ? `https://wa.me/${c.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(msgRejeicao)}`
+        ? `https://wa.me/55${c.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(msgRejeicao)}`
         : null;
 
       return NextResponse.json({ ...c, wa_link: waLead });
