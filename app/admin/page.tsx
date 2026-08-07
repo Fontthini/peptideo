@@ -39,7 +39,7 @@ type Artigo = { id: string; titulo: string; conteudo: string; imagem?: string; v
 type Membro = { id: string; nome: string; email: string; cargo: string; ativo: boolean; created_at: string; senha?: string; token_acesso?: string; last_seen?: string | null; };
 type PedidoItem = { nome: string; preco: number; quantidade: number };
 type Pedido = { id: string; cadastro_id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string; produto_nome: string; preco: number; itens?: PedidoItem[]; vendedor_id?: string; status: string; obs?: string; created_at: string; };
-type Indicacao = { id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string; status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string; };
+type Indicacao = { id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string; status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string; comissao_valor?: number | null; comissao_paga?: boolean; };
 type Despesa = { id: string; tipo: 'entrada' | 'saida'; categoria: string; descricao: string; valor: number; data: string; comprovante_url?: string; created_at: string; updated_at?: string; };
 
 // Status compartilhado entre Pedidos e Indicações de pacientes (mesmo pipeline de venda).
@@ -125,11 +125,39 @@ function KanbanColuna({ titulo, cor, total, children }: { titulo: string; cor: s
   );
 }
 
-function KanbanCard({ children }: { children: React.ReactNode }) {
+function KanbanCard({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+    <div onClick={onClick}
+      style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, boxShadow: '0 1px 2px rgba(0,0,0,0.04)', cursor: onClick ? 'pointer' : 'default' }}>
       {children}
     </div>
+  );
+}
+
+function ComissaoWidget({ id, comissaoValor, comissaoPaga, mostrar, promptId, setPromptId, input, setInput, onConfirmar }: {
+  id: string; comissaoValor?: number | null; comissaoPaga?: boolean; mostrar: boolean;
+  promptId: string | null; setPromptId: (id: string | null) => void;
+  input: string; setInput: (v: string) => void; onConfirmar: (id: string) => void;
+}) {
+  if (!mostrar) return null;
+  if (comissaoPaga) {
+    return <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', marginTop: 4 }}>OK Comissão: R$ {(comissaoValor || 0).toFixed(2)}</div>;
+  }
+  if (promptId === id) {
+    return (
+      <div style={{ display: 'flex', gap: 4, marginTop: 4 }} onClick={e => e.stopPropagation()}>
+        <input autoFocus type="number" min="0" step="0.01" value={input} onChange={e => setInput(e.target.value)}
+          placeholder="R$ comissão" style={{ width: 90, border: '1px solid #d1d5db', borderRadius: 6, padding: '3px 6px', fontSize: 11, fontFamily: 'inherit' }} />
+        <button onClick={() => onConfirmar(id)} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
+        <button onClick={() => setPromptId(null)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 13 }}>×</button>
+      </div>
+    );
+  }
+  return (
+    <button onClick={e => { e.stopPropagation(); setPromptId(id); setInput(''); }}
+      style={{ marginTop: 4, background: '#f0fdf4', color: '#16a34a', border: '1px dashed #86efac', padding: '2px 8px', borderRadius: 6, fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+      + Comissão
+    </button>
   );
 }
 
@@ -201,7 +229,7 @@ export default function AdminPage() {
   };
   const [filtroIndicacao, setFiltroIndicacao] = useState('todos');
   const [filtroPedido, setFiltroPedido] = useState('todos');
-  const [verLeadsKanban, setVerLeadsKanban] = useState(false);
+  const [verLeadsKanban, setVerLeadsKanban] = useState(true);
   const [verIndicacoesKanban, setVerIndicacoesKanban] = useState(false);
   const [verIndicacoesMedicasKanban, setVerIndicacoesMedicasKanban] = useState(false);
 
@@ -441,6 +469,20 @@ export default function AdminPage() {
     });
     if (r.ok) { showMsg('OK: Indicação atualizada!'); carregarIndicacoes(); }
     else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao atualizar')); }
+  };
+
+  const [comissaoPromptId, setComissaoPromptId] = useState<string | null>(null);
+  const [comissaoInput, setComissaoInput] = useState('');
+
+  const lancarComissao = async (id: string) => {
+    const valor = parseFloat(comissaoInput.replace(',', '.'));
+    if (!valor || valor <= 0) { showMsg('R Informe um valor válido'); return; }
+    const r = await fetch('/api/admin/indicacoes/comissao', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify({ id, comissao_valor: valor }),
+    });
+    if (r.ok) { showMsg('OK: Comissão lançada no Financeiro!'); setComissaoPromptId(null); setComissaoInput(''); carregarIndicacoes(); }
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao lançar comissão')); }
   };
 
   const excluirIndicacao = async (id: string, nome: string) => {
@@ -1078,9 +1120,9 @@ export default function AdminPage() {
                     return (
                       <KanbanColuna key={etapa} titulo={FUNIL_LABEL[etapa]} cor={FUNIL_COLOR[etapa]} total={itens.length}>
                         {itens.map(c => (
-                          <KanbanCard key={c.id}>
+                          <KanbanCard key={c.id} onClick={() => { setEditandoLead(c); setNovoProdutoInteresseInput(''); }}>
                             <div style={{ fontWeight: 700, fontSize: 13, color: '#111827' }}>{c.nome} {c.sobrenome}</div>
-                            <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none' }}>{c.whatsapp}</a>
+                            <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none' }}>{c.whatsapp}</a>
                             {(c.produtos_interesse || []).length > 0 && (
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 5 }}>
                                 {(c.produtos_interesse || []).map(p => (
@@ -1097,25 +1139,27 @@ export default function AdminPage() {
                               </div>
                             )}
                             <div style={{ fontSize: 10.5, color: '#9ca3af', marginTop: 5 }}>{equipe.find(m => m.id === c.vendedor_id)?.nome || 'Sem consultor'}</div>
-                            <select value={etapa} onChange={e => {
-                                const v = e.target.value;
-                                if (v === 'perdido') { setPerdaPromptId(c.id); setMotivoPerdaInput(''); }
-                                else atualizarFunilLead(c.id, v);
-                              }}
-                              style={{ width: '100%', marginTop: 7, border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
-                              {FUNIL_ETAPAS.map(e => <option key={e} value={e}>{FUNIL_LABEL[e]}</option>)}
-                            </select>
-                            {perdaPromptId === c.id && (
-                              <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
-                                <select autoFocus value={motivoPerdaInput} onChange={e => setMotivoPerdaInput(e.target.value)}
-                                  style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: 6, padding: '3px 4px', fontSize: 10.5, fontFamily: 'inherit' }}>
-                                  <option value="">Motivo...</option>
-                                  {MOTIVOS_PERDA.map(m => <option key={m} value={m}>{m}</option>)}
-                                </select>
-                                <button onClick={() => { atualizarFunilLead(c.id, 'perdido', motivoPerdaInput); setPerdaPromptId(null); setMotivoPerdaInput(''); }}
-                                  style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 7px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
-                              </div>
-                            )}
+                            <div onClick={e => e.stopPropagation()}>
+                              <select value={etapa} onChange={e => {
+                                  const v = e.target.value;
+                                  if (v === 'perdido') { setPerdaPromptId(c.id); setMotivoPerdaInput(''); }
+                                  else atualizarFunilLead(c.id, v);
+                                }}
+                                style={{ width: '100%', marginTop: 7, border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                {FUNIL_ETAPAS.map(e => <option key={e} value={e}>{FUNIL_LABEL[e]}</option>)}
+                              </select>
+                              {perdaPromptId === c.id && (
+                                <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+                                  <select autoFocus value={motivoPerdaInput} onChange={e => setMotivoPerdaInput(e.target.value)}
+                                    style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: 6, padding: '3px 4px', fontSize: 10.5, fontFamily: 'inherit' }}>
+                                    <option value="">Motivo...</option>
+                                    {MOTIVOS_PERDA.map(m => <option key={m} value={m}>{m}</option>)}
+                                  </select>
+                                  <button onClick={() => { atualizarFunilLead(c.id, 'perdido', motivoPerdaInput); setPerdaPromptId(null); setMotivoPerdaInput(''); }}
+                                    style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 7px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
+                                </div>
+                              )}
+                            </div>
                           </KanbanCard>
                         ))}
                       </KanbanColuna>
@@ -1304,8 +1348,50 @@ export default function AdminPage() {
                   <div onClick={() => setEditandoLead(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
                   <div style={{ position: 'relative', maxWidth: 520, margin: '0 auto', background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
                     <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontWeight: 800, fontSize: 17, color: '#111827' }}>Editar Cadastro</div>
+                      <div style={{ fontWeight: 800, fontSize: 17, color: '#111827' }}>{editandoLead.nome} {editandoLead.sobrenome}</div>
                       <button onClick={() => setEditandoLead(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#6b7280' }}>×</button>
+                    </div>
+                    <div style={{ padding: '14px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {editandoLead.status === 'pendente' && (
+                        <>
+                          <button onClick={() => { aprovar(editandoLead.id); setEditandoLead(null); }}
+                            style={{ background: '#111827', color: '#fff', border: 'none', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: 12.5, fontFamily: 'inherit' }}>
+                            Aprovar
+                          </button>
+                          <button onClick={() => { rejeitar(editandoLead.id); setEditandoLead(null); }}
+                            style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontFamily: 'inherit' }}>
+                            Rejeitar
+                          </button>
+                        </>
+                      )}
+                      {editandoLead.status === 'aprovado' && editandoLead.token && (
+                        <>
+                          <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/acesso/${editandoLead.token}`); showMsg('Link copiado!'); }}
+                            style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontFamily: 'inherit' }}>
+                            Copiar Link
+                          </button>
+                          <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/indicar/${editandoLead.token}`); showMsg('Link de indicação copiado!'); }}
+                            style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontFamily: 'inherit' }}>
+                            Link Indicação
+                          </button>
+                          <button onClick={() => reenviarEmail(editandoLead.id, editandoLead.nome)} disabled={reenviandoId === editandoLead.id}
+                            style={{ background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', padding: '7px 14px', borderRadius: 6, cursor: reenviandoId === editandoLead.id ? 'default' : 'pointer', fontSize: 12.5, fontFamily: 'inherit', opacity: reenviandoId === editandoLead.id ? 0.6 : 1 }}>
+                            {reenviandoId === editandoLead.id ? 'Enviando...' : 'Reenviar E-mail'}
+                          </button>
+                        </>
+                      )}
+                      {editandoLead.whatsapp && (
+                        <a href={`https://wa.me/55${editandoLead.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                          style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '7px 14px', borderRadius: 6, fontSize: 12.5, fontFamily: 'inherit', textDecoration: 'none' }}>
+                          WhatsApp
+                        </a>
+                      )}
+                      {isSuperadmin && (
+                        <button onClick={() => { excluirCadastro(editandoLead.id, editandoLead.nome); setEditandoLead(null); }}
+                          style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontFamily: 'inherit' }}>
+                          Excluir
+                        </button>
+                      )}
                     </div>
                     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
                       <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
@@ -2565,6 +2651,9 @@ export default function AdminPage() {
                                     <option value="pago">Pago</option>
                                     <option value="cancelado">Cancelado</option>
                                   </select>
+                                  <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
+                                    mostrar={etapa === 'pago'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
+                                    input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
                                 </KanbanCard>
                               ))}
                             </KanbanColuna>
@@ -2603,6 +2692,9 @@ export default function AdminPage() {
                                     <option value="pago">Pago</option>
                                     <option value="cancelado">Cancelado</option>
                                   </select>
+                                  <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
+                                    mostrar={i.status === 'pago'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
+                                    input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
                                 </td>
                                 <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
                                   {new Date(i.created_at).toLocaleDateString('pt-BR')}
@@ -2714,6 +2806,9 @@ export default function AdminPage() {
                                 <option value="convertido">Convertido</option>
                                 <option value="reprovado">Reprovado</option>
                               </select>
+                              <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
+                                mostrar={etapa === 'convertido'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
+                                input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
                             </KanbanCard>
                           ))}
                         </KanbanColuna>
@@ -2753,6 +2848,9 @@ export default function AdminPage() {
                                 <option value="convertido">Convertido</option>
                                 <option value="reprovado">Reprovado</option>
                               </select>
+                              <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
+                                mostrar={i.status === 'convertido'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
+                                input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
                             </td>
                             <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
                               {new Date(i.created_at).toLocaleDateString('pt-BR')}

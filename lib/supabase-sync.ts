@@ -298,6 +298,7 @@ export async function sbSaveIndicacao(i: Indicacao) {
     email: i.email || '', endereco: i.endereco || '',
     status: i.status, obs: i.obs || '', created_at: i.created_at,
     tipo: i.tipo || 'paciente', crm: i.crm || '',
+    comissao_valor: i.comissao_valor ?? null, comissao_paga: i.comissao_paga || false,
   });
   if (error) throw new Error(`sbSaveIndicacao: ${error.message} (${error.code})`);
 }

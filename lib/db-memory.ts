@@ -200,6 +200,8 @@ export type Indicacao = {
   created_at: string;
   tipo?: 'paciente' | 'medico';
   crm?: string;
+  comissao_valor?: number | null;
+  comissao_paga?: boolean;
 };
 
 export type PedidoItem = { nome: string; preco: number; quantidade: number };
@@ -998,7 +1000,8 @@ export function mem_criarIndicacao(data: Omit<Indicacao, 'id' | 'status' | 'crea
 export function mem_editarIndicacao(id: string, data: Partial<Omit<Indicacao, 'id' | 'created_at'>>): Indicacao | null {
   const i = getIndicacoesStore().find(i => i.id === id);
   if (!i) return null;
-  Object.assign(i, data);
+  const campos = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
+  Object.assign(i, campos);
   salvarIndicacoes();
   return i;
 }
