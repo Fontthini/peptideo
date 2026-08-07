@@ -463,12 +463,12 @@ export default function AdminPage() {
   };
 
   const atualizarStatusIndicacao = async (i: Indicacao, status: string) => {
+    setIndicacoes(prev => prev.map(x => x.id === i.id ? { ...x, status } : x));
     const r = await fetch('/api/admin/indicacoes', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
       body: JSON.stringify({ ...i, status }),
     });
-    if (r.ok) { showMsg('OK: Indicação atualizada!'); carregarIndicacoes(); }
-    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao atualizar')); }
+    if (!r.ok) { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao atualizar')); carregarIndicacoes(); }
   };
 
   const [comissaoPromptId, setComissaoPromptId] = useState<string | null>(null);
@@ -484,8 +484,12 @@ export default function AdminPage() {
       body: JSON.stringify(editandoIndicacao),
     });
     setSalvandoIndicacao(false);
-    if (r.ok) { showMsg('OK: Indicação atualizada!'); setEditandoIndicacao(null); carregarIndicacoes(); }
-    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao salvar')); }
+    if (r.ok) {
+      showMsg('OK: Indicação atualizada!');
+      const salvo = editandoIndicacao;
+      setIndicacoes(prev => prev.map(x => x.id === salvo.id ? salvo : x));
+      setEditandoIndicacao(null);
+    } else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao salvar')); }
   };
 
   const lancarComissao = async (id: string) => {
@@ -495,8 +499,12 @@ export default function AdminPage() {
       method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
       body: JSON.stringify({ id, comissao_valor: valor }),
     });
-    if (r.ok) { showMsg('OK: Comissão lançada no Financeiro!'); setComissaoPromptId(null); setComissaoInput(''); carregarIndicacoes(); }
-    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao lançar comissão')); }
+    if (r.ok) {
+      showMsg('OK: Comissão lançada no Financeiro!');
+      setIndicacoes(prev => prev.map(x => x.id === id ? { ...x, comissao_valor: valor, comissao_paga: true } : x));
+      setEditandoIndicacao(prev => prev && prev.id === id ? { ...prev, comissao_valor: valor, comissao_paga: true } : prev);
+      setComissaoPromptId(null); setComissaoInput('');
+    } else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao lançar comissão')); }
   };
 
   const excluirIndicacao = async (id: string, nome: string) => {
@@ -505,7 +513,7 @@ export default function AdminPage() {
       method: 'DELETE', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
       body: JSON.stringify({ id }),
     });
-    if (r.ok) { showMsg('Indicação excluída.'); carregarIndicacoes(); }
+    if (r.ok) { showMsg('Indicação excluída.'); setIndicacoes(prev => prev.filter(x => x.id !== id)); }
     else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao excluir')); }
   };
 
@@ -2639,13 +2647,16 @@ export default function AdminPage() {
                       </div>
                     )}
 
-                    {comComissao.length > 0 && (
-                      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24, marginBottom: 24 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: comComissao.length > 0 ? 16 : 0 }}>
+                        <div>
                           <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Comissões Pagas</div>
-                          <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a' }}>R$ {totalComissoes.toFixed(2)}</div>
+                          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Lançada quando uma indicação chega em &quot;Pago&quot; e você informa o valor no botão + Comissão</div>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                        <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {totalComissoes.toFixed(2)}</div>
+                      </div>
+                      {comComissao.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 16 }}>
                           {comComissao.map(i => (
                             <div key={i.id} onClick={() => setEditandoIndicacao(i)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '8px 0', borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}>
                               <span style={{ color: '#374151' }}>{i.medico_nome} <span style={{ color: '#9ca3af' }}>· indicou {i.nome} {i.sobrenome}</span></span>
@@ -2653,8 +2664,8 @@ export default function AdminPage() {
                             </div>
                           ))}
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
                     {loadingIndicacoes ? (
                       <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
@@ -2815,20 +2826,25 @@ export default function AdminPage() {
                 {(() => {
                   const comComissao = indicacoesMedicas.filter(i => i.comissao_paga);
                   const totalComissoes = comComissao.reduce((s, i) => s + (i.comissao_valor || 0), 0);
-                  return comComissao.length > 0 && (
+                  return (
                     <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Comissões Pagas</div>
-                        <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a' }}>R$ {totalComissoes.toFixed(2)}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: comComissao.length > 0 ? 16 : 0 }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Comissões Pagas</div>
+                          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Lançada quando uma indicação chega em &quot;Convertido&quot; e você informa o valor no botão + Comissão</div>
+                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {totalComissoes.toFixed(2)}</div>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                        {comComissao.map(i => (
-                          <div key={i.id} onClick={() => setEditandoIndicacao(i)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '8px 0', borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}>
-                            <span style={{ color: '#374151' }}>{i.medico_nome} <span style={{ color: '#9ca3af' }}>· indicou {i.nome} {i.sobrenome}</span></span>
-                            <span style={{ color: '#16a34a', fontWeight: 700 }}>R$ {(i.comissao_valor || 0).toFixed(2)}</span>
-                          </div>
-                        ))}
-                      </div>
+                      {comComissao.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 16 }}>
+                          {comComissao.map(i => (
+                            <div key={i.id} onClick={() => setEditandoIndicacao(i)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '8px 0', borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}>
+                              <span style={{ color: '#374151' }}>{i.medico_nome} <span style={{ color: '#9ca3af' }}>· indicou {i.nome} {i.sobrenome}</span></span>
+                              <span style={{ color: '#16a34a', fontWeight: 700 }}>R$ {(i.comissao_valor || 0).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })()}

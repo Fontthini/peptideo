@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminKeyValid, isSuperadminKey, adminAtorFromKey } from '@/lib/admin-auth';
 import { mem_listarPedidos, mem_atualizarPedido, mem_deletarPedido, mem_registrarLog, mem_criarDespesa, mem_buscarId, mem_atualizarFunil } from '@/lib/db-memory';
-import { reloadFromSupabase } from '@/lib/ensure-equipe';
+import { reloadPedidos, ensurePedidos } from '@/lib/ensure-equipe';
 
 function checkAdmin(req: NextRequest) {
   return isAdminKeyValid(req.headers.get('x-admin-key'));
@@ -9,13 +9,13 @@ function checkAdmin(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 });
-  await reloadFromSupabase();
+  await reloadPedidos();
   return NextResponse.json(mem_listarPedidos());
 }
 
 export async function PATCH(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 });
-  await reloadFromSupabase();
+  await ensurePedidos();
   const { id, status, obs, preco } = await req.json();
   if (!id) return NextResponse.json({ error: 'id obrigatorio' }, { status: 400 });
 
@@ -30,7 +30,7 @@ export async function PATCH(req: NextRequest) {
   // seguinte), lanca automaticamente uma entrada no Financeiro.
   if (p.status === 'pago' && statusAnterior !== 'pago') {
     const d = mem_criarDespesa({
-      tipo: 'entrada', categoria: 'Pago',
+      tipo: 'entrada', categoria: 'PEDIDO PAGO',
       descricao: `Pedido pago — ${p.cadastro_nome} (${p.produto_nome})`,
       valor: p.preco, data: new Date().toISOString().slice(0, 10),
     });
@@ -50,7 +50,7 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 });
   if (!isSuperadminKey(req.headers.get('x-admin-key'))) return NextResponse.json({ error: 'Apenas o superadmin pode excluir.' }, { status: 403 });
-  await reloadFromSupabase();
+  await ensurePedidos();
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: 'id obrigatorio' }, { status: 400 });
   const alvo = mem_listarPedidos().find(p => p.id === id);

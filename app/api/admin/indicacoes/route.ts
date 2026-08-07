@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminKeyValid, isSuperadminKey, adminAtorFromKey } from '@/lib/admin-auth';
 import { mem_listarIndicacoes, mem_editarIndicacao, mem_deletarIndicacao, mem_registrarLog, mem_criarIndicacao, mem_buscarId } from '@/lib/db-memory';
-import { reloadFromSupabase } from '@/lib/ensure-equipe';
+import { reloadIndicacoes, ensureIndicacoes, ensureCadastros } from '@/lib/ensure-equipe';
 
 function checkAdmin(req: NextRequest) {
   return isAdminKeyValid(req.headers.get('x-admin-key'));
@@ -9,13 +9,13 @@ function checkAdmin(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-  await reloadFromSupabase();
+  await reloadIndicacoes();
   return NextResponse.json(mem_listarIndicacoes());
 }
 
 export async function POST(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-  await reloadFromSupabase();
+  await ensureCadastros();
   const { medico_id, nome, sobrenome, whatsapp, email, endereco } = await req.json();
   if (!medico_id || !nome || !whatsapp) return NextResponse.json({ error: 'Médico, nome e WhatsApp são obrigatórios' }, { status: 400 });
   const medico = mem_buscarId(medico_id);
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-  await reloadFromSupabase();
+  await ensureIndicacoes();
   const data = await req.json();
   if (!data.id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
   const i = mem_editarIndicacao(data.id, {
@@ -50,7 +50,7 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   if (!isSuperadminKey(req.headers.get('x-admin-key'))) return NextResponse.json({ error: 'Apenas o superadmin pode excluir.' }, { status: 403 });
-  await reloadFromSupabase();
+  await ensureIndicacoes();
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
   const alvo = mem_listarIndicacoes().find(i => i.id === id);

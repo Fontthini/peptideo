@@ -387,3 +387,63 @@ export async function loadAllFromSupabase() {
     console.error('[SUPABASE] Erro ao carregar dados:', err);
   }
 }
+
+// ── Reloads pontuais ──────────────────────────────────────────────────────────
+// Recarregar só a tabela que a rota realmente precisa em vez de tudo (11
+// tabelas) evita que toda interação do CRM — mover um card, mudar uma tag,
+// lançar comissão — pague o custo de recarregar o sistema inteiro. Cada
+// rota usa a versão pontual da tabela que ela lê/escreve.
+
+function juntarPedidoComCadastro(p: Record<string, unknown>, cadastros: Cadastro[] | undefined) {
+  const cad = cadastros?.find(c => c.id === p.cadastro_id);
+  return {
+    ...p,
+    cadastro_nome: cad ? `${cad.nome} ${cad.sobrenome || ''}`.trim() : (p.cadastro_nome as string || ''),
+    cadastro_email: cad ? cad.email : (p.cadastro_email as string || ''),
+    cadastro_whatsapp: cad ? cad.whatsapp : (p.cadastro_whatsapp as string || ''),
+    produto_nome: Array.isArray(p.itens) && (p.itens as unknown[]).length ? (p.itens as { nome: string }[])[0].nome : '',
+  };
+}
+
+export async function reloadCadastros() {
+  try {
+    const { data, error } = await supabase.from('cadastros').select('*').order('created_at', { ascending: false });
+    if (error) { console.error('[SUPABASE] Erro ao recarregar cadastros:', error.message); return; }
+    if (data) global.__cadastros__ = data as Cadastro[];
+  } catch (err) { console.error('[SUPABASE] Erro ao recarregar cadastros:', err); }
+}
+
+export async function reloadIndicacoes() {
+  try {
+    const { data, error } = await supabase.from('indicacoes').select('*').order('created_at', { ascending: false });
+    if (error) { console.error('[SUPABASE] Erro ao recarregar indicações:', error.message); return; }
+    if (data) global.__indicacoes__ = data as Indicacao[];
+  } catch (err) { console.error('[SUPABASE] Erro ao recarregar indicações:', err); }
+}
+
+export async function reloadPedidos() {
+  try {
+    const { data, error } = await supabase.from('pedidos').select('*').order('created_at', { ascending: false });
+    if (error) { console.error('[SUPABASE] Erro ao recarregar pedidos:', error.message); return; }
+    const cadastros = global.__cadastros__ as Cadastro[] | undefined;
+    if (data) global.__pedidos__ = data.map(p => juntarPedidoComCadastro(p as Record<string, unknown>, cadastros)) as Pedido[];
+  } catch (err) { console.error('[SUPABASE] Erro ao recarregar pedidos:', err); }
+}
+
+export async function reloadEquipe() {
+  try {
+    const { data, error } = await supabase.from('equipe').select('*').order('created_at', { ascending: true });
+    if (error) { console.error('[SUPABASE] Erro ao recarregar equipe:', error.message); return; }
+    if (data && data.length > 0) global.__equipe__ = data.map((m: Record<string, unknown>) => ({
+      ...m, token_acesso: m.token as string, senha: m.senha as string | undefined,
+    })) as MembroEquipe[];
+  } catch (err) { console.error('[SUPABASE] Erro ao recarregar equipe:', err); }
+}
+
+export async function reloadProdutos() {
+  try {
+    const { data, error } = await supabase.from('produtos').select('*').order('created_at', { ascending: true });
+    if (error) { console.error('[SUPABASE] Erro ao recarregar produtos:', error.message); return; }
+    if (data) global.__produtos__ = data as ProdutoMemory[];
+  } catch (err) { console.error('[SUPABASE] Erro ao recarregar produtos:', err); }
+}

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminKeyValid, adminAtorFromKey } from '@/lib/admin-auth';
 import { mem_listarIndicacoes, mem_editarIndicacao, mem_registrarLog, mem_criarDespesa } from '@/lib/db-memory';
-import { reloadFromSupabase } from '@/lib/ensure-equipe';
+import { ensureIndicacoes } from '@/lib/ensure-equipe';
 
 export async function PUT(req: NextRequest) {
   if (!isAdminKeyValid(req.headers.get('x-admin-key'))) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
-  await reloadFromSupabase();
+  await ensureIndicacoes();
   const { id, comissao_valor } = await req.json();
   const valor = parseFloat(comissao_valor);
   if (!id || !valor || valor <= 0) return NextResponse.json({ error: 'Valor de comissão inválido' }, { status: 400 });

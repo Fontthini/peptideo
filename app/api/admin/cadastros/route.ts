@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminKeyValid, isSuperadminKey, adminAtorFromKey } from '@/lib/admin-auth';
 import { mem_listar, mem_deletarCadastro, mem_editarCadastro, mem_buscarId, mem_registrarLog, mem_criar, mem_buscarEmail, mem_proximoVendedor, mem_atribuirVendedor } from '@/lib/db-memory';
-import { reloadFromSupabase } from '@/lib/ensure-equipe';
+import { reloadCadastros, ensureEquipe } from '@/lib/ensure-equipe';
 
 function checkAdmin(req: NextRequest) {
   return isAdminKeyValid(req.headers.get('x-admin-key'));
@@ -11,13 +11,14 @@ export async function GET(req: NextRequest) {
   if (!checkAdmin(req)) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
-  await reloadFromSupabase();
+  await reloadCadastros();
   return NextResponse.json(mem_listar());
 }
 
 export async function POST(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-  await reloadFromSupabase();
+  await reloadCadastros();
+  await ensureEquipe();
   const { nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu } = await req.json();
   if (!nome || !email || !whatsapp) return NextResponse.json({ error: 'Nome, e-mail e WhatsApp são obrigatórios' }, { status: 400 });
   if (mem_buscarEmail(email)) return NextResponse.json({ error: 'E-mail já cadastrado.' }, { status: 409 });
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-  await reloadFromSupabase();
+  await reloadCadastros();
   const { id, nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu, cidade, estado, especialidade, cpf, produtos_interesse } = await req.json();
   if (!id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
   const c = mem_editarCadastro(id, { nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu, cidade, estado, especialidade, cpf, produtos_interesse });
@@ -55,7 +56,7 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   if (!isSuperadminKey(req.headers.get('x-admin-key'))) return NextResponse.json({ error: 'Apenas o superadmin pode excluir.' }, { status: 403 });
-  await reloadFromSupabase();
+  await reloadCadastros();
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
   const alvo = mem_buscarId(id);
