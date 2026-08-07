@@ -92,6 +92,46 @@ const FUNIL_COLOR: Record<string, string> = {
 };
 const MOTIVOS_PERDA = ['Sem dinheiro', 'Adiou para depois', 'Escolheu concorrente', 'Não respondeu', 'Sem tempo', 'Desistiu', 'Outro'];
 
+function ToggleListaKanban({ kanban, onChange }: { kanban: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div style={{ display: 'inline-flex', background: '#f3f4f6', borderRadius: 8, padding: 3, gap: 2 }}>
+      {[['Lista', false], ['Kanban', true]].map(([label, val]) => (
+        <button key={label as string} type="button" onClick={() => onChange(val as boolean)}
+          style={{ padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', background: kanban === val ? '#111827' : 'transparent', color: kanban === val ? '#fff' : '#6b7280' }}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function KanbanBoard({ children }: { children: React.ReactNode }) {
+  return <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, alignItems: 'flex-start' }}>{children}</div>;
+}
+
+function KanbanColuna({ titulo, cor, total, children }: { titulo: string; cor: string; total: number; children: React.ReactNode }) {
+  return (
+    <div style={{ minWidth: 250, maxWidth: 250, flexShrink: 0, background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 320px)' }}>
+      <div style={{ padding: '11px 14px', borderTop: `3px solid ${cor}`, borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', borderRadius: '10px 10px 0 0' }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: cor }}>{titulo}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', background: '#f3f4f6', padding: '1px 8px', borderRadius: 10 }}>{total}</span>
+      </div>
+      <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto', flex: 1 }}>
+        {total === 0
+          ? <div style={{ padding: '20px 8px', textAlign: 'center', color: '#9ca3af', fontSize: 12 }}>Vazio</div>
+          : children}
+      </div>
+    </div>
+  );
+}
+
+function KanbanCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+      {children}
+    </div>
+  );
+}
 
 export default function AdminPage() {
   const [email, setEmail] = useState('');
@@ -161,6 +201,9 @@ export default function AdminPage() {
   };
   const [filtroIndicacao, setFiltroIndicacao] = useState('todos');
   const [filtroPedido, setFiltroPedido] = useState('todos');
+  const [verLeadsKanban, setVerLeadsKanban] = useState(false);
+  const [verIndicacoesKanban, setVerIndicacoesKanban] = useState(false);
+  const [verIndicacoesMedicasKanban, setVerIndicacoesMedicasKanban] = useState(false);
 
   const [buscaRastreio, setBuscaRastreio] = useState('');
   const [rastreioSelecionado, setRastreioSelecionado] = useState<{ id: string; nome: string; whatsapp: string; tipo: 'medico' | 'paciente' } | null>(null);
@@ -1020,12 +1063,66 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {/* Busca */}
-              <input value={buscaLead} onChange={e => setBuscaLead(e.target.value)}
-                placeholder="Buscar médico por nome, e-mail, WhatsApp ou CRM..."
-                style={{ ...inputStyle, marginBottom: 16, maxWidth: 420 }} />
+              {/* Busca + alternador de visualização */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+                <input value={buscaLead} onChange={e => setBuscaLead(e.target.value)}
+                  placeholder="Buscar médico por nome, e-mail, WhatsApp ou CRM..."
+                  style={{ ...inputStyle, maxWidth: 420, marginBottom: 0 }} />
+                <ToggleListaKanban kanban={verLeadsKanban} onChange={setVerLeadsKanban} />
+              </div>
 
-              {/* Tabela */}
+              {verLeadsKanban ? (
+                <KanbanBoard>
+                  {FUNIL_ETAPAS.map(etapa => {
+                    const itens = filtrados.filter(c => (c.funil_status || 'novo') === etapa);
+                    return (
+                      <KanbanColuna key={etapa} titulo={FUNIL_LABEL[etapa]} cor={FUNIL_COLOR[etapa]} total={itens.length}>
+                        {itens.map(c => (
+                          <KanbanCard key={c.id}>
+                            <div style={{ fontWeight: 700, fontSize: 13, color: '#111827' }}>{c.nome} {c.sobrenome}</div>
+                            <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none' }}>{c.whatsapp}</a>
+                            {(c.produtos_interesse || []).length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 5 }}>
+                                {(c.produtos_interesse || []).map(p => (
+                                  <span key={p} style={{ fontSize: 9.5, fontWeight: 700, background: '#ecfeff', color: '#0891b2', padding: '1px 6px', borderRadius: 10 }}>{p}</span>
+                                ))}
+                              </div>
+                            )}
+                            {(c.tags || []).length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
+                                {(c.tags || []).map(t => {
+                                  const cor = corDaEtiqueta(t);
+                                  return <span key={t} style={{ fontSize: 9.5, fontWeight: 700, background: `${cor}1a`, color: cor, padding: '1px 6px', borderRadius: 10 }}>{t}</span>;
+                                })}
+                              </div>
+                            )}
+                            <div style={{ fontSize: 10.5, color: '#9ca3af', marginTop: 5 }}>{equipe.find(m => m.id === c.vendedor_id)?.nome || 'Sem consultor'}</div>
+                            <select value={etapa} onChange={e => {
+                                const v = e.target.value;
+                                if (v === 'perdido') { setPerdaPromptId(c.id); setMotivoPerdaInput(''); }
+                                else atualizarFunilLead(c.id, v);
+                              }}
+                              style={{ width: '100%', marginTop: 7, border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                              {FUNIL_ETAPAS.map(e => <option key={e} value={e}>{FUNIL_LABEL[e]}</option>)}
+                            </select>
+                            {perdaPromptId === c.id && (
+                              <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+                                <select autoFocus value={motivoPerdaInput} onChange={e => setMotivoPerdaInput(e.target.value)}
+                                  style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: 6, padding: '3px 4px', fontSize: 10.5, fontFamily: 'inherit' }}>
+                                  <option value="">Motivo...</option>
+                                  {MOTIVOS_PERDA.map(m => <option key={m} value={m}>{m}</option>)}
+                                </select>
+                                <button onClick={() => { atualizarFunilLead(c.id, 'perdido', motivoPerdaInput); setPerdaPromptId(null); setMotivoPerdaInput(''); }}
+                                  style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 7px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
+                              </div>
+                            )}
+                          </KanbanCard>
+                        ))}
+                      </KanbanColuna>
+                    );
+                  })}
+                </KanbanBoard>
+              ) : (
               <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
                 {loadingLeads ? (
                   <div style={{ padding: 60, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
@@ -1199,6 +1296,7 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
+              )}
 
               {/* Modal: editar cadastro */}
               {editandoLead && (
@@ -2384,9 +2482,12 @@ export default function AdminPage() {
                 Pacientes cadastrados pelo link de indicação de um médico aprovado, com vínculo automático.
               </p>
 
-              <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
-                placeholder="Buscar por médico indicador ou paciente indicado..."
-                style={{ ...inputStyle, marginBottom: 16, maxWidth: 420 }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+                <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
+                  placeholder="Buscar por médico indicador ou paciente indicado..."
+                  style={{ ...inputStyle, maxWidth: 420, marginBottom: 0 }} />
+                <ToggleListaKanban kanban={verIndicacoesKanban} onChange={setVerIndicacoesKanban} />
+              </div>
 
               {/* Filtros */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
@@ -2443,6 +2544,33 @@ export default function AdminPage() {
                           ? <>Nenhuma indicação ainda. O botão &quot;Copiar Link de Indicação&quot; aparece na aba Leads para médicos aprovados.</>
                           : <>Nenhuma indicação encontrada para essa busca.</>}
                       </div>
+                    ) : verIndicacoesKanban ? (
+                      <KanbanBoard>
+                        {(['em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(etapa => {
+                          const itens = indicacoesFiltradas.filter(i => i.status === etapa);
+                          const cor = PIPELINE_STATUS_COLOR[etapa]?.text || '#374151';
+                          return (
+                            <KanbanColuna key={etapa} titulo={PIPELINE_STATUS_LABEL[etapa]} cor={cor} total={itens.length}>
+                              {itens.map(i => (
+                                <KanbanCard key={i.id}>
+                                  <div style={{ fontSize: 10.5, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
+                                  <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
+                                  {i.whatsapp && (
+                                    <a href={`https://wa.me/${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
+                                  )}
+                                  <select value={etapa} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
+                                    style={{ width: '100%', marginTop: 7, border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                    <option value="em_atendimento">Em Atendimento</option>
+                                    <option value="negociacao">Negociação</option>
+                                    <option value="pago">Pago</option>
+                                    <option value="cancelado">Cancelado</option>
+                                  </select>
+                                </KanbanCard>
+                              ))}
+                            </KanbanColuna>
+                          );
+                        })}
+                      </KanbanBoard>
                     ) : (
                       <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
                         <div className="admin-table-scroll">
@@ -2530,9 +2658,12 @@ export default function AdminPage() {
                   Médicos indicados por outros médicos já aprovados, pelo card &quot;Indicar Médico&quot; na tela inicial.
                 </p>
 
-                <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
-                  placeholder="Buscar por médico indicador, indicado ou CRM..."
-                  style={{ ...inputStyle, marginBottom: 20, maxWidth: 420 }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+                  <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
+                    placeholder="Buscar por médico indicador, indicado ou CRM..."
+                    style={{ ...inputStyle, maxWidth: 420, marginBottom: 0 }} />
+                  <ToggleListaKanban kanban={verIndicacoesMedicasKanban} onChange={setVerIndicacoesMedicasKanban} />
+                </div>
 
                 {ranking.length > 0 && (
                   <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24, marginBottom: 24 }}>
@@ -2561,6 +2692,34 @@ export default function AdminPage() {
                       ? <>Nenhuma indicação médica ainda. O card &quot;Indicar Médico&quot; aparece na tela inicial para médicos aprovados.</>
                       : <>Nenhuma indicação encontrada para essa busca.</>}
                   </div>
+                ) : verIndicacoesMedicasKanban ? (
+                  <KanbanBoard>
+                    {(['novo', 'contatado', 'convertido', 'reprovado'] as const).map(etapa => {
+                      const itens = filtradas.filter(i => i.status === etapa);
+                      const cor = INDICACAO_MEDICA_STATUS_COLOR[etapa]?.text || '#374151';
+                      return (
+                        <KanbanColuna key={etapa} titulo={INDICACAO_MEDICA_STATUS_LABEL[etapa]} cor={cor} total={itens.length}>
+                          {itens.map(i => (
+                            <KanbanCard key={i.id}>
+                              <div style={{ fontSize: 10.5, fontWeight: 700, color: '#0891b2', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
+                              <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
+                              {i.crm && <div style={{ fontSize: 11, color: '#6b7280' }}>CRM {i.crm}</div>}
+                              {i.whatsapp && (
+                                <a href={`https://wa.me/${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
+                              )}
+                              <select value={etapa} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
+                                style={{ width: '100%', marginTop: 7, border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                <option value="novo">Novo</option>
+                                <option value="contatado">Contatado</option>
+                                <option value="convertido">Convertido</option>
+                                <option value="reprovado">Reprovado</option>
+                              </select>
+                            </KanbanCard>
+                          ))}
+                        </KanbanColuna>
+                      );
+                    })}
+                  </KanbanBoard>
                 ) : (
                   <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
                     <div className="admin-table-scroll">
