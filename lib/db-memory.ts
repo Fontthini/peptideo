@@ -305,7 +305,8 @@ export function mem_adicionarObs(cadastroId: string, obs: string): Cadastro | nu
 export function mem_editarCadastro(id: string, data: Partial<Pick<Cadastro, 'nome' | 'sobrenome' | 'email' | 'whatsapp' | 'endereco' | 'crm' | 'onde_conheceu' | 'cidade' | 'estado' | 'especialidade' | 'cpf' | 'produtos_interesse'>>): Cadastro | null {
   const c = getStore().find(c => c.id === id);
   if (!c) return null;
-  Object.assign(c, data);
+  const campos = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
+  Object.assign(c, campos);
   c.updated_at = new Date().toISOString();
   salvarCadastros(); persist(sb()?.sbSaveCadastro(c));
   return c;

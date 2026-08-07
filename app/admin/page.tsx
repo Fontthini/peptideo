@@ -229,6 +229,34 @@ export default function AdminPage() {
   };
   const [filtroIndicacao, setFiltroIndicacao] = useState('todos');
   const [filtroPedido, setFiltroPedido] = useState('todos');
+  const [novoPedidoAberto, setNovoPedidoAberto] = useState(false);
+  const [novoPedidoMedicoId, setNovoPedidoMedicoId] = useState('');
+  const [buscaMedicoPedido, setBuscaMedicoPedido] = useState('');
+  const [novoPedidoItens, setNovoPedidoItens] = useState<{ nome: string; preco: string; quantidade: string }[]>([{ nome: '', preco: '', quantidade: '1' }]);
+  const [novoPedidoStatus, setNovoPedidoStatus] = useState('em_atendimento');
+  const [salvandoPedido, setSalvandoPedido] = useState(false);
+
+  const fecharNovoPedido = () => {
+    setNovoPedidoAberto(false);
+    setNovoPedidoMedicoId(''); setBuscaMedicoPedido('');
+    setNovoPedidoItens([{ nome: '', preco: '', quantidade: '1' }]);
+    setNovoPedidoStatus('em_atendimento');
+  };
+
+  const criarPedidoManual = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novoPedidoMedicoId) { showMsg('R Selecione o médico'); return; }
+    const itensValidos = novoPedidoItens.filter(it => it.nome.trim());
+    if (itensValidos.length === 0) { showMsg('R Adicione ao menos um produto'); return; }
+    setSalvandoPedido(true);
+    const r = await fetch('/api/admin/pedidos', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify({ cadastro_id: novoPedidoMedicoId, itens: itensValidos, status: novoPedidoStatus }),
+    });
+    setSalvandoPedido(false);
+    if (r.ok) { showMsg('OK: Pedido criado!'); fecharNovoPedido(); carregarPedidos(); }
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao criar pedido')); }
+  };
   const [verLeadsKanban, setVerLeadsKanban] = useState(true);
   const [verIndicacoesKanban, setVerIndicacoesKanban] = useState(true);
   const [verIndicacoesMedicasKanban, setVerIndicacoesMedicasKanban] = useState(true);
@@ -269,6 +297,17 @@ export default function AdminPage() {
     });
     if (!r.ok) { showMsg('R Erro ao salvar etiquetas'); carregarCadastros(); }
   };
+
+  const atualizarProdutosInteresseLead = async (id: string, produtos_interesse: string[]) => {
+    setCadastros(prev => prev.map(c => c.id === id ? { ...c, produtos_interesse } : c));
+    const r = await fetch('/api/admin/cadastros/produtos-interesse', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify({ id, produtos_interesse }),
+    });
+    if (!r.ok) { showMsg('R Erro ao salvar produtos de interesse'); carregarCadastros(); }
+  };
+  const [editandoProdutoCardId, setEditandoProdutoCardId] = useState<string | null>(null);
+  const [novoProdutoCardInput, setNovoProdutoCardInput] = useState('');
 
   const [perdaPromptId, setPerdaPromptId] = useState<string | null>(null);
   const [motivoPerdaInput, setMotivoPerdaInput] = useState('');
@@ -346,7 +385,7 @@ export default function AdminPage() {
       const flagSalva = localStorage.getItem(ADMIN_SUPERADMIN_LOCAL);
       setAdminNome(localStorage.getItem(ADMIN_NOME_LOCAL) || 'Superadmin');
       setIsSuperadmin(flagSalva === null ? true : flagSalva === '1');
-      carregarCadastros(k); carregarConfig(); carregarIndicacoes(); carregarEquipe();
+      carregarCadastros(k); carregarConfig(); carregarIndicacoes(); carregarEquipe(); carregarProdutos();
     }
   }, []);
 
@@ -553,11 +592,12 @@ export default function AdminPage() {
     if (a === 'blog') { carregarArtigos(); carregarCategoriasBlog(); carregarBannersBlog(); }
     if (a === 'equipe') carregarEquipe();
     if (a === 'indicacoes' || a === 'indicacoes-medicas') carregarIndicacoes();
-    if (a === 'pedidos') carregarPedidos();
+    if (a === 'pedidos') { carregarPedidos(); if (produtos.length === 0) carregarProdutos(); if (cadastros.length === 0) carregarCadastros(); }
     if (a === 'dashboard') { carregarCadastros(); carregarEquipe(); carregarPedidos(); carregarIndicacoes(); if (produtos.length === 0) carregarProdutos(); }
     if (a === 'leads') {
       if (indicacoes.length === 0) carregarIndicacoes();
       if (equipe.length === 0) carregarEquipe();
+      if (produtos.length === 0) carregarProdutos();
     }
     if (a === 'clientes') { carregarPedidos(); if (equipe.length === 0) carregarEquipe(); }
     if (a === 'logs') carregarLogs();
@@ -1136,6 +1176,10 @@ export default function AdminPage() {
               </div>
 
               {verLeadsKanban ? (
+                <>
+                <datalist id="produtos-catalogo-kanban">
+                  {produtos.map(p => <option key={p.id} value={p.nome} />)}
+                </datalist>
                 <KanbanBoard>
                   {FUNIL_ETAPAS.map(etapa => {
                     const itens = filtrados.filter(c => (c.funil_status || 'novo') === etapa);
@@ -1145,13 +1189,33 @@ export default function AdminPage() {
                           <KanbanCard key={c.id} onClick={() => { setEditandoLead(c); setNovoProdutoInteresseInput(''); }}>
                             <div style={{ fontWeight: 700, fontSize: 13, color: '#111827' }}>{c.nome} {c.sobrenome}</div>
                             <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none' }}>{c.whatsapp}</a>
-                            {(c.produtos_interesse || []).length > 0 && (
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 5 }}>
-                                {(c.produtos_interesse || []).map(p => (
-                                  <span key={p} style={{ fontSize: 9.5, fontWeight: 700, background: '#ecfeff', color: '#0891b2', padding: '1px 6px', borderRadius: 10 }}>{p}</span>
-                                ))}
-                              </div>
-                            )}
+                            <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 5, alignItems: 'center' }}>
+                              {(c.produtos_interesse || []).map(p => (
+                                <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 700, background: '#ecfeff', color: '#0891b2', padding: '1px 6px', borderRadius: 10 }}>
+                                  {p}
+                                  <button onClick={() => atualizarProdutosInteresseLead(c.id, (c.produtos_interesse || []).filter(x => x !== p))}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0891b2', fontSize: 11, lineHeight: 1, padding: 0, fontWeight: 900 }}>×</button>
+                                </span>
+                              ))}
+                              {editandoProdutoCardId === c.id ? (
+                                <input autoFocus value={novoProdutoCardInput} onChange={e => setNovoProdutoCardInput(e.target.value)}
+                                  list="produtos-catalogo-kanban"
+                                  onBlur={() => { setEditandoProdutoCardId(null); setNovoProdutoCardInput(''); }}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                      const v = novoProdutoCardInput.trim();
+                                      if (v && !(c.produtos_interesse || []).includes(v)) atualizarProdutosInteresseLead(c.id, [...(c.produtos_interesse || []), v]);
+                                      setNovoProdutoCardInput(''); setEditandoProdutoCardId(null);
+                                    } else if (e.key === 'Escape') { setNovoProdutoCardInput(''); setEditandoProdutoCardId(null); }
+                                  }}
+                                  placeholder="produto..." style={{ width: 70, border: '1px solid #d1d5db', borderRadius: 10, padding: '1px 6px', fontSize: 9.5, fontFamily: 'inherit' }} />
+                              ) : (
+                                <button onClick={() => setEditandoProdutoCardId(c.id)}
+                                  style={{ background: '#f3f4f6', color: '#6b7280', border: '1px dashed #d1d5db', padding: '1px 6px', borderRadius: 10, fontSize: 9.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                                  + produto
+                                </button>
+                              )}
+                            </div>
                             {(c.tags || []).length > 0 && (
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
                                 {(c.tags || []).map(t => {
@@ -1188,6 +1252,7 @@ export default function AdminPage() {
                     );
                   })}
                 </KanbanBoard>
+                </>
               ) : (
               <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
                 {loadingLeads ? (
@@ -2976,9 +3041,15 @@ export default function AdminPage() {
 
             return (
             <div>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>
-                Pedidos <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({pedidos.length})</span>
-              </h2>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>
+                  Pedidos <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({pedidos.length})</span>
+                </h2>
+                <button onClick={() => setNovoPedidoAberto(true)}
+                  style={{ background: '#111827', color: '#fff', border: 'none', padding: '9px 16px', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
+                  + Novo Pedido
+                </button>
+              </div>
               <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>
                 Todos os pedidos feitos na loja pelos médicos aprovados. Você pode alterar o status ou excluir pedidos de teste.
               </p>
@@ -3068,6 +3139,109 @@ export default function AdminPage() {
                       })}
                     </tbody>
                   </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal: novo pedido */}
+              {novoPedidoAberto && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 700, overflowY: 'auto', padding: '24px 16px' }}>
+                  <div onClick={fecharNovoPedido} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
+                  <div style={{ position: 'relative', maxWidth: 520, margin: '0 auto', background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
+                    <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontWeight: 800, fontSize: 17, color: '#111827' }}>Novo Pedido</div>
+                      <button onClick={fecharNovoPedido} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#6b7280' }}>×</button>
+                    </div>
+                    <form onSubmit={criarPedidoManual} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      <div>
+                        <label style={labelStyle}>Médico *</label>
+                        {novoPedidoMedicoId ? (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>
+                              {cadastros.find(c => c.id === novoPedidoMedicoId)?.nome} {cadastros.find(c => c.id === novoPedidoMedicoId)?.sobrenome}
+                            </span>
+                            <button type="button" onClick={() => setNovoPedidoMedicoId('')} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Trocar</button>
+                          </div>
+                        ) : (
+                          <>
+                            <input value={buscaMedicoPedido} onChange={e => setBuscaMedicoPedido(e.target.value)}
+                              placeholder="Buscar médico aprovado por nome..." style={inputStyle} />
+                            {buscaMedicoPedido.trim().length >= 2 && (
+                              <div style={{ marginTop: 6, border: '1px solid #e5e7eb', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
+                                {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoPedido.trim().toLowerCase())).slice(0, 8).map(c => (
+                                  <div key={c.id} onClick={() => { setNovoPedidoMedicoId(c.id); setBuscaMedicoPedido(''); }}
+                                    style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #f3f4f6' }}>
+                                    <span style={{ fontWeight: 700, color: '#111827' }}>{c.nome} {c.sobrenome}</span>
+                                    {c.crm && <span style={{ color: '#6b7280' }}> · {c.crm}</span>}
+                                  </div>
+                                ))}
+                                {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoPedido.trim().toLowerCase())).length === 0 && (
+                                  <div style={{ padding: '9px 12px', fontSize: 12, color: '#6b7280' }}>Nenhum médico aprovado encontrado.</div>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+
+                      <div>
+                        <label style={labelStyle}>Produtos *</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {novoPedidoItens.map((it, idx) => (
+                            <div key={idx} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                              <select value={it.nome} onChange={e => {
+                                  const prod = produtos.find(p => p.nome === e.target.value);
+                                  setNovoPedidoItens(prev => prev.map((x, i) => i === idx ? { ...x, nome: e.target.value, preco: prod ? String(prod.preco) : x.preco } : x));
+                                }}
+                                style={{ ...inputStyle, flex: 2, cursor: 'pointer' }}>
+                                <option value="">Selecione o produto...</option>
+                                {produtos.map(p => <option key={p.id} value={p.nome}>{p.nome}</option>)}
+                              </select>
+                              <input type="number" min="0" step="0.01" value={it.preco} placeholder="Preço"
+                                onChange={e => setNovoPedidoItens(prev => prev.map((x, i) => i === idx ? { ...x, preco: e.target.value } : x))}
+                                style={{ ...inputStyle, flex: 1 }} />
+                              <input type="number" min="1" value={it.quantidade} placeholder="Qtd"
+                                onChange={e => setNovoPedidoItens(prev => prev.map((x, i) => i === idx ? { ...x, quantidade: e.target.value } : x))}
+                                style={{ ...inputStyle, width: 60 }} />
+                              {novoPedidoItens.length > 1 && (
+                                <button type="button" onClick={() => setNovoPedidoItens(prev => prev.filter((_, i) => i !== idx))}
+                                  style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 18, padding: '0 4px' }}>×</button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <button type="button" onClick={() => setNovoPedidoItens(prev => [...prev, { nome: '', preco: '', quantidade: '1' }])}
+                          style={{ marginTop: 8, background: '#f9fafb', color: '#374151', border: '1px dashed #d1d5db', padding: '7px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>
+                          + Adicionar outro produto
+                        </button>
+                      </div>
+
+                      <div>
+                        <label style={labelStyle}>Status</label>
+                        <select value={novoPedidoStatus} onChange={e => setNovoPedidoStatus(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                          <option value="em_atendimento">Em Atendimento</option>
+                          <option value="negociacao">Negociação</option>
+                          <option value="pago">Pago (lança entrada no Financeiro na hora)</option>
+                          <option value="cancelado">Cancelado</option>
+                        </select>
+                      </div>
+
+                      <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
+                        <span style={{ color: '#374151' }}>Total</span>
+                        <span style={{ color: '#16a34a' }}>
+                          R$ {novoPedidoItens.reduce((s, it) => s + (parseFloat(it.preco) || 0) * (parseInt(it.quantidade, 10) || 1), 0).toFixed(2)}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        <button type="button" onClick={fecharNovoPedido} style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                          Cancelar
+                        </button>
+                        <button type="submit" disabled={salvandoPedido} style={{ flex: 1, background: '#111827', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoPedido ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoPedido ? 0.6 : 1 }}>
+                          {salvandoPedido ? 'Salvando...' : 'Criar Pedido'}
+                        </button>
+                      </div>
+                    </form>
                   </div>
                 </div>
               )}
