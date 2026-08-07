@@ -44,9 +44,9 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   await reloadFromSupabase();
-  const { id, nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu } = await req.json();
+  const { id, nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu, cidade, estado, especialidade, cpf, produtos_interesse } = await req.json();
   if (!id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
-  const c = mem_editarCadastro(id, { nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu });
+  const c = mem_editarCadastro(id, { nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu, cidade, estado, especialidade, cpf, produtos_interesse });
   if (!c) return NextResponse.json({ error: 'Cadastro não encontrado' }, { status: 404 });
   mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Editou cadastro', `${c.nome} ${c.sobrenome || ''}`.trim());
   return NextResponse.json(c);

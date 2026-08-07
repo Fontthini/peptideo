@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminKeyValid, isSuperadminKey, adminAtorFromKey } from '@/lib/admin-auth';
-import { mem_listarPedidos, mem_atualizarPedido, mem_deletarPedido, mem_registrarLog, mem_criarDespesa } from '@/lib/db-memory';
+import { mem_listarPedidos, mem_atualizarPedido, mem_deletarPedido, mem_registrarLog, mem_criarDespesa, mem_buscarId, mem_atualizarFunil } from '@/lib/db-memory';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
 
 function checkAdmin(req: NextRequest) {
@@ -35,6 +35,13 @@ export async function PATCH(req: NextRequest) {
       valor: p.preco, data: new Date().toISOString().slice(0, 10),
     });
     mem_registrarLog(ator, 'Lançou entrada automática (pedido pago)', `${d.categoria} — ${d.descricao} — R$ ${d.valor.toFixed(2)}`);
+
+    // Avanca o lead no funil de vendas para "cliente" quando a compra e confirmada.
+    const cadastro = mem_buscarId(p.cadastro_id);
+    if (cadastro && cadastro.funil_status !== 'cliente') {
+      mem_atualizarFunil(p.cadastro_id, 'cliente');
+      mem_registrarLog(ator, 'Lead avançou automaticamente no funil', `${p.cadastro_nome} → cliente`);
+    }
   }
 
   return NextResponse.json(p);

@@ -86,6 +86,9 @@ export async function sbSaveCadastro(c: Cadastro) {
     created_at: c.created_at,
     last_seen_loja: c.last_seen_loja || null, last_seen_blog: c.last_seen_blog || null,
     tags: c.tags || [],
+    cidade: c.cidade || null, estado: c.estado || null, especialidade: c.especialidade || null,
+    cpf: c.cpf || null, produtos_interesse: c.produtos_interesse || [],
+    funil_status: c.funil_status || 'novo', motivo_perda: c.motivo_perda || null,
   });
   if (error) throw new Error(`sbSaveCadastro: ${error.message} (${error.code})`);
 }

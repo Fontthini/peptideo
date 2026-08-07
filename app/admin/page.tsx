@@ -12,6 +12,9 @@ type Cadastro = {
   updated_at?: string; vendedor_id?: string | null; solicitacao?: string | null;
   last_seen_loja?: string | null; last_seen_blog?: string | null;
   tags?: string[];
+  cidade?: string | null; estado?: string | null; especialidade?: string | null; cpf?: string | null;
+  produtos_interesse?: string[];
+  funil_status?: string; motivo_perda?: string | null;
 };
 type Produto = {
   id: string; nome: string; dose: string; preco: number;
@@ -35,7 +38,7 @@ type Material = { nome: string; url: string };
 type Artigo = { id: string; titulo: string; conteudo: string; imagem?: string; video?: string; categoria?: string; materiais: Material[]; publicado: boolean; created_at: string; updated_at: string; };
 type Membro = { id: string; nome: string; email: string; cargo: string; ativo: boolean; created_at: string; senha?: string; token_acesso?: string; last_seen?: string | null; };
 type PedidoItem = { nome: string; preco: number; quantidade: number };
-type Pedido = { id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string; produto_nome: string; preco: number; itens?: PedidoItem[]; vendedor_id?: string; status: string; obs?: string; created_at: string; };
+type Pedido = { id: string; cadastro_id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string; produto_nome: string; preco: number; itens?: PedidoItem[]; vendedor_id?: string; status: string; obs?: string; created_at: string; };
 type Indicacao = { id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string; status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string; };
 type Despesa = { id: string; tipo: 'entrada' | 'saida'; categoria: string; descricao: string; valor: number; data: string; comprovante_url?: string; created_at: string; updated_at?: string; };
 
@@ -78,6 +81,17 @@ const labelStyle: React.CSSProperties = {
   color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px',
 };
 
+const FUNIL_ETAPAS = ['novo', 'primeiro_contato', 'aguardando_resposta', 'interessado', 'link_pix_enviado', 'cliente', 'perdido'] as const;
+const FUNIL_LABEL: Record<string, string> = {
+  novo: 'Novo Lead', primeiro_contato: 'Primeiro Contato', aguardando_resposta: 'Aguardando Resposta',
+  interessado: 'Interessado', link_pix_enviado: 'Link/Pix Enviado', cliente: 'Cliente', perdido: 'Perdido',
+};
+const FUNIL_COLOR: Record<string, string> = {
+  novo: '#64748b', primeiro_contato: '#4f46e5', aguardando_resposta: '#ca8a04',
+  interessado: '#0891b2', link_pix_enviado: '#db2777', cliente: '#16a34a', perdido: '#dc2626',
+};
+const MOTIVOS_PERDA = ['Sem dinheiro', 'Adiou para depois', 'Escolheu concorrente', 'Não respondeu', 'Sem tempo', 'Desistiu', 'Outro'];
+
 
 export default function AdminPage() {
   const [email, setEmail] = useState('');
@@ -85,7 +99,7 @@ export default function AdminPage() {
   const [logado, setLogado] = useState(false);
   const [adminNome, setAdminNome] = useState('');
   const [isSuperadmin, setIsSuperadmin] = useState(false);
-  const [aba, setAba] = useState<'leads' | 'produtos' | 'banners' | 'blog' | 'despesas' | 'equipe' | 'indicacoes' | 'indicacoes-medicas' | 'pedidos' | 'config' | 'dashboard' | 'logs' | 'mentoria' | 'carrinho' | 'rastreio'>('leads');
+  const [aba, setAba] = useState<'leads' | 'clientes' | 'produtos' | 'banners' | 'blog' | 'despesas' | 'equipe' | 'indicacoes' | 'indicacoes-medicas' | 'pedidos' | 'config' | 'dashboard' | 'logs' | 'mentoria' | 'carrinho' | 'rastreio'>('leads');
   const [msg, setMsg] = useState('');
   const [logs, setLogs] = useState<AdminLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -171,6 +185,7 @@ export default function AdminPage() {
   };
   const [editandoLead, setEditandoLead] = useState<Cadastro | null>(null);
   const [salvandoLead, setSalvandoLead] = useState(false);
+  const [novoProdutoInteresseInput, setNovoProdutoInteresseInput] = useState('');
   const [reenviandoId, setReenviandoId] = useState<string | null>(null);
   const [editandoTagsId, setEditandoTagsId] = useState<string | null>(null);
   const [novaTagInput, setNovaTagInput] = useState('');
@@ -182,6 +197,28 @@ export default function AdminPage() {
       body: JSON.stringify({ id, tags }),
     });
     if (!r.ok) { showMsg('R Erro ao salvar etiquetas'); carregarCadastros(); }
+  };
+
+  const [perdaPromptId, setPerdaPromptId] = useState<string | null>(null);
+  const [motivoPerdaInput, setMotivoPerdaInput] = useState('');
+
+  const atualizarFunilLead = async (id: string, funil_status: string, motivo_perda?: string | null) => {
+    setCadastros(prev => prev.map(c => c.id === id ? { ...c, funil_status, motivo_perda: funil_status === 'perdido' ? (motivo_perda || null) : null } : c));
+    const r = await fetch('/api/admin/cadastros/funil', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify({ id, funil_status, motivo_perda }),
+    });
+    if (!r.ok) { showMsg('R Erro ao mover no funil'); carregarCadastros(); }
+  };
+
+  const transferirConsultor = async (id: string, vendedor_id: string) => {
+    setCadastros(prev => prev.map(c => c.id === id ? { ...c, vendedor_id } : c));
+    const r = await fetch('/api/admin/cadastros/vendedor', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify({ id, vendedor_id }),
+    });
+    if (r.ok) showMsg('OK: Lead transferido!');
+    else { showMsg('R Erro ao transferir'); carregarCadastros(); }
   };
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -238,7 +275,7 @@ export default function AdminPage() {
       const flagSalva = localStorage.getItem(ADMIN_SUPERADMIN_LOCAL);
       setAdminNome(localStorage.getItem(ADMIN_NOME_LOCAL) || 'Superadmin');
       setIsSuperadmin(flagSalva === null ? true : flagSalva === '1');
-      carregarCadastros(k); carregarConfig(); carregarIndicacoes();
+      carregarCadastros(k); carregarConfig(); carregarIndicacoes(); carregarEquipe();
     }
   }, []);
 
@@ -264,6 +301,8 @@ export default function AdminPage() {
       setLogado(true);
       carregarCadastros(d.adminKey);
       carregarConfig();
+      carregarIndicacoes();
+      carregarEquipe();
     } else {
       alert('E-mail ou senha incorretos');
     }
@@ -409,7 +448,11 @@ export default function AdminPage() {
     if (a === 'indicacoes' || a === 'indicacoes-medicas') carregarIndicacoes();
     if (a === 'pedidos') carregarPedidos();
     if (a === 'dashboard') { carregarCadastros(); carregarEquipe(); carregarPedidos(); carregarIndicacoes(); if (produtos.length === 0) carregarProdutos(); }
-    if (a === 'leads' && indicacoes.length === 0) carregarIndicacoes();
+    if (a === 'leads') {
+      if (indicacoes.length === 0) carregarIndicacoes();
+      if (equipe.length === 0) carregarEquipe();
+    }
+    if (a === 'clientes') { carregarPedidos(); if (equipe.length === 0) carregarEquipe(); }
     if (a === 'logs') carregarLogs();
     if (a === 'mentoria') carregarMentoriaCliques();
     if (a === 'despesas') { carregarDespesas(); carregarCategoriasFinanceiras(); }
@@ -472,10 +515,10 @@ export default function AdminPage() {
   const salvarEdicaoLead = async () => {
     if (!editandoLead) return;
     setSalvandoLead(true);
-    const { id, nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu } = editandoLead;
+    const { id, nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu, cidade, estado, especialidade, cpf, produtos_interesse } = editandoLead;
     const r = await fetch('/api/admin/cadastros', {
       method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
-      body: JSON.stringify({ id, nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu }),
+      body: JSON.stringify({ id, nome, sobrenome, email, whatsapp, endereco, crm, onde_conheceu, cidade, estado, especialidade, cpf, produtos_interesse }),
     });
     setSalvandoLead(false);
     if (r.ok) { showMsg('OK: Cadastro atualizado!'); setEditandoLead(null); carregarCadastros(); }
@@ -788,7 +831,7 @@ export default function AdminPage() {
   const totalPacientes = indicacoes.filter(i => i.tipo !== 'medico').length;
 
   const NAV_COLOR: Record<string, string> = {
-    dashboard: '#4f46e5', leads: '#16a34a', produtos: '#7c3aed', banners: '#f59e0b',
+    dashboard: '#4f46e5', leads: '#16a34a', clientes: '#0d9488', produtos: '#7c3aed', banners: '#f59e0b',
     blog: '#db2777', equipe: '#2563eb', indicacoes: '#0d9488', 'indicacoes-medicas': '#0891b2', pedidos: '#ea580c', config: '#64748b',
     logs: '#57534e', mentoria: '#0d9488', despesas: '#ca8a04', carrinho: '#be123c', rastreio: '#0891b2',
   };
@@ -874,6 +917,7 @@ export default function AdminPage() {
           <div className="admin-sidebar-title" style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', letterSpacing: 1, marginBottom: 10, paddingLeft: 6, textTransform: 'uppercase' }}>Menu</div>
           {navItem('dashboard', '#', 'Dashboard')}
           {navItem('leads', '-', 'Leads')}
+          {navItem('clientes', 'C', 'Clientes')}
           {navItem('produtos', '+', 'Produtos')}
           {navItem('banners', '*', 'Banners')}
           {navItem('blog', '~', 'Blog')}
@@ -992,7 +1036,7 @@ export default function AdminPage() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-                          {['Nome','Sobrenome','E-mail','WhatsApp','CRM','Onde Conheceu','Etiquetas','Endereço','Status','Data','Ações'].map(h => (
+                          {['Nome','Sobrenome','E-mail','WhatsApp','CRM','Onde Conheceu','Etiquetas','Endereço','Status','Funil','Consultor','Data','Ações'].map(h => (
                             <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', position: 'sticky', top: 0, background: '#f9fafb', zIndex: 1 }}>{h}</th>
                           ))}
                         </tr>
@@ -1060,6 +1104,41 @@ export default function AdminPage() {
                                 color: c.status === 'aprovado' ? '#15803d' : c.status === 'pendente' ? '#a16207' : '#dc2626',
                               }}>{c.status}</span>
                             </td>
+                            <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
+                              {perdaPromptId === c.id ? (
+                                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                  <select autoFocus value={motivoPerdaInput} onChange={e => setMotivoPerdaInput(e.target.value)}
+                                    style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '3px 6px', fontSize: 11, fontFamily: 'inherit' }}>
+                                    <option value="">Motivo...</option>
+                                    {MOTIVOS_PERDA.map(m => <option key={m} value={m}>{m}</option>)}
+                                  </select>
+                                  <button onClick={() => { atualizarFunilLead(c.id, 'perdido', motivoPerdaInput); setPerdaPromptId(null); setMotivoPerdaInput(''); }}
+                                    style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
+                                  <button onClick={() => { setPerdaPromptId(null); setMotivoPerdaInput(''); }}
+                                    style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 13 }}>×</button>
+                                </div>
+                              ) : (
+                                <select value={c.funil_status || 'novo'}
+                                  onChange={e => {
+                                    const v = e.target.value;
+                                    if (v === 'perdido') { setPerdaPromptId(c.id); setMotivoPerdaInput(''); }
+                                    else atualizarFunilLead(c.id, v);
+                                  }}
+                                  style={{ background: `${FUNIL_COLOR[c.funil_status || 'novo']}1a`, color: FUNIL_COLOR[c.funil_status || 'novo'], border: `1px solid ${FUNIL_COLOR[c.funil_status || 'novo']}55`, borderRadius: 6, padding: '4px 8px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}
+                                  title={c.funil_status === 'perdido' && c.motivo_perda ? `Motivo: ${c.motivo_perda}` : undefined}>
+                                  {FUNIL_ETAPAS.map(e => <option key={e} value={e}>{FUNIL_LABEL[e]}</option>)}
+                                </select>
+                              )}
+                            </td>
+                            <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
+                              <select value={c.vendedor_id || ''} onChange={e => e.target.value && transferirConsultor(c.id, e.target.value)}
+                                style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 8px', fontSize: 11.5, fontFamily: 'inherit', color: '#374151', cursor: 'pointer', maxWidth: 130 }}>
+                                <option value="">Sem consultor</option>
+                                {equipe.filter(m => m.cargo === 'vendedor' && m.ativo).map(m => (
+                                  <option key={m.id} value={m.id}>{m.nome}</option>
+                                ))}
+                              </select>
+                            </td>
                             <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
                               {new Date(c.created_at).toLocaleDateString('pt-BR')}
                             </td>
@@ -1092,7 +1171,7 @@ export default function AdminPage() {
                                     </button>
                                   </>
                                 )}
-                                <button onClick={() => setEditandoLead(c)}
+                                <button onClick={() => { setEditandoLead(c); setNovoProdutoInteresseInput(''); }}
                                   style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}
                                   title="Editar dados do cadastro">
                                   Editar
@@ -1162,6 +1241,54 @@ export default function AdminPage() {
                       <div>
                         <label style={labelStyle}>Onde Conheceu</label>
                         <input value={editandoLead.onde_conheceu || ''} onChange={e => setEditandoLead(l => l && { ...l, onde_conheceu: e.target.value })} style={inputStyle} />
+                      </div>
+                      <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                        <div>
+                          <label style={labelStyle}>Cidade</label>
+                          <input value={editandoLead.cidade || ''} onChange={e => setEditandoLead(l => l && { ...l, cidade: e.target.value })} style={inputStyle} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Estado (UF)</label>
+                          <input value={editandoLead.estado || ''} onChange={e => setEditandoLead(l => l && { ...l, estado: e.target.value.toUpperCase().slice(0, 2) })} maxLength={2} style={inputStyle} />
+                        </div>
+                      </div>
+                      <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                        <div>
+                          <label style={labelStyle}>Especialidade</label>
+                          <input value={editandoLead.especialidade || ''} onChange={e => setEditandoLead(l => l && { ...l, especialidade: e.target.value })} style={inputStyle} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>CPF</label>
+                          <input value={editandoLead.cpf || ''} onChange={e => setEditandoLead(l => l && { ...l, cpf: e.target.value })} style={inputStyle} />
+                        </div>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Produtos de Interesse</label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                          {(editandoLead.produtos_interesse || []).map(p => (
+                            <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#ecfeff', color: '#0891b2', border: '1px solid #a5f3fc', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+                              {p}
+                              <button type="button" onClick={() => setEditandoLead(l => l && { ...l, produtos_interesse: (l.produtos_interesse || []).filter(x => x !== p) })}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0891b2', fontSize: 13, lineHeight: 1, padding: 0, fontWeight: 900 }}>×</button>
+                            </span>
+                          ))}
+                          <input value={novoProdutoInteresseInput} onChange={e => setNovoProdutoInteresseInput(e.target.value)}
+                            list="produtos-catalogo"
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const v = novoProdutoInteresseInput.trim();
+                                if (v && !(editandoLead.produtos_interesse || []).includes(v)) {
+                                  setEditandoLead(l => l && { ...l, produtos_interesse: [...(l.produtos_interesse || []), v] });
+                                }
+                                setNovoProdutoInteresseInput('');
+                              }
+                            }}
+                            placeholder="+ produto..." style={{ width: 130, border: '1px solid #d1d5db', borderRadius: 20, padding: '4px 10px', fontSize: 12, fontFamily: 'inherit' }} />
+                          <datalist id="produtos-catalogo">
+                            {produtos.map(p => <option key={p.id} value={p.nome} />)}
+                          </datalist>
+                        </div>
                       </div>
                     </div>
                     <div style={{ padding: '16px 24px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
@@ -1330,6 +1457,73 @@ export default function AdminPage() {
               )}
             </>
           )}
+
+          {/* ======== ABA CLIENTES ======== */}
+          {aba === 'clientes' && (() => {
+            const clientes = cadastros.filter(c => c.funil_status === 'cliente');
+            const q = buscaLead.trim().toLowerCase();
+            const clientesFiltrados = !q ? clientes : clientes.filter(c =>
+              `${c.nome} ${c.sobrenome} ${c.email} ${c.whatsapp}`.toLowerCase().includes(q));
+            return (
+              <>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 20, marginTop: 0 }}>
+                  Clientes <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({clientes.length})</span>
+                </h2>
+                <input value={buscaLead} onChange={e => setBuscaLead(e.target.value)}
+                  placeholder="Buscar cliente por nome, e-mail ou WhatsApp..."
+                  style={{ ...inputStyle, marginBottom: 16, maxWidth: 420 }} />
+                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                  {clientesFiltrados.length === 0 ? (
+                    <div style={{ padding: 60, textAlign: 'center', color: '#6b7280' }}>
+                      {clientes.length === 0 ? 'Nenhum cliente ainda. Leads viram cliente automaticamente quando um pedido é marcado como pago.' : 'Nenhum cliente encontrado para essa busca.'}
+                    </div>
+                  ) : (
+                    <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 300px)' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                            {['Nome', 'WhatsApp', 'E-mail', 'Cidade/UF', 'Total Gasto', 'Produtos Comprados', 'Último Pedido', 'Consultor'].map(h => (
+                              <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {clientesFiltrados.map((c, i) => {
+                            const pedidosCliente = pedidos.filter(p => p.cadastro_id === c.id);
+                            const pedidosPagos = pedidosCliente.filter(p => p.status === 'pago');
+                            const totalGasto = pedidosPagos.reduce((s, p) => s + p.preco, 0);
+                            const produtosComprados = Array.from(new Set(pedidosPagos.map(p => p.produto_nome)));
+                            const ultimoPedido = pedidosCliente.length > 0
+                              ? [...pedidosCliente].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+                              : null;
+                            const consultor = equipe.find(m => m.id === c.vendedor_id)?.nome;
+                            return (
+                              <tr key={c.id} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                                <td style={{ padding: '11px 14px', color: '#111827', fontWeight: 600, whiteSpace: 'nowrap' }}>{c.nome} {c.sobrenome}</td>
+                                <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                  <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#16a34a', textDecoration: 'none' }}>{c.whatsapp}</a>
+                                </td>
+                                <td style={{ padding: '11px 14px', color: '#6b7280' }}>{c.email}</td>
+                                <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap' }}>{c.cidade ? `${c.cidade}/${c.estado || ''}` : '-'}</td>
+                                <td style={{ padding: '11px 14px', color: '#16a34a', fontWeight: 800 }}>R$ {totalGasto.toFixed(2)}</td>
+                                <td style={{ padding: '11px 14px', color: '#374151', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={produtosComprados.join(', ')}>
+                                  {produtosComprados.length > 0 ? produtosComprados.join(', ') : '-'}
+                                </td>
+                                <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                                  {ultimoPedido ? new Date(ultimoPedido.created_at).toLocaleDateString('pt-BR') : '-'}
+                                </td>
+                                <td style={{ padding: '11px 14px', color: '#374151' }}>{consultor || <span style={{ color: '#9ca3af' }}>-</span>}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
 
           {/* ======== ABA PRODUTOS ======== */}
           {aba === 'produtos' && (

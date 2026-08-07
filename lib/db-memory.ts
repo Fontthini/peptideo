@@ -50,6 +50,13 @@ export type Cadastro = {
   last_seen_loja?: string | null;
   last_seen_blog?: string | null;
   tags?: string[];
+  cidade?: string | null;
+  estado?: string | null;
+  especialidade?: string | null;
+  cpf?: string | null;
+  produtos_interesse?: string[];
+  funil_status?: 'novo' | 'primeiro_contato' | 'aguardando_resposta' | 'interessado' | 'link_pix_enviado' | 'cliente' | 'perdido';
+  motivo_perda?: string | null;
 };
 
 export type ProdutoMemory = {
@@ -227,7 +234,7 @@ function salvarCadastros() {
 
 export function mem_criar(data: Omit<Cadastro, 'id' | 'status' | 'token' | 'created_at'>): Cadastro {
   const store = getStore();
-  const c: Cadastro = { ...data, id: randomUUID(), status: 'pendente', token: null, created_at: new Date().toISOString() };
+  const c: Cadastro = { ...data, id: randomUUID(), status: 'pendente', token: null, created_at: new Date().toISOString(), funil_status: 'novo' };
   store.push(c);
   salvarCadastros();
   persist(sb()?.sbSaveCadastro(c));
@@ -293,10 +300,20 @@ export function mem_adicionarObs(cadastroId: string, obs: string): Cadastro | nu
   return c;
 }
 
-export function mem_editarCadastro(id: string, data: Partial<Pick<Cadastro, 'nome' | 'sobrenome' | 'email' | 'whatsapp' | 'endereco' | 'crm' | 'onde_conheceu'>>): Cadastro | null {
+export function mem_editarCadastro(id: string, data: Partial<Pick<Cadastro, 'nome' | 'sobrenome' | 'email' | 'whatsapp' | 'endereco' | 'crm' | 'onde_conheceu' | 'cidade' | 'estado' | 'especialidade' | 'cpf' | 'produtos_interesse'>>): Cadastro | null {
   const c = getStore().find(c => c.id === id);
   if (!c) return null;
   Object.assign(c, data);
+  c.updated_at = new Date().toISOString();
+  salvarCadastros(); persist(sb()?.sbSaveCadastro(c));
+  return c;
+}
+
+export function mem_atualizarFunil(id: string, funilStatus: Cadastro['funil_status'], motivoPerda?: string | null): Cadastro | null {
+  const c = getStore().find(c => c.id === id);
+  if (!c) return null;
+  c.funil_status = funilStatus;
+  c.motivo_perda = funilStatus === 'perdido' ? (motivoPerda || null) : null;
   c.updated_at = new Date().toISOString();
   salvarCadastros(); persist(sb()?.sbSaveCadastro(c));
   return c;
