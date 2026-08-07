@@ -230,8 +230,8 @@ export default function AdminPage() {
   const [filtroIndicacao, setFiltroIndicacao] = useState('todos');
   const [filtroPedido, setFiltroPedido] = useState('todos');
   const [verLeadsKanban, setVerLeadsKanban] = useState(true);
-  const [verIndicacoesKanban, setVerIndicacoesKanban] = useState(false);
-  const [verIndicacoesMedicasKanban, setVerIndicacoesMedicasKanban] = useState(false);
+  const [verIndicacoesKanban, setVerIndicacoesKanban] = useState(true);
+  const [verIndicacoesMedicasKanban, setVerIndicacoesMedicasKanban] = useState(true);
 
   const [buscaRastreio, setBuscaRastreio] = useState('');
   const [rastreioSelecionado, setRastreioSelecionado] = useState<{ id: string; nome: string; whatsapp: string; tipo: 'medico' | 'paciente' } | null>(null);
@@ -473,6 +473,20 @@ export default function AdminPage() {
 
   const [comissaoPromptId, setComissaoPromptId] = useState<string | null>(null);
   const [comissaoInput, setComissaoInput] = useState('');
+  const [editandoIndicacao, setEditandoIndicacao] = useState<Indicacao | null>(null);
+  const [salvandoIndicacao, setSalvandoIndicacao] = useState(false);
+
+  const salvarEdicaoIndicacao = async () => {
+    if (!editandoIndicacao) return;
+    setSalvandoIndicacao(true);
+    const r = await fetch('/api/admin/indicacoes', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify(editandoIndicacao),
+    });
+    setSalvandoIndicacao(false);
+    if (r.ok) { showMsg('OK: Indicação atualizada!'); setEditandoIndicacao(null); carregarIndicacoes(); }
+    else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao salvar')); }
+  };
 
   const lancarComissao = async (id: string) => {
     const valor = parseFloat(comissaoInput.replace(',', '.'));
@@ -2601,6 +2615,9 @@ export default function AdminPage() {
                 const ranking = [...porMedico.entries()].sort((a, b) => b[1] - a[1]);
                 const maxIndic = Math.max(...ranking.map(([, n]) => n), 1);
 
+                const comComissao = indicacoesPacientes.filter(i => i.comissao_paga);
+                const totalComissoes = comComissao.reduce((s, i) => s + (i.comissao_valor || 0), 0);
+
                 return (
                   <>
                     {ranking.length > 0 && (
@@ -2616,6 +2633,23 @@ export default function AdminPage() {
                               <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
                                 <div style={{ background: '#7c3aed', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
                               </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {comComissao.length > 0 && (
+                      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24, marginBottom: 24 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Comissões Pagas</div>
+                          <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a' }}>R$ {totalComissoes.toFixed(2)}</div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                          {comComissao.map(i => (
+                            <div key={i.id} onClick={() => setEditandoIndicacao(i)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '8px 0', borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}>
+                              <span style={{ color: '#374151' }}>{i.medico_nome} <span style={{ color: '#9ca3af' }}>· indicou {i.nome} {i.sobrenome}</span></span>
+                              <span style={{ color: '#16a34a', fontWeight: 700 }}>R$ {(i.comissao_valor || 0).toFixed(2)}</span>
                             </div>
                           ))}
                         </div>
@@ -2638,22 +2672,24 @@ export default function AdminPage() {
                           return (
                             <KanbanColuna key={etapa} titulo={PIPELINE_STATUS_LABEL[etapa]} cor={cor} total={itens.length}>
                               {itens.map(i => (
-                                <KanbanCard key={i.id}>
+                                <KanbanCard key={i.id} onClick={() => setEditandoIndicacao(i)}>
                                   <div style={{ fontSize: 10.5, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
                                   <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
                                   {i.whatsapp && (
-                                    <a href={`https://wa.me/${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
+                                    <a href={`https://wa.me/${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
                                   )}
-                                  <select value={etapa} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                                    style={{ width: '100%', marginTop: 7, border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
-                                    <option value="em_atendimento">Em Atendimento</option>
-                                    <option value="negociacao">Negociação</option>
-                                    <option value="pago">Pago</option>
-                                    <option value="cancelado">Cancelado</option>
-                                  </select>
-                                  <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
-                                    mostrar={etapa === 'pago'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
-                                    input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
+                                  <div onClick={e => e.stopPropagation()}>
+                                    <select value={etapa} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
+                                      style={{ width: '100%', marginTop: 7, border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                      <option value="em_atendimento">Em Atendimento</option>
+                                      <option value="negociacao">Negociação</option>
+                                      <option value="pago">Pago</option>
+                                      <option value="cancelado">Cancelado</option>
+                                    </select>
+                                    <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
+                                      mostrar={etapa === 'pago'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
+                                      input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
+                                  </div>
                                 </KanbanCard>
                               ))}
                             </KanbanColuna>
@@ -2776,6 +2812,27 @@ export default function AdminPage() {
                   </div>
                 )}
 
+                {(() => {
+                  const comComissao = indicacoesMedicas.filter(i => i.comissao_paga);
+                  const totalComissoes = comComissao.reduce((s, i) => s + (i.comissao_valor || 0), 0);
+                  return comComissao.length > 0 && (
+                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24, marginBottom: 24 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Comissões Pagas</div>
+                        <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a' }}>R$ {totalComissoes.toFixed(2)}</div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                        {comComissao.map(i => (
+                          <div key={i.id} onClick={() => setEditandoIndicacao(i)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '8px 0', borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}>
+                            <span style={{ color: '#374151' }}>{i.medico_nome} <span style={{ color: '#9ca3af' }}>· indicou {i.nome} {i.sobrenome}</span></span>
+                            <span style={{ color: '#16a34a', fontWeight: 700 }}>R$ {(i.comissao_valor || 0).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {loadingIndicacoes ? (
                   <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
                 ) : filtradas.length === 0 ? (
@@ -2792,23 +2849,25 @@ export default function AdminPage() {
                       return (
                         <KanbanColuna key={etapa} titulo={INDICACAO_MEDICA_STATUS_LABEL[etapa]} cor={cor} total={itens.length}>
                           {itens.map(i => (
-                            <KanbanCard key={i.id}>
+                            <KanbanCard key={i.id} onClick={() => setEditandoIndicacao(i)}>
                               <div style={{ fontSize: 10.5, fontWeight: 700, color: '#0891b2', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
                               <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
                               {i.crm && <div style={{ fontSize: 11, color: '#6b7280' }}>CRM {i.crm}</div>}
                               {i.whatsapp && (
-                                <a href={`https://wa.me/${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
+                                <a href={`https://wa.me/${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
                               )}
-                              <select value={etapa} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                                style={{ width: '100%', marginTop: 7, border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
-                                <option value="novo">Novo</option>
-                                <option value="contatado">Contatado</option>
-                                <option value="convertido">Convertido</option>
-                                <option value="reprovado">Reprovado</option>
-                              </select>
-                              <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
-                                mostrar={etapa === 'convertido'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
-                                input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
+                              <div onClick={e => e.stopPropagation()}>
+                                <select value={etapa} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
+                                  style={{ width: '100%', marginTop: 7, border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                  <option value="novo">Novo</option>
+                                  <option value="contatado">Contatado</option>
+                                  <option value="convertido">Convertido</option>
+                                  <option value="reprovado">Reprovado</option>
+                                </select>
+                                <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
+                                  mostrar={etapa === 'convertido'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
+                                  input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
+                              </div>
                             </KanbanCard>
                           ))}
                         </KanbanColuna>
@@ -3705,6 +3764,107 @@ export default function AdminPage() {
                         </button>
                       </form>
                     </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Modal: detalhe/edição de indicação (médica ou paciente) */}
+          {editandoIndicacao && (() => {
+            const i = editandoIndicacao;
+            const ehMedico = i.tipo === 'medico';
+            const etapaSucesso = ehMedico ? 'convertido' : 'pago';
+            return (
+              <div style={{ position: 'fixed', inset: 0, zIndex: 700, overflowY: 'auto', padding: '24px 16px' }}>
+                <div onClick={() => setEditandoIndicacao(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
+                <div style={{ position: 'relative', maxWidth: 520, margin: '0 auto', background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
+                  <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 17, color: '#111827' }}>{i.nome} {i.sobrenome}</div>
+                      <div style={{ fontSize: 12, color: ehMedico ? '#0891b2' : '#7c3aed', fontWeight: 700, marginTop: 2 }}>Indicado por {i.medico_nome}</div>
+                    </div>
+                    <button onClick={() => setEditandoIndicacao(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#6b7280' }}>×</button>
+                  </div>
+
+                  <div style={{ padding: '14px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {i.whatsapp && (
+                      <a href={`https://wa.me/${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                        style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '7px 14px', borderRadius: 6, fontSize: 12.5, fontFamily: 'inherit', textDecoration: 'none' }}>
+                        WhatsApp
+                      </a>
+                    )}
+                    {isSuperadmin && (
+                      <button onClick={() => { excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`); setEditandoIndicacao(null); }}
+                        style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontFamily: 'inherit' }}>
+                        Excluir
+                      </button>
+                    )}
+                  </div>
+
+                  <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                      <div>
+                        <label style={labelStyle}>Nome</label>
+                        <input value={i.nome} onChange={e => setEditandoIndicacao(v => v && { ...v, nome: e.target.value })} style={inputStyle} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Sobrenome</label>
+                        <input value={i.sobrenome || ''} onChange={e => setEditandoIndicacao(v => v && { ...v, sobrenome: e.target.value })} style={inputStyle} />
+                      </div>
+                    </div>
+                    <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                      <div>
+                        <label style={labelStyle}>WhatsApp</label>
+                        <input value={i.whatsapp} onChange={e => setEditandoIndicacao(v => v && { ...v, whatsapp: e.target.value })} style={inputStyle} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>E-mail</label>
+                        <input type="email" value={i.email || ''} onChange={e => setEditandoIndicacao(v => v && { ...v, email: e.target.value })} style={inputStyle} />
+                      </div>
+                    </div>
+                    {ehMedico && (
+                      <div>
+                        <label style={labelStyle}>CRM</label>
+                        <input value={i.crm || ''} onChange={e => setEditandoIndicacao(v => v && { ...v, crm: e.target.value })} style={inputStyle} />
+                      </div>
+                    )}
+                    <div>
+                      <label style={labelStyle}>Endereço</label>
+                      <input value={i.endereco || ''} onChange={e => setEditandoIndicacao(v => v && { ...v, endereco: e.target.value })} style={inputStyle} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Status</label>
+                      <select value={i.status} onChange={e => setEditandoIndicacao(v => v && { ...v, status: e.target.value })}
+                        style={{ ...inputStyle, cursor: 'pointer' }}>
+                        {ehMedico ? (
+                          <>
+                            <option value="novo">Novo</option>
+                            <option value="contatado">Contatado</option>
+                            <option value="convertido">Convertido</option>
+                            <option value="reprovado">Reprovado</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="em_atendimento">Em Atendimento</option>
+                            <option value="negociacao">Negociação</option>
+                            <option value="pago">Pago</option>
+                            <option value="cancelado">Cancelado</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+                    <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
+                      mostrar={i.status === etapaSucesso} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
+                      input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
+                  </div>
+                  <div style={{ padding: '16px 24px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                    <button onClick={() => setEditandoIndicacao(null)} style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                      Cancelar
+                    </button>
+                    <button onClick={salvarEdicaoIndicacao} disabled={salvandoIndicacao} style={{ background: '#111827', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoIndicacao ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoIndicacao ? 0.6 : 1 }}>
+                      {salvandoIndicacao ? 'Salvando...' : 'Salvar'}
+                    </button>
                   </div>
                 </div>
               </div>
