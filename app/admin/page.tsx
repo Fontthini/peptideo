@@ -47,9 +47,9 @@ const PIPELINE_STATUS_LABEL: Record<string, string> = {
   em_atendimento: 'Em Atendimento', negociacao: 'Negociação', pago: 'Pago', cancelado: 'Cancelado',
 };
 const PIPELINE_STATUS_COLOR: Record<string, { bg: string; text: string }> = {
-  em_atendimento: { bg: '#eff6ff', text: '#1d4ed8' },
-  negociacao: { bg: '#fef9c3', text: '#a16207' },
-  pago: { bg: '#dcfce7', text: '#15803d' },
+  em_atendimento: { bg: '#f3f4f6', text: '#374151' },
+  negociacao: { bg: '#f3f4f6', text: '#111827' },
+  pago: { bg: '#f0fdf4', text: '#15803d' },
   cancelado: { bg: '#fef2f2', text: '#dc2626' },
 };
 // Status das indicações médico-para-médico (pipeline de recrutamento, diferente do de vendas).
@@ -57,8 +57,8 @@ const INDICACAO_MEDICA_STATUS_LABEL: Record<string, string> = {
   novo: 'Novo', contatado: 'Contatado', convertido: 'Convertido', reprovado: 'Reprovado',
 };
 const INDICACAO_MEDICA_STATUS_COLOR: Record<string, { bg: string; text: string }> = {
-  novo: { bg: '#eff6ff', text: '#1d4ed8' }, contatado: { bg: '#fef9c3', text: '#a16207' },
-  convertido: { bg: '#dcfce7', text: '#15803d' }, reprovado: { bg: '#fef2f2', text: '#dc2626' },
+  novo: { bg: '#f3f4f6', text: '#374151' }, contatado: { bg: '#f3f4f6', text: '#111827' },
+  convertido: { bg: '#f0fdf4', text: '#15803d' }, reprovado: { bg: '#fef2f2', text: '#dc2626' },
 };
 
 const ADMIN_KEY_LOCAL = 'admin_key';
@@ -87,8 +87,8 @@ const FUNIL_LABEL: Record<string, string> = {
   interessado: 'Interessado', link_pix_enviado: 'Link/Pix Enviado', cliente: 'Cliente', perdido: 'Perdido',
 };
 const FUNIL_COLOR: Record<string, string> = {
-  novo: '#64748b', primeiro_contato: '#4f46e5', aguardando_resposta: '#ca8a04',
-  interessado: '#0891b2', link_pix_enviado: '#db2777', cliente: '#16a34a', perdido: '#dc2626',
+  novo: '#9ca3af', primeiro_contato: '#6b7280', aguardando_resposta: '#4b5563',
+  interessado: '#374151', link_pix_enviado: '#111827', cliente: '#16a34a', perdido: '#dc2626',
 };
 const MOTIVOS_PERDA = ['Sem dinheiro', 'Adiou para depois', 'Escolheu concorrente', 'Não respondeu', 'Sem tempo', 'Desistiu', 'Outro'];
 
@@ -986,14 +986,8 @@ export default function AdminPage() {
   };
   const totalPacientes = indicacoes.filter(i => i.tipo !== 'medico').length;
 
-  const NAV_COLOR: Record<string, string> = {
-    dashboard: '#4f46e5', leads: '#16a34a', clientes: '#0d9488', produtos: '#7c3aed', banners: '#f59e0b',
-    blog: '#db2777', equipe: '#2563eb', indicacoes: '#0d9488', 'indicacoes-medicas': '#0891b2', pedidos: '#ea580c', config: '#64748b',
-    logs: '#57534e', mentoria: '#0d9488', despesas: '#ca8a04', carrinho: '#be123c', rastreio: '#0891b2',
-  };
-
   const navItem = (key: typeof aba, icon: string, label: string) => {
-    const cor = NAV_COLOR[key] || '#374151';
+    const cor = '#16a34a';
     const ativo = aba === key;
     return (
       <button
@@ -1003,7 +997,7 @@ export default function AdminPage() {
         style={{
           display: 'flex', alignItems: 'center', gap: 10,
           padding: '9px 12px', border: 'none', borderRadius: 8,
-          background: ativo ? `${cor}14` : 'transparent',
+          background: ativo ? '#f0fdf4' : 'transparent',
           color: ativo ? cor : '#374151',
           fontWeight: ativo ? 700 : 500, fontSize: 14, fontFamily: 'inherit',
           cursor: 'pointer', textAlign: 'left',
@@ -1012,7 +1006,7 @@ export default function AdminPage() {
         <span style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           width: 26, height: 26, borderRadius: 7, fontSize: 13, fontWeight: 800, flexShrink: 0,
-          background: ativo ? cor : `${cor}1a`, color: ativo ? '#fff' : cor,
+          background: ativo ? cor : '#f3f4f6', color: ativo ? '#fff' : '#6b7280',
         }}>{icon}</span>
         {label}
       </button>
@@ -1049,14 +1043,14 @@ export default function AdminPage() {
       {/* Header */}
       <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, flexShrink: 0, boxShadow: '0 1px 0 rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ padding: 3, borderRadius: 10, background: 'linear-gradient(135deg, #16a34a, #4f46e5)' }}>
+          <div style={{ padding: 3, borderRadius: 10, background: '#111827' }}>
             <img src={config.logo || 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg'}
               alt="PeptideZ" style={{ height: 36, maxWidth: 150, objectFit: 'contain', display: 'block', borderRadius: 7, background: '#fff', padding: '2px 6px' }} />
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={() => { carregarCadastros(); showMsg('Atualizado!'); }}
-            style={{ background: '#eef2ff', color: '#4f46e5', border: '1px solid #c7d2fe', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 600 }}>
+            style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 600 }}>
             Atualizar
           </button>
           <button onClick={sair}
@@ -1121,8 +1115,8 @@ export default function AdminPage() {
               <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 14 }}>
                 {[
                   { label: 'Total', val: counts.todos + totalPacientes, cor: '#111827', bg: '#f9fafb' },
-                  { label: 'Médicos', val: counts.todos, cor: '#0891b2', bg: '#ecfeff' },
-                  { label: 'Pacientes', val: totalPacientes, cor: '#db2777', bg: '#fdf2f8' },
+                  { label: 'Médicos', val: counts.todos, cor: '#374151', bg: '#f3f4f6' },
+                  { label: 'Pacientes', val: totalPacientes, cor: '#111827', bg: '#f3f4f6' },
                 ].map(s => (
                   <div key={s.label} style={{ background: s.bg, border: `1px solid ${s.cor}33`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${s.cor}` }}>
                     <div style={{ fontSize: 32, fontWeight: 900, color: s.cor }}>{s.val}</div>
@@ -1134,7 +1128,7 @@ export default function AdminPage() {
               {/* Stats médicos */}
               <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 24 }}>
                 {[
-                  { label: 'Pendentes', val: counts.pendente, cor: '#d97706', bg: '#fffbeb' },
+                  { label: 'Pendentes', val: counts.pendente, cor: '#374151', bg: '#f9fafb' },
                   { label: 'Aprovados', val: counts.aprovado, cor: '#15803d', bg: '#f0fdf4' },
                   { label: 'Rejeitados', val: counts.rejeitado, cor: '#dc2626', bg: '#fef2f2' },
                 ].map(s => (
@@ -1147,7 +1141,7 @@ export default function AdminPage() {
 
               {/* Filtros */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                {[['todos', 'Todos', '#4f46e5'], ['pendente', 'Pendentes', '#d97706'], ['aprovado', 'Aprovados', '#15803d'], ['rejeitado', 'Rejeitados', '#dc2626']].map(([val, label, cor]) => (
+                {[['todos', 'Todos', '#111827'], ['pendente', 'Pendentes', '#374151'], ['aprovado', 'Aprovados', '#15803d'], ['rejeitado', 'Rejeitados', '#dc2626']].map(([val, label, cor]) => (
                   <button key={val} onClick={() => setFiltro(val)}
                     style={{ background: filtro === val ? cor : '#fff', color: filtro === val ? '#fff' : '#374151', border: `1px solid ${filtro === val ? cor : '#d1d5db'}`, padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: filtro === val ? 700 : 400, fontFamily: 'inherit', fontSize: 13 }}>
                     {label} ({counts[val as keyof typeof counts]})
@@ -1200,10 +1194,10 @@ export default function AdminPage() {
                             <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none' }}>{c.whatsapp}</a>
                             <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 5, alignItems: 'center' }}>
                               {(c.produtos_interesse || []).map(p => (
-                                <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 700, background: '#ecfeff', color: '#0891b2', padding: '1px 6px', borderRadius: 10 }}>
+                                <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 700, background: '#f3f4f6', color: '#374151', padding: '1px 6px', borderRadius: 10 }}>
                                   {p}
                                   <button onClick={() => atualizarProdutosInteresseLead(c.id, (c.produtos_interesse || []).filter(x => x !== p))}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0891b2', fontSize: 11, lineHeight: 1, padding: 0, fontWeight: 900 }}>×</button>
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#374151', fontSize: 11, lineHeight: 1, padding: 0, fontWeight: 900 }}>×</button>
                                 </span>
                               ))}
                               {editandoProdutoCardId === c.id ? (
@@ -1287,7 +1281,7 @@ export default function AdminPage() {
                               {c.nome}
                               {whatsDup && (
                                 <span title="Este WhatsApp aparece em mais de um cadastro — pode ser a mesma pessoa cadastrada duas vezes."
-                                  style={{ marginLeft: 6, background: '#fef3c7', color: '#92400e', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, cursor: 'help' }}>
+                                  style={{ marginLeft: 6, background: '#f3f4f6', color: '#374151', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, cursor: 'help' }}>
                                   ⚠ possível duplicado
                                 </span>
                               )}
@@ -1295,7 +1289,7 @@ export default function AdminPage() {
                             <td style={{ padding: '11px 14px', color: '#374151', whiteSpace: 'nowrap' }}>{c.sobrenome || '-'}</td>
                             <td style={{ padding: '11px 14px', color: '#6b7280' }}>{c.email}</td>
                             <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                              <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: whatsDup ? '#d97706' : '#16a34a', textDecoration: 'none', fontWeight: whatsDup ? 700 : 400 }}>{c.whatsapp}</a>
+                              <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: whatsDup ? '#374151' : '#16a34a', textDecoration: 'none', fontWeight: whatsDup ? 700 : 400 }}>{c.whatsapp}</a>
                             </td>
                             <td style={{ padding: '11px 14px', color: '#6b7280' }}>{c.crm || '-'}</td>
                             <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap' }}>{c.onde_conheceu || '-'}</td>
@@ -1337,8 +1331,8 @@ export default function AdminPage() {
                             <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                               <span style={{
                                 padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                                background: c.status === 'aprovado' ? '#dcfce7' : c.status === 'pendente' ? '#fef9c3' : '#fee2e2',
-                                color: c.status === 'aprovado' ? '#15803d' : c.status === 'pendente' ? '#a16207' : '#dc2626',
+                                background: c.status === 'aprovado' ? '#dcfce7' : c.status === 'pendente' ? '#f3f4f6' : '#fee2e2',
+                                color: c.status === 'aprovado' ? '#15803d' : c.status === 'pendente' ? '#374151' : '#dc2626',
                               }}>{c.status}</span>
                             </td>
                             <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
@@ -1398,18 +1392,18 @@ export default function AdminPage() {
                                       Copiar Link
                                     </button>
                                     <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/indicar/${c.token}`); showMsg('Link de indicação copiado!'); }}
-                                      style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                                      style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
                                       Link Indicação
                                     </button>
                                     <button onClick={() => reenviarEmail(c.id, c.nome)} disabled={reenviandoId === c.id}
-                                      style={{ background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', padding: '5px 11px', borderRadius: 5, cursor: reenviandoId === c.id ? 'default' : 'pointer', fontSize: 12, fontFamily: 'inherit', opacity: reenviandoId === c.id ? 0.6 : 1 }}
+                                      style={{ background: '#f9fafb', color: '#374151', border: '1px solid #d1d5db', padding: '5px 11px', borderRadius: 5, cursor: reenviandoId === c.id ? 'default' : 'pointer', fontSize: 12, fontFamily: 'inherit', opacity: reenviandoId === c.id ? 0.6 : 1 }}
                                       title="Reenviar o e-mail de acesso para este médico">
                                       {reenviandoId === c.id ? 'Enviando...' : 'Reenviar E-mail'}
                                     </button>
                                   </>
                                 )}
                                 <button onClick={() => { setEditandoLead(c); setNovoProdutoInteresseInput(''); }}
-                                  style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}
+                                  style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}
                                   title="Editar dados do cadastro">
                                   Editar
                                 </button>
@@ -1467,11 +1461,11 @@ export default function AdminPage() {
                             Copiar Link
                           </button>
                           <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/indicar/${editandoLead.token}`); showMsg('Link de indicação copiado!'); }}
-                            style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontFamily: 'inherit' }}>
+                            style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontFamily: 'inherit' }}>
                             Link Indicação
                           </button>
                           <button onClick={() => reenviarEmail(editandoLead.id, editandoLead.nome)} disabled={reenviandoId === editandoLead.id}
-                            style={{ background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', padding: '7px 14px', borderRadius: 6, cursor: reenviandoId === editandoLead.id ? 'default' : 'pointer', fontSize: 12.5, fontFamily: 'inherit', opacity: reenviandoId === editandoLead.id ? 0.6 : 1 }}>
+                            style={{ background: '#f9fafb', color: '#374151', border: '1px solid #d1d5db', padding: '7px 14px', borderRadius: 6, cursor: reenviandoId === editandoLead.id ? 'default' : 'pointer', fontSize: 12.5, fontFamily: 'inherit', opacity: reenviandoId === editandoLead.id ? 0.6 : 1 }}>
                             {reenviandoId === editandoLead.id ? 'Enviando...' : 'Reenviar E-mail'}
                           </button>
                         </>
@@ -1546,10 +1540,10 @@ export default function AdminPage() {
                         <label style={labelStyle}>Produtos de Interesse</label>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                           {(editandoLead.produtos_interesse || []).map(p => (
-                            <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#ecfeff', color: '#0891b2', border: '1px solid #a5f3fc', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+                            <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
                               {p}
                               <button type="button" onClick={() => setEditandoLead(l => l && { ...l, produtos_interesse: (l.produtos_interesse || []).filter(x => x !== p) })}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0891b2', fontSize: 13, lineHeight: 1, padding: 0, fontWeight: 900 }}>×</button>
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#374151', fontSize: 13, lineHeight: 1, padding: 0, fontWeight: 900 }}>×</button>
                             </span>
                           ))}
                           <input value={novoProdutoInteresseInput} onChange={e => setNovoProdutoInteresseInput(e.target.value)}
@@ -1598,18 +1592,18 @@ export default function AdminPage() {
                     {novoCadastroTipo === 'escolher' && (
                       <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
                         <button onClick={() => setNovoCadastroTipo('medico')}
-                          style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: '#ecfeff', border: '1px solid #a5f3fc', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
                           <span style={{ fontSize: 24 }}>🩺</span>
                           <span>
-                            <div style={{ fontWeight: 800, color: '#0e7490', fontSize: 14 }}>Cadastrar Médico</div>
+                            <div style={{ fontWeight: 800, color: '#374151', fontSize: 14 }}>Cadastrar Médico</div>
                             <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>Registrar um novo profissional diretamente</div>
                           </span>
                         </button>
                         <button onClick={() => setNovoCadastroTipo('paciente')}
-                          style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: '#fdf2f8', border: '1px solid #fbcfe8', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
                           <span style={{ fontSize: 24 }}>🧑</span>
                           <span>
-                            <div style={{ fontWeight: 800, color: '#be185d', fontSize: 14 }}>Cadastrar Paciente</div>
+                            <div style={{ fontWeight: 800, color: '#374151', fontSize: 14 }}>Cadastrar Paciente</div>
                             <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>Registrar um paciente indicado por um médico</div>
                           </span>
                         </button>
@@ -1831,7 +1825,7 @@ export default function AdminPage() {
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 3 }}>
                             <span style={{ fontSize: 9, fontWeight: 700, color: '#16a34a', letterSpacing: 0.5, textTransform: 'uppercase' }}>{p.categoria}</span>
                             {p.categoria2 && (
-                              <span style={{ fontSize: 9, fontWeight: 700, color: '#7c3aed', letterSpacing: 0.5, textTransform: 'uppercase' }}>+ {p.categoria2}</span>
+                              <span style={{ fontSize: 9, fontWeight: 700, color: '#111827', letterSpacing: 0.5, textTransform: 'uppercase' }}>+ {p.categoria2}</span>
                             )}
                           </div>
                           <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', lineHeight: 1.3 }}>{p.nome}</div>
@@ -1846,7 +1840,7 @@ export default function AdminPage() {
                               Editar
                             </button>
                             <button onClick={() => duplicarProduto(p.id)}
-                              style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}
+                              style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}
                               title="Duplicar produto">
                               Dup
                             </button>
@@ -2324,7 +2318,7 @@ export default function AdminPage() {
                                 {a.publicado ? 'Publicado' : 'Rascunho'}
                               </span>
                               {a.video && <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: '#fef2f2', color: '#dc2626' }}>- Vídeo</span>}
-                              {a.materiais.length > 0 && <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: '#eff6ff', color: '#1d4ed8' }}>{a.materiais.length} mat.</span>}
+                              {a.materiais.length > 0 && <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: '#f3f4f6', color: '#374151' }}>{a.materiais.length} mat.</span>}
                             </div>
                           </div>
                           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
@@ -2443,7 +2437,7 @@ export default function AdminPage() {
                     <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                       <input value={novoMaterial.nome} onChange={e => setNovoMaterial(m => ({ ...m, nome: e.target.value }))} placeholder="Nome do arquivo" style={{ ...inputStyle, flex: '1 1 120px', padding: '8px 10px', fontSize: 12 }} />
                       <input value={novoMaterial.url} onChange={e => setNovoMaterial(m => ({ ...m, url: e.target.value }))} placeholder="URL ou cole link" style={{ ...inputStyle, flex: '2 1 140px', padding: '8px 10px', fontSize: 12 }} />
-                      <label style={{ background: uploadando === 'material' ? '#e5e7eb' : '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, padding: '8px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                      <label style={{ background: uploadando === 'material' ? '#e5e7eb' : '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: '#374151', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, whiteSpace: 'nowrap' }}>
                         {uploadando === 'material' ? '...' : 'Enviar'}
                         <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,image/*" style={{ display: 'none' }} onChange={async e => {
                           const f = e.target.files?.[0]; if (!f) return;
@@ -2528,7 +2522,7 @@ export default function AdminPage() {
                           <tr key={m.id} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
                             <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{m.nome}</td>
                             <td style={{ padding: '11px 14px' }}>
-                              <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: m.cargo === 'admin' ? '#fee2e2' : m.cargo === 'superadmin' ? '#fef9c3' : m.cargo === 'gerente' ? '#eff6ff' : m.cargo === 'vendedor' ? '#f0fdf4' : '#f9fafb', color: m.cargo === 'admin' ? '#b91c1c' : m.cargo === 'superadmin' ? '#a16207' : m.cargo === 'gerente' ? '#1d4ed8' : m.cargo === 'vendedor' ? '#15803d' : '#374151' }}>
+                              <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: m.cargo === 'superadmin' ? '#111827' : m.cargo === 'vendedor' ? '#f0fdf4' : '#f3f4f6', color: m.cargo === 'superadmin' ? '#fff' : m.cargo === 'vendedor' ? '#15803d' : '#374151' }}>
                                 {m.cargo}
                               </span>
                             </td>
@@ -2568,7 +2562,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                 )}
-                <div style={{ marginTop: 20, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '14px 18px', fontSize: 13, color: '#92400e' }}>
+                <div style={{ marginTop: 20, background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: 10, padding: '14px 18px', fontSize: 13, color: '#374151' }}>
                   Portal da equipe disponível em <strong>/equipe/login</strong> para vendedores e gerentes.
                 </div>
               </div>
@@ -2674,7 +2668,7 @@ export default function AdminPage() {
               {/* Filtros */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
                 {(['todos', 'em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(val => {
-                  const cor = val === 'todos' ? '#4f46e5' : (PIPELINE_STATUS_COLOR[val]?.text || '#374151');
+                  const cor = val === 'todos' ? '#111827' : (PIPELINE_STATUS_COLOR[val]?.text || '#374151');
                   const label = val === 'todos' ? 'Todos' : PIPELINE_STATUS_LABEL[val];
                   const n = val === 'todos' ? indicacoesPacientes.length : indicacoesPacientes.filter(i => i.status === val).length;
                   return (
@@ -2710,10 +2704,10 @@ export default function AdminPage() {
                             <div key={medico}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
                                 <span style={{ color: '#374151', fontWeight: 600 }}>{medico}</span>
-                                <span style={{ color: '#7c3aed', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
+                                <span style={{ color: '#111827', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
                               </div>
                               <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
-                                <div style={{ background: '#7c3aed', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
+                                <div style={{ background: '#111827', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
                               </div>
                             </div>
                           ))}
@@ -2758,7 +2752,7 @@ export default function AdminPage() {
                             <KanbanColuna key={etapa} titulo={PIPELINE_STATUS_LABEL[etapa]} cor={cor} total={itens.length}>
                               {itens.map(i => (
                                 <KanbanCard key={i.id} onClick={() => setEditandoIndicacao(i)}>
-                                  <div style={{ fontSize: 10.5, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
+                                  <div style={{ fontSize: 10.5, fontWeight: 700, color: '#111827', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
                                   <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
                                   {i.whatsapp && (
                                     <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
@@ -2804,7 +2798,7 @@ export default function AdminPage() {
                                 </td>
                                 <td style={{ padding: '11px 14px', color: '#6b7280' }}>{i.email || '—'}</td>
                                 <td style={{ padding: '11px 14px', color: '#6b7280', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.endereco}</td>
-                                <td style={{ padding: '11px 14px', color: '#7c3aed', fontWeight: 700 }}>{i.medico_nome}</td>
+                                <td style={{ padding: '11px 14px', color: '#111827', fontWeight: 700 }}>{i.medico_nome}</td>
                                 <td style={{ padding: '11px 14px' }}>
                                   <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
                                     style={{ background: (PIPELINE_STATUS_COLOR[i.status] || { bg: '#fff' }).bg, color: (PIPELINE_STATUS_COLOR[i.status] || { text: '#111827' }).text, border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
@@ -2886,10 +2880,10 @@ export default function AdminPage() {
                         <div key={medico}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
                             <span style={{ color: '#374151', fontWeight: 600 }}>{medico}</span>
-                            <span style={{ color: '#0891b2', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
+                            <span style={{ color: '#374151', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
                           </div>
                           <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
-                            <div style={{ background: '#0891b2', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
+                            <div style={{ background: '#374151', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
                           </div>
                         </div>
                       ))}
@@ -2940,7 +2934,7 @@ export default function AdminPage() {
                         <KanbanColuna key={etapa} titulo={INDICACAO_MEDICA_STATUS_LABEL[etapa]} cor={cor} total={itens.length}>
                           {itens.map(i => (
                             <KanbanCard key={i.id} onClick={() => setEditandoIndicacao(i)}>
-                              <div style={{ fontSize: 10.5, fontWeight: 700, color: '#0891b2', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
+                              <div style={{ fontSize: 10.5, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
                               <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
                               {i.crm && <div style={{ fontSize: 11, color: '#6b7280' }}>CRM {i.crm}</div>}
                               {i.whatsapp && (
@@ -2978,7 +2972,7 @@ export default function AdminPage() {
                       <tbody>
                         {filtradas.map((i, idx) => (
                           <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                            <td style={{ padding: '11px 14px', color: '#0891b2', fontWeight: 700 }}>{i.medico_nome}</td>
+                            <td style={{ padding: '11px 14px', color: '#374151', fontWeight: 700 }}>{i.medico_nome}</td>
                             <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{i.nome} {i.sobrenome}</td>
                             <td style={{ padding: '11px 14px', color: '#6b7280' }}>{i.crm || '—'}</td>
                             <td style={{ padding: '11px 14px' }}>
@@ -3066,7 +3060,7 @@ export default function AdminPage() {
               {/* Filtros */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
                 {(['todos', 'em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(val => {
-                  const cor = val === 'todos' ? '#4f46e5' : (PIPELINE_STATUS_COLOR[val]?.text || '#374151');
+                  const cor = val === 'todos' ? '#111827' : (PIPELINE_STATUS_COLOR[val]?.text || '#374151');
                   const label = val === 'todos' ? 'Todos' : PIPELINE_STATUS_LABEL[val];
                   return (
                     <button key={val} onClick={() => setFiltroPedido(val)}
@@ -3424,7 +3418,7 @@ export default function AdminPage() {
                           <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
                             {new Date(l.created_at).toLocaleString('pt-BR')}
                           </td>
-                          <td style={{ padding: '11px 14px', fontWeight: 700, color: l.ator === 'Superadmin' ? '#a16207' : '#2563eb' }}>{l.ator}</td>
+                          <td style={{ padding: '11px 14px', fontWeight: 700, color: '#374151' }}>{l.ator}</td>
                           <td style={{ padding: '11px 14px', color: '#111827' }}>{l.acao}</td>
                           <td style={{ padding: '11px 14px', color: '#6b7280' }}>{l.detalhe || '—'}</td>
                         </tr>
@@ -3449,12 +3443,12 @@ export default function AdminPage() {
                 </h2>
 
                 <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 24 }}>
-                  <div style={{ background: '#0d94880d', border: '1px solid #0d948833', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #0d9488' }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: '#0d9488' }}>{mentoriaCliques.length}</div>
+                  <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: '#111827' }}>{mentoriaCliques.length}</div>
                     <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Cliques totais</div>
                   </div>
-                  <div style={{ background: '#4f46e50d', border: '1px solid #4f46e533', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #4f46e5' }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: '#4f46e5' }}>{medicosUnicos}</div>
+                  <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: '#111827' }}>{medicosUnicos}</div>
                     <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Médicos</div>
                   </div>
                 </div>
@@ -3528,16 +3522,16 @@ export default function AdminPage() {
                 </h2>
 
                 <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 24 }}>
-                  <div style={{ background: '#be123c0d', border: '1px solid #be123c33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #be123c' }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: '#be123c' }}>{carrinhoEventos.length}</div>
+                  <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: '#111827' }}>{carrinhoEventos.length}</div>
                     <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Adições ao carrinho</div>
                   </div>
-                  <div style={{ background: '#4f46e50d', border: '1px solid #4f46e533', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #4f46e5' }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: '#4f46e5' }}>{lista.length}</div>
+                  <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: '#111827' }}>{lista.length}</div>
                     <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Médicos que adicionaram</div>
                   </div>
-                  <div style={{ background: '#d977060d', border: '1px solid #d9770633', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #d97706' }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: '#d97706' }}>{semPedido.length}</div>
+                  <div style={{ background: '#3741510d', border: '1px solid #37415133', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #374151' }}>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: '#374151' }}>{semPedido.length}</div>
                     <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Carrinho sem pedido enviado</div>
                   </div>
                 </div>
@@ -3574,8 +3568,8 @@ export default function AdminPage() {
                               </td>
                               <td style={{ padding: '11px 14px' }}>
                                 <span style={{
-                                  background: comprou ? '#f0fdf4' : '#fffbeb', color: comprou ? '#15803d' : '#b45309',
-                                  border: `1px solid ${comprou ? '#86efac' : '#fde68a'}`, padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                                  background: comprou ? '#f0fdf4' : '#f9fafb', color: comprou ? '#15803d' : '#374151',
+                                  border: `1px solid ${comprou ? '#86efac' : '#d1d5db'}`, padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
                                 }}>
                                   {comprou ? 'Comprou' : 'Não enviou pedido'}
                                 </span>
@@ -3651,7 +3645,7 @@ export default function AdminPage() {
                             </div>
                             <span style={{
                               padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                              background: r.tipo === 'medico' ? '#eff6ff' : '#f0fdf4', color: r.tipo === 'medico' ? '#1d4ed8' : '#15803d',
+                              background: r.tipo === 'medico' ? '#f3f4f6' : '#f0fdf4', color: r.tipo === 'medico' ? '#374151' : '#15803d',
                             }}>
                               {r.tipo === 'medico' ? 'Médico' : 'Paciente'}
                             </span>
@@ -3775,8 +3769,8 @@ export default function AdminPage() {
                     <div style={{ fontSize: 26, fontWeight: 800, color: '#dc2626' }}>R$ {totalSaidas.toFixed(2)}</div>
                     <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Total Saídas</div>
                   </div>
-                  <div style={{ background: `${saldo >= 0 ? '#4f46e5' : '#dc2626'}0d`, border: `1px solid ${saldo >= 0 ? '#4f46e5' : '#dc2626'}33`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${saldo >= 0 ? '#4f46e5' : '#dc2626'}` }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: saldo >= 0 ? '#4f46e5' : '#dc2626' }}>R$ {saldo.toFixed(2)}</div>
+                  <div style={{ background: `${saldo >= 0 ? '#111827' : '#dc2626'}0d`, border: `1px solid ${saldo >= 0 ? '#111827' : '#dc2626'}33`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${saldo >= 0 ? '#111827' : '#dc2626'}` }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: saldo >= 0 ? '#111827' : '#dc2626' }}>R$ {saldo.toFixed(2)}</div>
                     <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Saldo</div>
                   </div>
                 </div>
@@ -3832,7 +3826,7 @@ export default function AdminPage() {
                                 <td style={{ padding: '11px 14px' }}>
                                   {d.comprovante_url ? (
                                     <a href={d.comprovante_url} target="_blank" rel="noreferrer"
-                                      style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
+                                      style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
                                       Ver
                                     </a>
                                   ) : (
@@ -3842,7 +3836,7 @@ export default function AdminPage() {
                                 <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                                   <div style={{ display: 'flex', gap: 6 }}>
                                     <button onClick={() => setEditandoDespesa(d)}
-                                      style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                                      style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
                                       Editar
                                     </button>
                                     <button onClick={() => excluirDespesa(d.id, d.descricao)}
@@ -3874,7 +3868,7 @@ export default function AdminPage() {
                             {categoriasFinanceiras.length === 0 && <div style={{ fontSize: 12, color: '#6b7280', fontStyle: 'italic' }}>Nenhuma ainda.</div>}
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                               {categoriasFinanceiras.map(c => (
-                                <span key={c} style={{ background: '#fefce8', border: '1px solid #fde047', color: '#a16207', padding: '3px 10px', borderRadius: 12, fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <span key={c} style={{ background: '#f9fafb', border: '1px solid #d1d5db', color: '#374151', padding: '3px 10px', borderRadius: 12, fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}>
                                   {c}
                                   <button type="button" onClick={() => deletarCategoriaFinanceira(c)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: 0 }}>-</button>
                                 </span>
@@ -3890,7 +3884,7 @@ export default function AdminPage() {
                     </div>
 
                     {/* Novo / editar lancamento */}
-                    <div style={{ background: '#fff', border: editandoDespesa ? '1px solid #bfdbfe' : '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+                    <div style={{ background: '#fff', border: editandoDespesa ? '1px solid #d1d5db' : '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                         <h3 style={{ fontSize: 15, fontWeight: 800, color: '#111827', margin: 0 }}>{editandoDespesa ? 'Editar Lançamento' : 'Novo Lançamento'}</h3>
                         {editandoDespesa && <button onClick={() => setEditandoDespesa(null)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 20 }}>-</button>}
@@ -3944,7 +3938,7 @@ export default function AdminPage() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                             {(editandoDespesa ? editandoDespesa.comprovante_url : novaDespesa.comprovante_url) && (
                               <a href={editandoDespesa ? editandoDespesa.comprovante_url : novaDespesa.comprovante_url} target="_blank" rel="noreferrer"
-                                style={{ fontSize: 12, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, padding: '6px 10px', textDecoration: 'none', fontWeight: 600 }}>
+                                style={{ fontSize: 12, color: '#374151', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 6, padding: '6px 10px', textDecoration: 'none', fontWeight: 600 }}>
                                 Ver comprovante atual
                               </a>
                             )}
@@ -3981,7 +3975,7 @@ export default function AdminPage() {
                   <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontWeight: 800, fontSize: 17, color: '#111827' }}>{i.nome} {i.sobrenome}</div>
-                      <div style={{ fontSize: 12, color: ehMedico ? '#0891b2' : '#7c3aed', fontWeight: 700, marginTop: 2 }}>Indicado por {i.medico_nome}</div>
+                      <div style={{ fontSize: 12, color: ehMedico ? '#374151' : '#111827', fontWeight: 700, marginTop: 2 }}>Indicado por {i.medico_nome}</div>
                     </div>
                     <button onClick={() => setEditandoIndicacao(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#6b7280' }}>×</button>
                   </div>

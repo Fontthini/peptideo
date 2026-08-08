@@ -61,19 +61,19 @@ type Props = { membro: Membro; leads: Cadastro[]; equipe: Membro[]; token: strin
 
 const CARGO_LABEL: Record<string, string> = { superadmin: 'Super Admin', gerente: 'Gerente', vendedor: 'Vendedor' };
 const CARGO_COLOR: Record<string, { bg: string; text: string }> = {
-  superadmin: { bg: '#fef9c3', text: '#a16207' }, gerente: { bg: '#eff6ff', text: '#1d4ed8' },
+  superadmin: { bg: '#f3f4f6', text: '#374151' }, gerente: { bg: '#f3f4f6', text: '#374151' },
   vendedor: { bg: '#f0fdf4', text: '#15803d' },
 };
 const STATUS_LABEL: Record<string, string> = { pendente: 'Pendente', aprovado: 'Aprovado', rejeitado: 'Rejeitado', em_analise: 'Em Analise' };
 const STATUS_COLOR: Record<string, { bg: string; text: string }> = {
-  pendente: { bg: '#fef9c3', text: '#a16207' }, aprovado: { bg: '#dcfce7', text: '#15803d' },
-  rejeitado: { bg: '#fef2f2', text: '#dc2626' }, em_analise: { bg: '#eff6ff', text: '#1d4ed8' },
+  pendente: { bg: '#f3f4f6', text: '#374151' }, aprovado: { bg: '#dcfce7', text: '#15803d' },
+  rejeitado: { bg: '#fef2f2', text: '#dc2626' }, em_analise: { bg: '#f3f4f6', text: '#374151' },
 };
 const PEDIDO_STATUS_LABEL: Record<string, string> = {
   em_atendimento: 'Em Atendimento', negociacao: 'Negociação', pago: 'Pago', cancelado: 'Cancelado',
 };
 const PEDIDO_STATUS_COLOR: Record<string, { bg: string; text: string }> = {
-  em_atendimento: { bg: '#eff6ff', text: '#1d4ed8' }, negociacao: { bg: '#fef9c3', text: '#a16207' },
+  em_atendimento: { bg: '#f3f4f6', text: '#374151' }, negociacao: { bg: '#f3f4f6', text: '#374151' },
   pago: { bg: '#dcfce7', text: '#15803d' }, cancelado: { bg: '#fef2f2', text: '#dc2626' },
 };
 
@@ -97,15 +97,15 @@ function formatDate(iso: string) {
 }
 
 const ABA_NAV: { key: string; icon: string; label: string; color: string; gerenteOnly?: boolean }[] = [
-  { key: 'dashboard', icon: '#', label: 'Dashboard', color: '#4f46e5', gerenteOnly: true },
+  { key: 'dashboard', icon: '#', label: 'Dashboard', color: '#111827', gerenteOnly: true },
   { key: 'leads', icon: 'L', label: 'Leads', color: '#16a34a' },
-  { key: 'pedidos', icon: 'P', label: 'Pedidos', color: '#4f46e5' },
-  { key: 'indicacoes', icon: 'I', label: 'Indicações', color: '#0d9488' },
-  { key: 'indicacoes-medicas', icon: 'M', label: 'Indicações Médicas', color: '#0891b2', gerenteOnly: true },
-  { key: 'financeiro', icon: '$', label: 'Financeiro', color: '#ca8a04', gerenteOnly: true },
-  { key: 'mentoria', icon: '%', label: 'Mentoria', color: '#0d9488', gerenteOnly: true },
-  { key: 'blog', icon: 'B', label: 'Blog', color: '#db2777', gerenteOnly: true },
-  { key: 'rastreio', icon: 'R', label: 'Link de Rastreio', color: '#0891b2', gerenteOnly: true },
+  { key: 'pedidos', icon: 'P', label: 'Pedidos', color: '#111827' },
+  { key: 'indicacoes', icon: 'I', label: 'Indicações', color: '#111827' },
+  { key: 'indicacoes-medicas', icon: 'M', label: 'Indicações Médicas', color: '#374151', gerenteOnly: true },
+  { key: 'financeiro', icon: '$', label: 'Financeiro', color: '#374151', gerenteOnly: true },
+  { key: 'mentoria', icon: '%', label: 'Mentoria', color: '#111827', gerenteOnly: true },
+  { key: 'blog', icon: 'B', label: 'Blog', color: '#111827', gerenteOnly: true },
+  { key: 'rastreio', icon: 'R', label: 'Link de Rastreio', color: '#374151', gerenteOnly: true },
 ];
 
 function SideNav({ aba, handlers, gerenteOnly }: { aba: string; handlers: Record<string, () => void>; gerenteOnly?: boolean }) {
@@ -273,10 +273,10 @@ function LeadDetail({
               setTimeout(() => setLinkCopiado(false), 2500);
             };
             return (
-              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8' }}>🔗 Link de indicação para pacientes deste médico:</div>
+              <div style={{ background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>🔗 Link de indicação para pacientes deste médico:</div>
                 <button onClick={copiarIndicacao}
-                  style={{ background: linkCopiado ? '#dbeafe' : '#fff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 0', cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
+                  style={{ background: linkCopiado ? '#f0fdf4' : '#fff', color: linkCopiado ? '#15803d' : '#374151', border: `1px solid ${linkCopiado ? '#86efac' : '#d1d5db'}`, borderRadius: 8, padding: '10px 0', cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
                   {linkCopiado ? '✓ Link copiado!' : 'Copiar Link de Indicação'}
                 </button>
                 <div style={{ fontSize: 11, color: '#6b7280', wordBreak: 'break-all' }}>{indicarUrl}</div>
@@ -359,7 +359,7 @@ function LeadDetail({
                   </>
                 )}
                 {lead.solicitacao && (
-                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92400e' }}>
+                  <div style={{ background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#374151' }}>
                     Solicitacao de {lead.solicitacao === 'aprovar' ? 'aprovacao' : 'rejeicao'} enviada ao gerente. Aguardando decisao.
                   </div>
                 )}
@@ -372,7 +372,7 @@ function LeadDetail({
             <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Decisao do Gerente</div>
               {lead.solicitacao && (
-                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92400e', marginBottom: 10 }}>
+                <div style={{ background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#374151', marginBottom: 10 }}>
                   Vendedor solicita {lead.solicitacao === 'aprovar' ? 'aprovacao' : 'rejeicao'}.
                   {lead.motivo_rejeicao && <span> Motivo: <em>{lead.motivo_rejeicao}</em></span>}
                 </div>
@@ -476,9 +476,9 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
       {/* KPIs */}
       <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
         <StatCard label="Meus Leads" value={meusLeads.length} color="#16a34a" />
-        <StatCard label="Em Analise" value={emAnalise.length} sub="aguardando gerente" color="#3b82f6" />
-        <StatCard label="Aprovados" value={aprovados.length} color="#7c3aed" />
-        <StatCard label="Livres" value={semVendedor.length} sub="disponiveis" color="#f59e0b" />
+        <StatCard label="Em Analise" value={emAnalise.length} sub="aguardando gerente" color="#6b7280" />
+        <StatCard label="Aprovados" value={aprovados.length} color="#111827" />
+        <StatCard label="Livres" value={semVendedor.length} sub="disponiveis" color="#6b7280" />
       </div>
 
       {msg && <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '10px 16px', fontSize: 13, color: '#15803d' }}>{msg}</div>}
@@ -569,7 +569,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
                       </a>
                     )}
                   </td>
-                  <td style={{ padding: '10px 14px', color: '#7c3aed', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
+                  <td style={{ padding: '10px 14px', color: '#111827', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
                   <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{formatDate(i.created_at)}</td>
                 </tr>
               ))}
@@ -609,7 +609,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
                   <td style={{ padding: '11px 14px' }}>
                     <div style={{ fontWeight: 700, color: '#111827' }}>{l.nome} {l.sobrenome}</div>
                     <div style={{ fontSize: 11, color: '#6b7280' }}>{l.email}</div>
-                    {l.obs && <div style={{ fontSize: 11, color: '#7c3aed', marginTop: 2 }}>📝 Com anotacao</div>}
+                    {l.obs && <div style={{ fontSize: 11, color: '#111827', marginTop: 2 }}>📝 Com anotacao</div>}
                     <TagsLead tags={l.tags} />
                   </td>
                   <td style={{ padding: '11px 14px' }}>
@@ -631,7 +631,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
                     <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                       {!l.vendedor_id && l.status === 'pendente' && (
                         <button onClick={() => assumir(l.id)}
-                          style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '5px 10px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}>
+                          style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '5px 10px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}>
                           Assumir
                         </button>
                       )}
@@ -988,8 +988,8 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
       {!['dashboard', 'financeiro', 'mentoria', 'blog', 'rastreio'].includes(aba) && (
         <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
           <StatCard label="Total Leads" value={lista.length} color="#111827" />
-          <StatCard label="Pendentes" value={pendentes.length} color="#f59e0b" />
-          <StatCard label="Em Analise" value={emAnalise.length} sub="solicitacoes" color="#3b82f6" />
+          <StatCard label="Pendentes" value={pendentes.length} color="#6b7280" />
+          <StatCard label="Em Analise" value={emAnalise.length} sub="solicitacoes" color="#6b7280" />
           <StatCard label="Aprovados" value={aprovados.length} color="#16a34a" />
           <StatCard label="Rejeitados" value={rejeitados.length} color="#dc2626" />
         </div>
@@ -1036,7 +1036,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                       <td style={{ padding: '10px 14px', fontWeight: 700, color: '#111827' }}>{v.nome}</td>
                       <td style={{ padding: '10px 14px', color: '#374151' }}>{v.leads}</td>
                       <td style={{ padding: '10px 14px', color: '#15803d', fontWeight: 700 }}>{v.aprovados}</td>
-                      <td style={{ padding: '10px 14px', color: '#7c3aed', fontWeight: 700 }}>{v.pedidosVendidos}</td>
+                      <td style={{ padding: '10px 14px', color: '#111827', fontWeight: 700 }}>{v.pedidosVendidos}</td>
                       <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 800 }}>R$ {v.valorVendido.toFixed(2)}</td>
                     </tr>
                   ))}
@@ -1120,10 +1120,10 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                       <div key={medico}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
                           <span style={{ color: '#374151', fontWeight: 600 }}>{medico}</span>
-                          <span style={{ color: '#7c3aed', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
+                          <span style={{ color: '#111827', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
                         </div>
                         <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
-                          <div style={{ background: '#7c3aed', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
+                          <div style={{ background: '#111827', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
                         </div>
                       </div>
                     ))}
@@ -1161,7 +1161,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                             </a>
                           )}
                         </td>
-                        <td style={{ padding: '10px 14px', color: '#7c3aed', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
+                        <td style={{ padding: '10px 14px', color: '#111827', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
                         <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{formatDate(i.created_at)}</td>
                       </tr>
                     ))}
@@ -1202,10 +1202,10 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                       <div key={medico}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
                           <span style={{ color: '#374151', fontWeight: 600 }}>{medico}</span>
-                          <span style={{ color: '#0891b2', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
+                          <span style={{ color: '#374151', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
                         </div>
                         <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
-                          <div style={{ background: '#0891b2', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
+                          <div style={{ background: '#374151', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
                         </div>
                       </div>
                     ))}
@@ -1244,7 +1244,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                             </a>
                           )}
                         </td>
-                        <td style={{ padding: '10px 14px', color: '#0891b2', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
+                        <td style={{ padding: '10px 14px', color: '#374151', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
                         <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{formatDate(i.created_at)}</td>
                       </tr>
                     ))}
@@ -1273,7 +1273,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
             <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
               <StatCard label="Total Entradas" value={`R$ ${totalEntradas.toFixed(2)}`} color="#16a34a" />
               <StatCard label="Total Saídas" value={`R$ ${totalSaidas.toFixed(2)}`} color="#dc2626" />
-              <StatCard label="Saldo" value={`R$ ${saldo.toFixed(2)}`} color={saldo >= 0 ? '#4f46e5' : '#dc2626'} />
+              <StatCard label="Saldo" value={`R$ ${saldo.toFixed(2)}`} color={saldo >= 0 ? '#111827' : '#dc2626'} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
@@ -1318,7 +1318,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                           <td style={{ padding: '10px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626' }}>R$ {d.valor.toFixed(2)}</td>
                           <td style={{ padding: '10px 14px' }}>
                             <button onClick={() => setEditandoDespesa(d)}
-                              style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                              style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
                               Editar
                             </button>
                           </td>
@@ -1412,8 +1412,8 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
-              <StatCard label="Cliques totais" value={mentoriaCliques.length} color="#0d9488" />
-              <StatCard label="Médicos" value={porMedico.size} color="#4f46e5" />
+              <StatCard label="Cliques totais" value={mentoriaCliques.length} color="#111827" />
+              <StatCard label="Médicos" value={porMedico.size} color="#111827" />
             </div>
             <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
               {loadingMentoria ? (
@@ -1480,7 +1480,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                         <img src={a.imagem} alt={a.titulo} style={{ width: '100%', height: 70, objectFit: 'cover', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                       </div>
                     ) : (
-                      <div style={{ width: 70, flexShrink: 0, background: 'linear-gradient(135deg, #0f172a, #db2777)' }} />
+                      <div style={{ width: 70, flexShrink: 0, background: 'linear-gradient(135deg, #0f172a, #111827)' }} />
                     )}
                     <div style={{ flex: 1, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                       <div>
@@ -1616,7 +1616,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                         </div>
                         <span style={{
                           padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                          background: r.tipo === 'medico' ? '#eff6ff' : '#f0fdf4', color: r.tipo === 'medico' ? '#1d4ed8' : '#15803d',
+                          background: r.tipo === 'medico' ? '#f3f4f6' : '#f0fdf4', color: r.tipo === 'medico' ? '#374151' : '#15803d',
                         }}>
                           {r.tipo === 'medico' ? 'Médico' : 'Paciente'}
                         </span>
@@ -1721,8 +1721,8 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
 
           <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
             <StatCard label="Total" value={lista.length + totalPacientes} color="#111827" />
-            <StatCard label="Médicos" value={lista.length} color="#0891b2" />
-            <StatCard label="Pacientes" value={totalPacientes} color="#db2777" />
+            <StatCard label="Médicos" value={lista.length} color="#374151" />
+            <StatCard label="Pacientes" value={totalPacientes} color="#111827" />
           </div>
 
           {perf.length > 0 && (
@@ -1743,7 +1743,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                       <td style={{ padding: '10px 14px', fontWeight: 700, color: '#111827' }}>{v.nome}</td>
                       <td style={{ padding: '10px 14px', color: '#374151' }}>{v.leads}</td>
                       <td style={{ padding: '10px 14px' }}>
-                        {v.analise > 0 ? <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{v.analise}</span>
+                        {v.analise > 0 ? <span style={{ background: '#f3f4f6', color: '#374151', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{v.analise}</span>
                           : <span style={{ color: '#6b7280' }}>—</span>}
                       </td>
                       <td style={{ padding: '10px 14px', color: '#15803d', fontWeight: 700 }}>{v.aprovados}</td>
@@ -1804,7 +1804,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                   const vendNome = equipe.find(e => e.id === l.vendedor_id)?.nome;
                   return (
                     <tr key={l.id} onClick={() => setSelectedLead(l)}
-                      style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: l.solicitacao ? '#fffbeb' : '#fff' }}>
+                      style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: l.solicitacao ? '#f9fafb' : '#fff' }}>
                       <td style={{ padding: '11px 14px' }}>
                         <div style={{ fontWeight: 700, color: '#111827' }}>{l.nome} {l.sobrenome}</div>
                         <div style={{ fontSize: 11, color: '#6b7280' }}>{l.email}</div>
@@ -1849,18 +1849,18 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                 {novoCadastroTipo === 'escolher' && (
                   <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <button onClick={() => setNovoCadastroTipo('medico')}
-                      style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: '#ecfeff', border: '1px solid #a5f3fc', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
                       <span style={{ fontSize: 24 }}>🩺</span>
                       <span>
-                        <div style={{ fontWeight: 800, color: '#0e7490', fontSize: 14 }}>Cadastrar Médico</div>
+                        <div style={{ fontWeight: 800, color: '#374151', fontSize: 14 }}>Cadastrar Médico</div>
                         <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>Registrar um novo profissional diretamente</div>
                       </span>
                     </button>
                     <button onClick={() => setNovoCadastroTipo('paciente')}
-                      style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: '#fdf2f8', border: '1px solid #fbcfe8', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
                       <span style={{ fontSize: 24 }}>🧑</span>
                       <span>
-                        <div style={{ fontWeight: 800, color: '#be185d', fontSize: 14 }}>Cadastrar Paciente</div>
+                        <div style={{ fontWeight: 800, color: '#374151', fontSize: 14 }}>Cadastrar Paciente</div>
                         <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>Registrar um paciente indicado por um médico</div>
                       </span>
                     </button>

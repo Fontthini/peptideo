@@ -19,8 +19,8 @@ const PIPELINE_STATUS_LABEL: Record<string, string> = {
   em_atendimento: 'Em Atendimento', negociacao: 'Negociação', pago: 'Pago', cancelado: 'Cancelado',
 };
 const PIPELINE_STATUS_COLOR: Record<string, { bg: string; text: string }> = {
-  em_atendimento: { bg: '#eff6ff', text: '#1d4ed8' },
-  negociacao: { bg: '#fef9c3', text: '#a16207' },
+  em_atendimento: { bg: '#f3f4f6', text: '#374151' },
+  negociacao: { bg: '#f3f4f6', text: '#374151' },
   pago: { bg: '#dcfce7', text: '#15803d' },
   cancelado: { bg: '#fef2f2', text: '#dc2626' },
 };
@@ -95,8 +95,8 @@ export function DashboardOverview({
   const limiteMes = config.limite_emails_mes || 3000;
   const pctDia = Math.min((emailsHoje / limiteDia) * 100, 100);
   const pctMes = Math.min((emailsMes / limiteMes) * 100, 100);
-  const corDia = pctDia >= 90 ? '#dc2626' : pctDia >= 70 ? '#f59e0b' : '#16a34a';
-  const corMes = pctMes >= 90 ? '#dc2626' : pctMes >= 70 ? '#f59e0b' : '#16a34a';
+  const corDia = pctDia >= 90 ? '#dc2626' : pctDia >= 70 ? '#6b7280' : '#16a34a';
+  const corMes = pctMes >= 90 ? '#dc2626' : pctMes >= 70 ? '#6b7280' : '#16a34a';
 
   const cliques = config.cliques_cards || {};
   const cliquesHoje = config.cliques_cards_hoje || {};
@@ -117,8 +117,8 @@ export function DashboardOverview({
       <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
         {[
           { label: 'Total', value: total + totalPacientes, color: '#111827' },
-          { label: 'Médicos', value: total, color: '#0891b2' },
-          { label: 'Pacientes', value: totalPacientes, color: '#db2777' },
+          { label: 'Médicos', value: total, color: '#374151' },
+          { label: 'Pacientes', value: totalPacientes, color: '#111827' },
         ].map(k => (
           <div key={k.label} style={{ background: `${k.color}0d`, border: `1px solid ${k.color}33`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${k.color}` }}>
             <div style={{ fontSize: 26, fontWeight: 800, color: k.color }}>{k.value}</div>
@@ -130,11 +130,11 @@ export function DashboardOverview({
       {/* KPIs */}
       <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
         {[
-          { label: 'Total Leads', value: total, color: '#4f46e5' },
+          { label: 'Total Leads', value: total, color: '#111827' },
           { label: 'Aprovados', value: aprovados, color: '#16a34a' },
-          { label: 'Pendentes', value: pendentes, color: '#f59e0b' },
-          { label: 'Em Análise', value: emAnalise, color: '#3b82f6' },
-          { label: 'Tempo Médio', value: tempoLabel, color: '#7c3aed', sub: 'de aprovação' },
+          { label: 'Pendentes', value: pendentes, color: '#6b7280' },
+          { label: 'Em Análise', value: emAnalise, color: '#6b7280' },
+          { label: 'Tempo Médio', value: tempoLabel, color: '#111827', sub: 'de aprovação' },
         ].map(k => (
           <div key={k.label} style={{ background: `${k.color}0d`, border: `1px solid ${k.color}33`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${k.color}` }}>
             <div style={{ fontSize: 26, fontWeight: 800, color: k.color }}>{k.value}</div>
@@ -154,7 +154,7 @@ export function DashboardOverview({
         {/* Origem */}
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Origem dos Leads</div>
-          <HBarChart color="#4f46e5" items={origensSort.map(([orig, qtd]) => ({ key: orig, label: orig, value: qtd }))} />
+          <HBarChart color="#111827" items={origensSort.map(([orig, qtd]) => ({ key: orig, label: orig, value: qtd }))} />
         </div>
       </div>
 
@@ -164,9 +164,9 @@ export function DashboardOverview({
         <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: onlineLoja > 0 ? 14 : 0 }}>
           {[
             { label: 'Online na Loja Agora', value: onlineLoja, color: '#16a34a', live: onlineLoja > 0 },
-            { label: 'Já Acessaram o Blog', value: acessaramBlog, color: '#db2777' },
-            { label: 'Cliques na Mentoria', value: cliquesMentoria, color: '#0d9488' },
-            { label: 'Adições ao Carrinho', value: totalCartAdds, color: '#7c3aed' },
+            { label: 'Já Acessaram o Blog', value: acessaramBlog, color: '#111827' },
+            { label: 'Cliques na Mentoria', value: cliquesMentoria, color: '#111827' },
+            { label: 'Adições ao Carrinho', value: totalCartAdds, color: '#111827' },
           ].map(k => (
             <div key={k.label} style={{ background: `${k.color}0d`, border: `1px solid ${k.color}33`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${k.color}`, position: 'relative' }}>
               {k.live && (
@@ -232,7 +232,7 @@ export function DashboardOverview({
       {/* Produtos mais vistos */}
       <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Produtos Mais Vistos</div>
-        <HBarChart color="#7c3aed" emptyLabel="Sem dados ainda."
+        <HBarChart color="#111827" emptyLabel="Sem dados ainda."
           items={produtosOrdenados.filter(p => (p.views || 0) > 0).map(p => ({
             key: p.id, label: p.nome, value: p.views || 0, sub: ` vistos · ${p.cart_adds || 0} no carrinho`, hoje: p.views_hoje || 0,
           }))} />
@@ -260,7 +260,7 @@ export function DashboardOverview({
                   <td style={{ padding: '11px 14px', color: '#374151' }}>{v.ativos}</td>
                   <td style={{ padding: '11px 14px' }}>
                     {v.analise > 0
-                      ? <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{v.analise} solicitações</span>
+                      ? <span style={{ background: '#f3f4f6', color: '#374151', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{v.analise} solicitações</span>
                       : <span style={{ color: '#6b7280' }}>—</span>}
                   </td>
                   <td style={{ padding: '11px 14px', color: '#15803d', fontWeight: 700 }}>{v.aprovados}</td>
@@ -285,8 +285,8 @@ export function DashboardOverview({
         <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Pedidos</div>
         <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
           {[
-            { label: 'Total Pedidos', value: totalPedidos, color: '#4f46e5' },
-            { label: 'Valor Total', value: `R$ ${valorTotalPedidos.toFixed(2)}`, color: '#0d9488' },
+            { label: 'Total Pedidos', value: totalPedidos, color: '#111827' },
+            { label: 'Valor Total', value: `R$ ${valorTotalPedidos.toFixed(2)}`, color: '#111827' },
             { label: 'Pagos', value: pedidosVendidos, color: '#16a34a' },
             { label: 'Valor Pago', value: `R$ ${valorVendido.toFixed(2)}`, color: '#16a34a' },
           ].map(k => (
@@ -357,8 +357,8 @@ export function DashboardOverview({
           <tbody>
             {cadastros.slice(0, 8).map(c => {
               const sc: Record<string, { bg: string; text: string }> = {
-                pendente: { bg: '#fef9c3', text: '#a16207' }, aprovado: { bg: '#dcfce7', text: '#15803d' },
-                rejeitado: { bg: '#fef2f2', text: '#dc2626' }, em_analise: { bg: '#eff6ff', text: '#1d4ed8' },
+                pendente: { bg: '#f3f4f6', text: '#374151' }, aprovado: { bg: '#dcfce7', text: '#15803d' },
+                rejeitado: { bg: '#fef2f2', text: '#dc2626' }, em_analise: { bg: '#f3f4f6', text: '#374151' },
               };
               const cc = sc[c.status] || { bg: '#f3f4f6', text: '#374151' };
               return (
