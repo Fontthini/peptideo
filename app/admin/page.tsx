@@ -218,6 +218,7 @@ export default function AdminPage() {
 
   const criarPacienteManual = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!novoPaciente.medico_id) { showMsg('R Busque o médico indicador e clique no nome dele na lista antes de cadastrar'); return; }
     setSalvandoNovoCadastro(true);
     const r = await fetch('/api/admin/indicacoes', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
@@ -1675,6 +1676,7 @@ export default function AdminPage() {
                             <>
                               <input value={buscaMedicoIndicador} onChange={e => setBuscaMedicoIndicador(e.target.value)}
                                 placeholder="Buscar médico aprovado por nome..." style={inputStyle} />
+                              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Clique no nome do médico na lista para selecionar.</div>
                               {buscaMedicoIndicador.trim().length >= 2 && (
                                 <div style={{ marginTop: 6, border: '1px solid #e5e7eb', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
                                   {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoIndicador.trim().toLowerCase())).slice(0, 8).map(c => (
@@ -1720,7 +1722,7 @@ export default function AdminPage() {
                           <button type="button" onClick={() => setNovoCadastroTipo('escolher')} style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
                             Voltar
                           </button>
-                          <button type="submit" disabled={salvandoNovoCadastro || !novoPaciente.medico_id} style={{ flex: 1, background: '#111827', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: (salvandoNovoCadastro || !novoPaciente.medico_id) ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: (salvandoNovoCadastro || !novoPaciente.medico_id) ? 0.6 : 1 }}>
+                          <button type="submit" disabled={salvandoNovoCadastro} style={{ flex: 1, background: '#111827', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoNovoCadastro ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: (salvandoNovoCadastro || !novoPaciente.medico_id) ? 0.6 : 1 }}>
                             {salvandoNovoCadastro ? 'Salvando...' : 'Cadastrar Paciente'}
                           </button>
                         </div>
