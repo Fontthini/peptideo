@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mem_buscarMembroPorToken, mem_listarPedidosPorVendedor, mem_listarPedidos, mem_atualizarPedido, mem_registrarLog, mem_buscarId, mem_criarPedido, mem_criarDespesa, mem_atualizarFunil } from '@/lib/db-memory';
-import { reloadFromSupabase, ensureCadastros } from '@/lib/ensure-equipe';
+import { mem_buscarMembroPorToken, mem_listarPedidosPorVendedor, mem_listarPedidos, mem_atualizarPedido, mem_registrarLog, mem_buscarId, mem_criarPedido, mem_criarDespesa, mem_atualizarFunil, mem_listarIndicacoes } from '@/lib/db-memory';
+import { reloadFromSupabase, ensureCadastros, ensureIndicacoes } from '@/lib/ensure-equipe';
 
 const STATUS_VALIDOS = ['em_atendimento', 'negociacao', 'pago', 'cancelado'];
 
@@ -29,11 +29,22 @@ export async function POST(req: NextRequest) {
   }
   await ensureCadastros();
 
-  const { cadastro_id, itens, status } = await req.json();
-  if (!cadastro_id || !Array.isArray(itens) || itens.length === 0) {
-    return NextResponse.json({ error: 'Médico e ao menos um produto são obrigatórios' }, { status: 400 });
+  const { cadastro_id, indicacao_id, itens, status } = await req.json();
+  if ((!cadastro_id && !indicacao_id) || !Array.isArray(itens) || itens.length === 0) {
+    return NextResponse.json({ error: 'Médico ou paciente e ao menos um produto são obrigatórios' }, { status: 400 });
   }
-  const cadastro = mem_buscarId(cadastro_id);
+
+  let pacienteNome: string | undefined;
+  let medicoIdReal = cadastro_id as string | undefined;
+  if (indicacao_id) {
+    await ensureIndicacoes();
+    const indicacao = mem_listarIndicacoes().find(i => i.id === indicacao_id);
+    if (!indicacao) return NextResponse.json({ error: 'Paciente não encontrado' }, { status: 404 });
+    if (indicacao.tipo === 'medico') return NextResponse.json({ error: 'Essa indicação é de um médico, não de um paciente' }, { status: 400 });
+    medicoIdReal = indicacao.medico_id;
+    pacienteNome = `${indicacao.nome} ${indicacao.sobrenome || ''}`.trim();
+  }
+  const cadastro = mem_buscarId(medicoIdReal || '');
   if (!cadastro) return NextResponse.json({ error: 'Médico não encontrado' }, { status: 404 });
 
   const itensValidos = itens
@@ -48,10 +59,12 @@ export async function POST(req: NextRequest) {
   const statusInicial = STATUS_VALIDOS.includes(status) ? status : 'em_atendimento';
 
   const p = mem_criarPedido({
-    cadastro_id,
+    cadastro_id: cadastro.id,
     cadastro_nome: `${cadastro.nome} ${cadastro.sobrenome || ''}`.trim(),
     cadastro_email: cadastro.email,
     cadastro_whatsapp: cadastro.whatsapp,
+    indicacao_id: indicacao_id || null,
+    paciente_nome: pacienteNome,
     produto_nome: itensValidos[0].nome,
     preco: precoTotal,
     itens: itensValidos,
@@ -61,17 +74,18 @@ export async function POST(req: NextRequest) {
   });
   try { const { sbSavePedido } = await import('@/lib/supabase-sync'); await sbSavePedido(p); } catch (e) { console.error('[PORTAL-PEDIDO] save error:', e); }
   const ator = `${membro.nome} (${membro.cargo})`;
-  mem_registrarLog(ator, 'Criou pedido manualmente (portal)', `${p.cadastro_nome} — ${p.produto_nome} — R$ ${p.preco.toFixed(2)}`);
+  const nomeCliente = pacienteNome ? `${pacienteNome} (indicado por ${cadastro.nome})` : p.cadastro_nome;
+  mem_registrarLog(ator, 'Criou pedido manualmente (portal)', `${nomeCliente} — ${p.produto_nome} — R$ ${p.preco.toFixed(2)}`);
 
   if (p.status === 'pago') {
     const d = mem_criarDespesa({
       tipo: 'entrada', categoria: 'PEDIDO PAGO',
-      descricao: `Pedido pago — ${p.cadastro_nome} (${p.produto_nome})`,
+      descricao: `Pedido pago — ${nomeCliente} (${p.produto_nome})`,
       valor: p.preco, data: new Date().toISOString().slice(0, 10),
     });
     mem_registrarLog(ator, 'Lançou entrada automática (pedido pago)', `${d.categoria} — ${d.descricao} — R$ ${d.valor.toFixed(2)}`);
     if (cadastro.funil_status !== 'cliente') {
-      mem_atualizarFunil(cadastro_id, 'cliente');
+      mem_atualizarFunil(cadastro.id, 'cliente');
       mem_registrarLog(ator, 'Lead avançou automaticamente no funil', `${p.cadastro_nome} → cliente`);
     }
   }

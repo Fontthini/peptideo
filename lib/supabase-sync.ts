@@ -275,7 +275,7 @@ export async function sbListarDespesas(): Promise<Despesa[]> {
 
 export async function sbSavePedido(p: Pedido) {
   const { error } = await supabase.from('pedidos').upsert({
-    id: p.id, cadastro_id: p.cadastro_id,
+    id: p.id, cadastro_id: p.cadastro_id, indicacao_id: p.indicacao_id || null,
     vendedor_id: p.vendedor_id || '',
     itens: p.itens || [{ nome: p.produto_nome, preco: p.preco, quantidade: 1 }],
     preco: p.preco, status: p.status, obs: p.obs || '',
@@ -369,16 +369,9 @@ export async function loadAllFromSupabase() {
     })) as MembroEquipe[];
     if (categorias) global.__categorias__ = categorias.map((c: { nome: string }) => c.nome);
     if (categoriasBlog) global.__categorias_blog__ = categoriasBlog.map((c: { nome: string }) => c.nome);
-    if (pedidos) global.__pedidos__ = pedidos.map((p: Record<string, unknown>) => {
-      const cad = (cadastros as Cadastro[] | null)?.find(c => c.id === p.cadastro_id);
-      return {
-        ...p,
-        cadastro_nome: cad ? `${cad.nome} ${cad.sobrenome || ''}`.trim() : (p.cadastro_nome as string || ''),
-        cadastro_email: cad ? cad.email : (p.cadastro_email as string || ''),
-        cadastro_whatsapp: cad ? cad.whatsapp : (p.cadastro_whatsapp as string || ''),
-        produto_nome: Array.isArray(p.itens) && p.itens.length ? (p.itens[0] as { nome: string }).nome : '',
-      };
-    }) as Pedido[];
+    if (pedidos) global.__pedidos__ = pedidos.map((p: Record<string, unknown>) =>
+      juntarPedidoComCadastro(p, cadastros as Cadastro[] | undefined, indicacoes as Indicacao[] | undefined)
+    ) as Pedido[];
     if (indicacoes) global.__indicacoes__ = indicacoes as Indicacao[];
 
     if (cadErr) console.error('[SUPABASE] Erro na leitura (cadastros):', cadErr.message);
@@ -394,13 +387,15 @@ export async function loadAllFromSupabase() {
 // lançar comissão — pague o custo de recarregar o sistema inteiro. Cada
 // rota usa a versão pontual da tabela que ela lê/escreve.
 
-function juntarPedidoComCadastro(p: Record<string, unknown>, cadastros: Cadastro[] | undefined) {
+function juntarPedidoComCadastro(p: Record<string, unknown>, cadastros: Cadastro[] | undefined, indicacoes?: Indicacao[]) {
   const cad = cadastros?.find(c => c.id === p.cadastro_id);
+  const paciente = p.indicacao_id ? indicacoes?.find(i => i.id === p.indicacao_id) : undefined;
   return {
     ...p,
     cadastro_nome: cad ? `${cad.nome} ${cad.sobrenome || ''}`.trim() : (p.cadastro_nome as string || ''),
     cadastro_email: cad ? cad.email : (p.cadastro_email as string || ''),
     cadastro_whatsapp: cad ? cad.whatsapp : (p.cadastro_whatsapp as string || ''),
+    paciente_nome: paciente ? `${paciente.nome} ${paciente.sobrenome || ''}`.trim() : undefined,
     produto_nome: Array.isArray(p.itens) && (p.itens as unknown[]).length ? (p.itens as { nome: string }[])[0].nome : '',
   };
 }
@@ -426,7 +421,12 @@ export async function reloadPedidos() {
     const { data, error } = await supabase.from('pedidos').select('*').order('created_at', { ascending: false });
     if (error) { console.error('[SUPABASE] Erro ao recarregar pedidos:', error.message); return; }
     const cadastros = global.__cadastros__ as Cadastro[] | undefined;
-    if (data) global.__pedidos__ = data.map(p => juntarPedidoComCadastro(p as Record<string, unknown>, cadastros)) as Pedido[];
+    let indicacoes = global.__indicacoes__ as Indicacao[] | undefined;
+    if (!indicacoes || indicacoes.length === 0) {
+      const { data: indData } = await supabase.from('indicacoes').select('*');
+      indicacoes = (indData || []) as Indicacao[];
+    }
+    if (data) global.__pedidos__ = data.map(p => juntarPedidoComCadastro(p as Record<string, unknown>, cadastros, indicacoes)) as Pedido[];
   } catch (err) { console.error('[SUPABASE] Erro ao recarregar pedidos:', err); }
 }
 

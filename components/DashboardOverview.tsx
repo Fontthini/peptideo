@@ -6,7 +6,7 @@ export type DashCadastro = {
   crm?: string | null; created_at: string; updated_at?: string; vendedor_id?: string | null;
   last_seen_loja?: string | null; last_seen_blog?: string | null;
 };
-export type DashPedido = { id: string; cadastro_nome: string; cadastro_email: string; produto_nome: string; preco: number; status: string; created_at: string; };
+export type DashPedido = { id: string; cadastro_nome: string; cadastro_email: string; indicacao_id?: string | null; paciente_nome?: string; produto_nome: string; preco: number; status: string; created_at: string; };
 export type DashMembro = { id: string; nome: string; cargo: string; ativo: boolean; };
 export type DashProduto = { id: string; nome: string; views?: number; views_hoje?: number; cart_adds?: number; };
 export type DashConfig = {
@@ -319,8 +319,8 @@ export function DashboardOverview({
                 return (
                   <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                     <td style={{ padding: '10px 14px' }}>
-                      <div style={{ fontWeight: 600, color: '#111827' }}>{p.cadastro_nome}</div>
-                      <div style={{ fontSize: 11, color: '#6b7280' }}>{p.cadastro_email}</div>
+                      <div style={{ fontWeight: 600, color: '#111827' }}>{p.indicacao_id ? p.paciente_nome : p.cadastro_nome}</div>
+                      <div style={{ fontSize: 11, color: '#6b7280' }}>{p.indicacao_id ? `indicado por ${p.cadastro_nome}` : p.cadastro_email}</div>
                     </td>
                     <td style={{ padding: '10px 14px', color: '#374151' }}>{p.produto_nome}</td>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#16a34a' }}>R$ {p.preco.toFixed(2)}</td>

@@ -212,6 +212,11 @@ export type Pedido = {
   cadastro_nome: string;
   cadastro_email: string;
   cadastro_whatsapp?: string;
+  // Quando o pedido e de um paciente (indicado por um medico), em vez do
+  // proprio medico — cadastro_id continua apontando para o medico (para
+  // atribuicao de vendedor/funil), e estes dois campos identificam o paciente.
+  indicacao_id?: string | null;
+  paciente_nome?: string;
   produto_nome: string;
   preco: number;
   itens?: PedidoItem[];

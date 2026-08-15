@@ -44,6 +44,7 @@ type Membro = { id: string; nome: string; email: string; cargo: string; ativo: b
 type PedidoItem = { nome: string; preco: number; quantidade: number };
 type Pedido = {
   id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string;
+  indicacao_id?: string | null; paciente_nome?: string;
   produto_nome: string; preco: number; itens?: PedidoItem[];
   status: string; obs?: string; created_at: string; vendedor_id?: string;
 };
@@ -504,8 +505,12 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
                 return (
                   <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                     <td style={{ padding: '10px 14px' }}>
-                      <div style={{ fontWeight: 600, color: '#111827' }}>{p.cadastro_nome}</div>
-                      <div style={{ fontSize: 11, color: '#6b7280' }}>{p.cadastro_email}</div>
+                      <div style={{ fontWeight: 600, color: '#111827' }}>{p.indicacao_id ? p.paciente_nome : p.cadastro_nome}</div>
+                      {p.indicacao_id ? (
+                        <div style={{ fontSize: 11, color: '#6b7280' }}>indicado por {p.cadastro_nome}</div>
+                      ) : (
+                        <div style={{ fontSize: 11, color: '#6b7280' }}>{p.cadastro_email}</div>
+                      )}
                       {p.cadastro_whatsapp && (
                         <a href={`https://wa.me/55${p.cadastro_whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
                           style={{ fontSize: 11, color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>
@@ -816,8 +821,11 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
 
   const [produtosCatalogo, setProdutosCatalogo] = useState<Produto[]>([]);
   const [novoPedidoAberto, setNovoPedidoAberto] = useState(false);
+  const [novoPedidoTipoCliente, setNovoPedidoTipoCliente] = useState<'medico' | 'paciente'>('medico');
   const [novoPedidoMedicoId, setNovoPedidoMedicoId] = useState('');
   const [buscaMedicoPedido, setBuscaMedicoPedido] = useState('');
+  const [novoPedidoIndicacaoId, setNovoPedidoIndicacaoId] = useState('');
+  const [buscaPacientePedido, setBuscaPacientePedido] = useState('');
   const [novoPedidoItens, setNovoPedidoItens] = useState<{ nome: string; preco: string; quantidade: string }[]>([{ nome: '', preco: '', quantidade: '1' }]);
   const [novoPedidoStatus, setNovoPedidoStatus] = useState('em_atendimento');
   const [salvandoPedido, setSalvandoPedido] = useState(false);
@@ -825,7 +833,9 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
 
   const fecharNovoPedido = () => {
     setNovoPedidoAberto(false);
+    setNovoPedidoTipoCliente('medico');
     setNovoPedidoMedicoId(''); setBuscaMedicoPedido('');
+    setNovoPedidoIndicacaoId(''); setBuscaPacientePedido('');
     setNovoPedidoItens([{ nome: '', preco: '', quantidade: '1' }]);
     setNovoPedidoStatus('em_atendimento');
     setMsgPedido('');
@@ -833,13 +843,17 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
 
   const criarPedidoManual = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!novoPedidoMedicoId) { setMsgPedido('Busque o médico e clique no nome dele na lista'); return; }
+    if (novoPedidoTipoCliente === 'medico' && !novoPedidoMedicoId) { setMsgPedido('Busque o médico e clique no nome dele na lista'); return; }
+    if (novoPedidoTipoCliente === 'paciente' && !novoPedidoIndicacaoId) { setMsgPedido('Busque o paciente e clique no nome dele na lista'); return; }
     const itensValidos = novoPedidoItens.filter(it => it.nome.trim());
     if (itensValidos.length === 0) { setMsgPedido('Adicione ao menos um produto'); return; }
     setSalvandoPedido(true);
+    const body = novoPedidoTipoCliente === 'medico'
+      ? { cadastro_id: novoPedidoMedicoId, itens: itensValidos, status: novoPedidoStatus }
+      : { indicacao_id: novoPedidoIndicacaoId, itens: itensValidos, status: novoPedidoStatus };
     const r = await fetch('/api/portal/pedidos', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
-      body: JSON.stringify({ cadastro_id: novoPedidoMedicoId, itens: itensValidos, status: novoPedidoStatus }),
+      body: JSON.stringify(body),
     });
     setSalvandoPedido(false);
     if (r.ok) { fecharNovoPedido(); carregarPedidos(); }
@@ -1110,7 +1124,8 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                   return (
                     <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <td style={{ padding: '10px 14px' }}>
-                        <div style={{ fontWeight: 600, color: '#111827' }}>{p.cadastro_nome}</div>
+                        <div style={{ fontWeight: 600, color: '#111827' }}>{p.indicacao_id ? p.paciente_nome : p.cadastro_nome}</div>
+                        {p.indicacao_id && <div style={{ fontSize: 10.5, color: '#6b7280' }}>indicado por {p.cadastro_nome}</div>}
                         {p.cadastro_whatsapp && (
                           <a href={`https://wa.me/55${p.cadastro_whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
                             style={{ fontSize: 11, color: '#25D366', textDecoration: 'none' }}>{p.cadastro_whatsapp}</a>
@@ -1147,36 +1162,89 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
             </div>
             <form onSubmit={criarPedidoManual} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label style={labelStyle}>Médico *</label>
-                {novoPedidoMedicoId ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>
-                      {lista.find(c => c.id === novoPedidoMedicoId)?.nome} {lista.find(c => c.id === novoPedidoMedicoId)?.sobrenome}
-                    </span>
-                    <button type="button" onClick={() => setNovoPedidoMedicoId('')} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Trocar</button>
-                  </div>
-                ) : (
-                  <>
-                    <input value={buscaMedicoPedido} onChange={e => setBuscaMedicoPedido(e.target.value)}
-                      placeholder="Buscar médico aprovado por nome..." style={inputStyle} />
-                    <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Clique no nome do médico na lista para selecionar.</div>
-                    {buscaMedicoPedido.trim().length >= 2 && (
-                      <div style={{ marginTop: 6, border: '1px solid #e5e7eb', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
-                        {lista.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoPedido.trim().toLowerCase())).slice(0, 8).map(c => (
-                          <div key={c.id} onClick={() => { setNovoPedidoMedicoId(c.id); setBuscaMedicoPedido(''); }}
-                            style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #f3f4f6' }}>
-                            <span style={{ fontWeight: 700, color: '#111827' }}>{c.nome} {c.sobrenome}</span>
-                            {c.crm && <span style={{ color: '#6b7280' }}> · {c.crm}</span>}
-                          </div>
-                        ))}
-                        {lista.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoPedido.trim().toLowerCase())).length === 0 && (
-                          <div style={{ padding: '9px 12px', fontSize: 12, color: '#6b7280' }}>Nenhum médico aprovado encontrado.</div>
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
+                <label style={labelStyle}>Pedido de *</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {(['medico', 'paciente'] as const).map(tipo => (
+                    <button key={tipo} type="button"
+                      onClick={() => { setNovoPedidoTipoCliente(tipo); setNovoPedidoMedicoId(''); setBuscaMedicoPedido(''); setNovoPedidoIndicacaoId(''); setBuscaPacientePedido(''); }}
+                      style={{
+                        flex: 1, padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit',
+                        background: novoPedidoTipoCliente === tipo ? '#111827' : '#f3f4f6',
+                        color: novoPedidoTipoCliente === tipo ? '#fff' : '#374151',
+                        border: '1px solid ' + (novoPedidoTipoCliente === tipo ? '#111827' : '#d1d5db'),
+                      }}>
+                      {tipo === 'medico' ? 'Médico' : 'Paciente'}
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              {novoPedidoTipoCliente === 'medico' ? (
+                <div>
+                  <label style={labelStyle}>Médico *</label>
+                  {novoPedidoMedicoId ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>
+                        {lista.find(c => c.id === novoPedidoMedicoId)?.nome} {lista.find(c => c.id === novoPedidoMedicoId)?.sobrenome}
+                      </span>
+                      <button type="button" onClick={() => setNovoPedidoMedicoId('')} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Trocar</button>
+                    </div>
+                  ) : (
+                    <>
+                      <input value={buscaMedicoPedido} onChange={e => setBuscaMedicoPedido(e.target.value)}
+                        placeholder="Buscar médico aprovado por nome..." style={inputStyle} />
+                      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Clique no nome do médico na lista para selecionar.</div>
+                      {buscaMedicoPedido.trim().length >= 2 && (
+                        <div style={{ marginTop: 6, border: '1px solid #e5e7eb', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
+                          {lista.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoPedido.trim().toLowerCase())).slice(0, 8).map(c => (
+                            <div key={c.id} onClick={() => { setNovoPedidoMedicoId(c.id); setBuscaMedicoPedido(''); }}
+                              style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #f3f4f6' }}>
+                              <span style={{ fontWeight: 700, color: '#111827' }}>{c.nome} {c.sobrenome}</span>
+                              {c.crm && <span style={{ color: '#6b7280' }}> · {c.crm}</span>}
+                            </div>
+                          ))}
+                          {lista.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoPedido.trim().toLowerCase())).length === 0 && (
+                            <div style={{ padding: '9px 12px', fontSize: 12, color: '#6b7280' }}>Nenhum médico aprovado encontrado.</div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <label style={labelStyle}>Paciente *</label>
+                  {novoPedidoIndicacaoId ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>
+                        {indicacoes.find(i => i.id === novoPedidoIndicacaoId)?.nome} {indicacoes.find(i => i.id === novoPedidoIndicacaoId)?.sobrenome}
+                        {' — indicado por '}{indicacoes.find(i => i.id === novoPedidoIndicacaoId)?.medico_nome}
+                      </span>
+                      <button type="button" onClick={() => setNovoPedidoIndicacaoId('')} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Trocar</button>
+                    </div>
+                  ) : (
+                    <>
+                      <input value={buscaPacientePedido} onChange={e => setBuscaPacientePedido(e.target.value)}
+                        placeholder="Buscar paciente por nome..." style={inputStyle} />
+                      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Clique no nome do paciente na lista para selecionar.</div>
+                      {buscaPacientePedido.trim().length >= 2 && (
+                        <div style={{ marginTop: 6, border: '1px solid #e5e7eb', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
+                          {indicacoes.filter(i => i.tipo !== 'medico' && `${i.nome} ${i.sobrenome || ''}`.toLowerCase().includes(buscaPacientePedido.trim().toLowerCase())).slice(0, 8).map(i => (
+                            <div key={i.id} onClick={() => { setNovoPedidoIndicacaoId(i.id); setBuscaPacientePedido(''); }}
+                              style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #f3f4f6' }}>
+                              <span style={{ fontWeight: 700, color: '#111827' }}>{i.nome} {i.sobrenome}</span>
+                              <span style={{ color: '#6b7280' }}> · indicado por {i.medico_nome}</span>
+                            </div>
+                          ))}
+                          {indicacoes.filter(i => i.tipo !== 'medico' && `${i.nome} ${i.sobrenome || ''}`.toLowerCase().includes(buscaPacientePedido.trim().toLowerCase())).length === 0 && (
+                            <div style={{ padding: '9px 12px', fontSize: 12, color: '#6b7280' }}>Nenhum paciente encontrado.</div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label style={labelStyle}>Produtos *</label>

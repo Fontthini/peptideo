@@ -38,7 +38,7 @@ type Material = { nome: string; url: string };
 type Artigo = { id: string; titulo: string; conteudo: string; imagem?: string; video?: string; categoria?: string; materiais: Material[]; publicado: boolean; created_at: string; updated_at: string; };
 type Membro = { id: string; nome: string; email: string; cargo: string; ativo: boolean; created_at: string; senha?: string; token_acesso?: string; last_seen?: string | null; };
 type PedidoItem = { nome: string; preco: number; quantidade: number };
-type Pedido = { id: string; cadastro_id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string; produto_nome: string; preco: number; itens?: PedidoItem[]; vendedor_id?: string; status: string; obs?: string; created_at: string; };
+type Pedido = { id: string; cadastro_id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string; indicacao_id?: string | null; paciente_nome?: string; produto_nome: string; preco: number; itens?: PedidoItem[]; vendedor_id?: string; status: string; obs?: string; created_at: string; };
 type Indicacao = { id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string; status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string; comissao_valor?: number | null; comissao_paga?: boolean; };
 type Despesa = { id: string; tipo: 'entrada' | 'saida'; categoria: string; descricao: string; valor: number; data: string; comprovante_url?: string; created_at: string; updated_at?: string; };
 
@@ -231,28 +231,37 @@ export default function AdminPage() {
   const [filtroIndicacao, setFiltroIndicacao] = useState('todos');
   const [filtroPedido, setFiltroPedido] = useState('todos');
   const [novoPedidoAberto, setNovoPedidoAberto] = useState(false);
+  const [novoPedidoTipoCliente, setNovoPedidoTipoCliente] = useState<'medico' | 'paciente'>('medico');
   const [novoPedidoMedicoId, setNovoPedidoMedicoId] = useState('');
   const [buscaMedicoPedido, setBuscaMedicoPedido] = useState('');
+  const [novoPedidoIndicacaoId, setNovoPedidoIndicacaoId] = useState('');
+  const [buscaPacientePedido, setBuscaPacientePedido] = useState('');
   const [novoPedidoItens, setNovoPedidoItens] = useState<{ nome: string; preco: string; quantidade: string }[]>([{ nome: '', preco: '', quantidade: '1' }]);
   const [novoPedidoStatus, setNovoPedidoStatus] = useState('em_atendimento');
   const [salvandoPedido, setSalvandoPedido] = useState(false);
 
   const fecharNovoPedido = () => {
     setNovoPedidoAberto(false);
+    setNovoPedidoTipoCliente('medico');
     setNovoPedidoMedicoId(''); setBuscaMedicoPedido('');
+    setNovoPedidoIndicacaoId(''); setBuscaPacientePedido('');
     setNovoPedidoItens([{ nome: '', preco: '', quantidade: '1' }]);
     setNovoPedidoStatus('em_atendimento');
   };
 
   const criarPedidoManual = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!novoPedidoMedicoId) { showMsg('R Selecione o médico'); return; }
+    if (novoPedidoTipoCliente === 'medico' && !novoPedidoMedicoId) { showMsg('R Selecione o médico'); return; }
+    if (novoPedidoTipoCliente === 'paciente' && !novoPedidoIndicacaoId) { showMsg('R Selecione o paciente'); return; }
     const itensValidos = novoPedidoItens.filter(it => it.nome.trim());
     if (itensValidos.length === 0) { showMsg('R Adicione ao menos um produto'); return; }
     setSalvandoPedido(true);
+    const body = novoPedidoTipoCliente === 'medico'
+      ? { cadastro_id: novoPedidoMedicoId, itens: itensValidos, status: novoPedidoStatus }
+      : { indicacao_id: novoPedidoIndicacaoId, itens: itensValidos, status: novoPedidoStatus };
     const r = await fetch('/api/admin/pedidos', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
-      body: JSON.stringify({ cadastro_id: novoPedidoMedicoId, itens: itensValidos, status: novoPedidoStatus }),
+      body: JSON.stringify(body),
     });
     setSalvandoPedido(false);
     if (r.ok) { showMsg('OK: Pedido criado!'); fecharNovoPedido(); carregarPedidos(); }
@@ -602,7 +611,7 @@ export default function AdminPage() {
     if (a === 'blog') { carregarArtigos(); carregarCategoriasBlog(); carregarBannersBlog(); }
     if (a === 'equipe') carregarEquipe();
     if (a === 'indicacoes' || a === 'indicacoes-medicas') carregarIndicacoes();
-    if (a === 'pedidos') { carregarPedidos(); if (produtos.length === 0) carregarProdutos(); if (cadastros.length === 0) carregarCadastros(); }
+    if (a === 'pedidos') { carregarPedidos(); if (produtos.length === 0) carregarProdutos(); if (cadastros.length === 0) carregarCadastros(); if (indicacoes.length === 0) carregarIndicacoes(); }
     if (a === 'dashboard') { carregarCadastros(); carregarEquipe(); carregarPedidos(); carregarIndicacoes(); if (produtos.length === 0) carregarProdutos(); }
     if (a === 'leads') {
       if (indicacoes.length === 0) carregarIndicacoes();
@@ -3094,8 +3103,12 @@ export default function AdminPage() {
                         return (
                         <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
                           <td style={{ padding: '11px 14px' }}>
-                            <div style={{ fontWeight: 700, color: '#111827' }}>{p.cadastro_nome}</div>
-                            <div style={{ fontSize: 11, color: '#6b7280' }}>{p.cadastro_email}</div>
+                            <div style={{ fontWeight: 700, color: '#111827' }}>{p.indicacao_id ? p.paciente_nome : p.cadastro_nome}</div>
+                            {p.indicacao_id ? (
+                              <div style={{ fontSize: 11, color: '#6b7280' }}>indicado por {p.cadastro_nome}</div>
+                            ) : (
+                              <div style={{ fontSize: 11, color: '#6b7280' }}>{p.cadastro_email}</div>
+                            )}
                           </td>
                           <td style={{ padding: '11px 14px', color: '#374151', maxWidth: 220, fontSize: 12 }}>
                             {p.itens && p.itens.length > 0 ? p.itens.map(it => `${it.nome} x${it.quantidade}`).join(', ') : p.produto_nome}
@@ -3159,35 +3172,87 @@ export default function AdminPage() {
                     </div>
                     <form onSubmit={criarPedidoManual} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
                       <div>
-                        <label style={labelStyle}>Médico *</label>
-                        {novoPedidoMedicoId ? (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>
-                              {cadastros.find(c => c.id === novoPedidoMedicoId)?.nome} {cadastros.find(c => c.id === novoPedidoMedicoId)?.sobrenome}
-                            </span>
-                            <button type="button" onClick={() => setNovoPedidoMedicoId('')} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Trocar</button>
-                          </div>
-                        ) : (
-                          <>
-                            <input value={buscaMedicoPedido} onChange={e => setBuscaMedicoPedido(e.target.value)}
-                              placeholder="Buscar médico aprovado por nome..." style={inputStyle} />
-                            {buscaMedicoPedido.trim().length >= 2 && (
-                              <div style={{ marginTop: 6, border: '1px solid #e5e7eb', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
-                                {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoPedido.trim().toLowerCase())).slice(0, 8).map(c => (
-                                  <div key={c.id} onClick={() => { setNovoPedidoMedicoId(c.id); setBuscaMedicoPedido(''); }}
-                                    style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #f3f4f6' }}>
-                                    <span style={{ fontWeight: 700, color: '#111827' }}>{c.nome} {c.sobrenome}</span>
-                                    {c.crm && <span style={{ color: '#6b7280' }}> · {c.crm}</span>}
-                                  </div>
-                                ))}
-                                {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoPedido.trim().toLowerCase())).length === 0 && (
-                                  <div style={{ padding: '9px 12px', fontSize: 12, color: '#6b7280' }}>Nenhum médico aprovado encontrado.</div>
-                                )}
-                              </div>
-                            )}
-                          </>
-                        )}
+                        <label style={labelStyle}>Pedido de *</label>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          {(['medico', 'paciente'] as const).map(tipo => (
+                            <button key={tipo} type="button"
+                              onClick={() => { setNovoPedidoTipoCliente(tipo); setNovoPedidoMedicoId(''); setBuscaMedicoPedido(''); setNovoPedidoIndicacaoId(''); setBuscaPacientePedido(''); }}
+                              style={{
+                                flex: 1, padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit',
+                                background: novoPedidoTipoCliente === tipo ? '#111827' : '#f3f4f6',
+                                color: novoPedidoTipoCliente === tipo ? '#fff' : '#374151',
+                                border: '1px solid ' + (novoPedidoTipoCliente === tipo ? '#111827' : '#d1d5db'),
+                              }}>
+                              {tipo === 'medico' ? 'Médico' : 'Paciente'}
+                            </button>
+                          ))}
+                        </div>
                       </div>
+
+                      {novoPedidoTipoCliente === 'medico' ? (
+                        <div>
+                          <label style={labelStyle}>Médico *</label>
+                          {novoPedidoMedicoId ? (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>
+                                {cadastros.find(c => c.id === novoPedidoMedicoId)?.nome} {cadastros.find(c => c.id === novoPedidoMedicoId)?.sobrenome}
+                              </span>
+                              <button type="button" onClick={() => setNovoPedidoMedicoId('')} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Trocar</button>
+                            </div>
+                          ) : (
+                            <>
+                              <input value={buscaMedicoPedido} onChange={e => setBuscaMedicoPedido(e.target.value)}
+                                placeholder="Buscar médico aprovado por nome..." style={inputStyle} />
+                              {buscaMedicoPedido.trim().length >= 2 && (
+                                <div style={{ marginTop: 6, border: '1px solid #e5e7eb', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
+                                  {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoPedido.trim().toLowerCase())).slice(0, 8).map(c => (
+                                    <div key={c.id} onClick={() => { setNovoPedidoMedicoId(c.id); setBuscaMedicoPedido(''); }}
+                                      style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #f3f4f6' }}>
+                                      <span style={{ fontWeight: 700, color: '#111827' }}>{c.nome} {c.sobrenome}</span>
+                                      {c.crm && <span style={{ color: '#6b7280' }}> · {c.crm}</span>}
+                                    </div>
+                                  ))}
+                                  {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoPedido.trim().toLowerCase())).length === 0 && (
+                                    <div style={{ padding: '9px 12px', fontSize: 12, color: '#6b7280' }}>Nenhum médico aprovado encontrado.</div>
+                                  )}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          <label style={labelStyle}>Paciente *</label>
+                          {novoPedidoIndicacaoId ? (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>
+                                {indicacoes.find(i => i.id === novoPedidoIndicacaoId)?.nome} {indicacoes.find(i => i.id === novoPedidoIndicacaoId)?.sobrenome}
+                                {' — indicado por '}{indicacoes.find(i => i.id === novoPedidoIndicacaoId)?.medico_nome}
+                              </span>
+                              <button type="button" onClick={() => setNovoPedidoIndicacaoId('')} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Trocar</button>
+                            </div>
+                          ) : (
+                            <>
+                              <input value={buscaPacientePedido} onChange={e => setBuscaPacientePedido(e.target.value)}
+                                placeholder="Buscar paciente por nome..." style={inputStyle} />
+                              {buscaPacientePedido.trim().length >= 2 && (
+                                <div style={{ marginTop: 6, border: '1px solid #e5e7eb', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
+                                  {indicacoes.filter(i => i.tipo !== 'medico' && `${i.nome} ${i.sobrenome || ''}`.toLowerCase().includes(buscaPacientePedido.trim().toLowerCase())).slice(0, 8).map(i => (
+                                    <div key={i.id} onClick={() => { setNovoPedidoIndicacaoId(i.id); setBuscaPacientePedido(''); }}
+                                      style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #f3f4f6' }}>
+                                      <span style={{ fontWeight: 700, color: '#111827' }}>{i.nome} {i.sobrenome}</span>
+                                      <span style={{ color: '#6b7280' }}> · indicado por {i.medico_nome}</span>
+                                    </div>
+                                  ))}
+                                  {indicacoes.filter(i => i.tipo !== 'medico' && `${i.nome} ${i.sobrenome || ''}`.toLowerCase().includes(buscaPacientePedido.trim().toLowerCase())).length === 0 && (
+                                    <div style={{ padding: '9px 12px', fontSize: 12, color: '#6b7280' }}>Nenhum paciente encontrado.</div>
+                                  )}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
 
                       <div>
                         <label style={labelStyle}>Produtos *</label>
