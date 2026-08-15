@@ -52,6 +52,7 @@ type Indicacao = {
   nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string;
   status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string;
 };
+type Produto = { id: string; nome: string; preco: number };
 type Despesa = { id: string; tipo: 'entrada' | 'saida'; categoria: string; descricao: string; valor: number; data: string; comprovante_url?: string; created_at: string; };
 type MentoriaCliqueLog = { id: string; medico_id: string; medico_nome: string; created_at: string; };
 type Material = { nome: string; url: string };
@@ -813,9 +814,45 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
     valorVendido: pedidos.filter(p => p.vendedor_id === v.id && p.status === 'pago').reduce((s, p) => s + p.preco, 0),
   }));
 
+  const [produtosCatalogo, setProdutosCatalogo] = useState<Produto[]>([]);
+  const [novoPedidoAberto, setNovoPedidoAberto] = useState(false);
+  const [novoPedidoMedicoId, setNovoPedidoMedicoId] = useState('');
+  const [buscaMedicoPedido, setBuscaMedicoPedido] = useState('');
+  const [novoPedidoItens, setNovoPedidoItens] = useState<{ nome: string; preco: string; quantidade: string }[]>([{ nome: '', preco: '', quantidade: '1' }]);
+  const [novoPedidoStatus, setNovoPedidoStatus] = useState('em_atendimento');
+  const [salvandoPedido, setSalvandoPedido] = useState(false);
+  const [msgPedido, setMsgPedido] = useState('');
+
+  const fecharNovoPedido = () => {
+    setNovoPedidoAberto(false);
+    setNovoPedidoMedicoId(''); setBuscaMedicoPedido('');
+    setNovoPedidoItens([{ nome: '', preco: '', quantidade: '1' }]);
+    setNovoPedidoStatus('em_atendimento');
+    setMsgPedido('');
+  };
+
+  const criarPedidoManual = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novoPedidoMedicoId) { setMsgPedido('Busque o médico e clique no nome dele na lista'); return; }
+    const itensValidos = novoPedidoItens.filter(it => it.nome.trim());
+    if (itensValidos.length === 0) { setMsgPedido('Adicione ao menos um produto'); return; }
+    setSalvandoPedido(true);
+    const r = await fetch('/api/portal/pedidos', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
+      body: JSON.stringify({ cadastro_id: novoPedidoMedicoId, itens: itensValidos, status: novoPedidoStatus }),
+    });
+    setSalvandoPedido(false);
+    if (r.ok) { fecharNovoPedido(); carregarPedidos(); }
+    else { const d = await r.json().catch(() => ({})); setMsgPedido(d.error || 'Erro ao criar pedido'); }
+  };
+
   async function carregarPedidos() {
     const r = await fetch('/api/portal/pedidos', { headers: { 'x-member-token': token } });
     if (r.ok) setPedidos(await r.json());
+    if (produtosCatalogo.length === 0) {
+      const rp = await fetch('/api/portal/produtos', { headers: { 'x-member-token': token } });
+      if (rp.ok) setProdutosCatalogo(await rp.json());
+    }
     setAba('pedidos');
   }
 
@@ -1010,6 +1047,13 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
       {/* ABA PEDIDOS */}
       {aba === 'pedidos' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>Pedidos</div>
+            <button onClick={() => setNovoPedidoAberto(true)}
+              style={{ background: '#111827', color: '#fff', border: 'none', padding: '9px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
+              + Novo Pedido
+            </button>
+          </div>
           <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
             <StatCard label="Total Pedidos" value={totalPedidos} color="#111827" />
             <StatCard label="Valor Total" value={`R$ ${valorPedidos.toFixed(2)}`} color="#6b7280" />
@@ -1089,6 +1133,109 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
               </tbody>
             </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL NOVO PEDIDO */}
+      {novoPedidoAberto && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 900, padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 12, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ padding: '18px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontWeight: 800, fontSize: 17, color: '#111827' }}>Novo Pedido</div>
+              <button onClick={fecharNovoPedido} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6b7280' }}>×</button>
+            </div>
+            <form onSubmit={criarPedidoManual} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={labelStyle}>Médico *</label>
+                {novoPedidoMedicoId ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>
+                      {lista.find(c => c.id === novoPedidoMedicoId)?.nome} {lista.find(c => c.id === novoPedidoMedicoId)?.sobrenome}
+                    </span>
+                    <button type="button" onClick={() => setNovoPedidoMedicoId('')} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Trocar</button>
+                  </div>
+                ) : (
+                  <>
+                    <input value={buscaMedicoPedido} onChange={e => setBuscaMedicoPedido(e.target.value)}
+                      placeholder="Buscar médico aprovado por nome..." style={inputStyle} />
+                    <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Clique no nome do médico na lista para selecionar.</div>
+                    {buscaMedicoPedido.trim().length >= 2 && (
+                      <div style={{ marginTop: 6, border: '1px solid #e5e7eb', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
+                        {lista.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoPedido.trim().toLowerCase())).slice(0, 8).map(c => (
+                          <div key={c.id} onClick={() => { setNovoPedidoMedicoId(c.id); setBuscaMedicoPedido(''); }}
+                            style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #f3f4f6' }}>
+                            <span style={{ fontWeight: 700, color: '#111827' }}>{c.nome} {c.sobrenome}</span>
+                            {c.crm && <span style={{ color: '#6b7280' }}> · {c.crm}</span>}
+                          </div>
+                        ))}
+                        {lista.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoPedido.trim().toLowerCase())).length === 0 && (
+                          <div style={{ padding: '9px 12px', fontSize: 12, color: '#6b7280' }}>Nenhum médico aprovado encontrado.</div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <div>
+                <label style={labelStyle}>Produtos *</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {novoPedidoItens.map((it, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: 8 }}>
+                      <select value={it.nome} onChange={e => {
+                        const prod = produtosCatalogo.find(p => p.nome === e.target.value);
+                        setNovoPedidoItens(prev => prev.map((x, i) => i === idx ? { ...x, nome: e.target.value, preco: prod ? String(prod.preco) : x.preco } : x));
+                      }} style={{ ...inputStyle, flex: '2 1 160px' }}>
+                        <option value="">Selecione o produto...</option>
+                        {produtosCatalogo.map(p => <option key={p.id} value={p.nome}>{p.nome}</option>)}
+                      </select>
+                      <input type="number" step="0.01" placeholder="Preço" value={it.preco}
+                        onChange={e => setNovoPedidoItens(prev => prev.map((x, i) => i === idx ? { ...x, preco: e.target.value } : x))}
+                        style={{ ...inputStyle, flex: '1 1 80px' }} />
+                      <input type="number" min="1" placeholder="Qtd" value={it.quantidade}
+                        onChange={e => setNovoPedidoItens(prev => prev.map((x, i) => i === idx ? { ...x, quantidade: e.target.value } : x))}
+                        style={{ ...inputStyle, flex: '0 1 60px' }} />
+                      {novoPedidoItens.length > 1 && (
+                        <button type="button" onClick={() => setNovoPedidoItens(prev => prev.filter((_, i) => i !== idx))}
+                          style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 18, padding: '0 4px' }}>×</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button type="button" onClick={() => setNovoPedidoItens(prev => [...prev, { nome: '', preco: '', quantidade: '1' }])}
+                  style={{ marginTop: 8, background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '7px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>
+                  + Adicionar outro produto
+                </button>
+              </div>
+
+              <div>
+                <label style={labelStyle}>Status</label>
+                <select value={novoPedidoStatus} onChange={e => setNovoPedidoStatus(e.target.value)} style={inputStyle}>
+                  <option value="em_atendimento">Em Atendimento</option>
+                  <option value="negociacao">Negociação</option>
+                  <option value="pago">Pago (lança entrada no Financeiro na hora)</option>
+                  <option value="cancelado">Cancelado</option>
+                </select>
+              </div>
+
+              <div style={{ textAlign: 'right', fontSize: 13, color: '#374151' }}>
+                Total: <strong style={{ color: '#16a34a', fontSize: 16 }}>
+                  R$ {novoPedidoItens.reduce((s, it) => s + (parseFloat(it.preco) || 0) * (parseInt(it.quantidade, 10) || 1), 0).toFixed(2)}
+                </strong>
+              </div>
+
+              {msgPedido && <div style={{ color: '#dc2626', fontSize: 12.5 }}>{msgPedido}</div>}
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="button" onClick={fecharNovoPedido} style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                  Cancelar
+                </button>
+                <button type="submit" disabled={salvandoPedido} style={{ flex: 1, background: '#111827', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoPedido ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoPedido ? 0.6 : 1 }}>
+                  {salvandoPedido ? 'Salvando...' : 'Criar Pedido'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
