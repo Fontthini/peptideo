@@ -129,22 +129,45 @@ function KanbanCard({ children, onClick }: { children: React.ReactNode; onClick?
   );
 }
 
-function ComissaoWidget({ id, comissaoValor, comissaoPaga, mostrar, promptId, setPromptId, input, setInput, onConfirmar }: {
-  id: string; comissaoValor?: number | null; comissaoPaga?: boolean; mostrar: boolean;
+function ComissaoWidget({ id, comissaoValor, comissaoPaga, mostrar, totalBase, promptId, setPromptId, input, setInput, onConfirmar }: {
+  id: string; comissaoValor?: number | null; comissaoPaga?: boolean; mostrar: boolean; totalBase: number;
   promptId: string | null; setPromptId: (id: string | null) => void;
-  input: string; setInput: (v: string) => void; onConfirmar: (id: string) => void;
+  input: string; setInput: (v: string) => void; onConfirmar: (id: string, valor: number) => void;
 }) {
   if (!mostrar) return null;
   if (comissaoPaga) {
     return <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', marginTop: 4 }}>OK Comissão: R$ {(comissaoValor || 0).toFixed(2)}</div>;
   }
   if (promptId === id) {
+    if (totalBase > 0) {
+      const pct = parseFloat(input.replace(',', '.')) || 0;
+      const valorCalculado = totalBase * pct / 100;
+      return (
+        <div style={{ marginTop: 4 }} onClick={e => e.stopPropagation()}>
+          <div style={{ fontSize: 10, color: '#6b7280' }}>Total: R$ {totalBase.toFixed(2)}</div>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginTop: 2 }}>
+            <input autoFocus type="number" min="0" step="0.1" value={input} onChange={e => setInput(e.target.value)}
+              placeholder="%" style={{ width: 50, border: '1px solid #d1d5db', borderRadius: 6, padding: '3px 6px', fontSize: 11, fontFamily: 'inherit' }} />
+            <span style={{ fontSize: 11, color: '#6b7280' }}>%</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>= R$ {valorCalculado.toFixed(2)}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+            <button onClick={() => onConfirmar(id, valorCalculado)} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
+            <button onClick={() => setPromptId(null)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 13 }}>×</button>
+          </div>
+        </div>
+      );
+    }
+    const valorManual = parseFloat(input.replace(',', '.')) || 0;
     return (
-      <div style={{ display: 'flex', gap: 4, marginTop: 4 }} onClick={e => e.stopPropagation()}>
-        <input autoFocus type="number" min="0" step="0.01" value={input} onChange={e => setInput(e.target.value)}
-          placeholder="R$ comissão" style={{ width: 90, border: '1px solid #d1d5db', borderRadius: 6, padding: '3px 6px', fontSize: 11, fontFamily: 'inherit' }} />
-        <button onClick={() => onConfirmar(id)} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
-        <button onClick={() => setPromptId(null)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 13 }}>×</button>
+      <div style={{ marginTop: 4 }} onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 9.5, color: '#9ca3af' }}>Sem pedido vinculado — informe o valor</div>
+        <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
+          <input autoFocus type="number" min="0" step="0.01" value={input} onChange={e => setInput(e.target.value)}
+            placeholder="R$ comissão" style={{ width: 90, border: '1px solid #d1d5db', borderRadius: 6, padding: '3px 6px', fontSize: 11, fontFamily: 'inherit' }} />
+          <button onClick={() => onConfirmar(id, valorManual)} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
+          <button onClick={() => setPromptId(null)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 13 }}>×</button>
+        </div>
       </div>
     );
   }
@@ -1036,6 +1059,10 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
   async function carregarIndicacoes(destino: 'indicacoes' | 'indicacoes-medicas' = 'indicacoes') {
     const r = await fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } });
     if (r.ok) setIndicacoes(await r.json());
+    if (pedidos.length === 0) {
+      const rp = await fetch('/api/portal/pedidos', { headers: { 'x-member-token': token } });
+      if (rp.ok) setPedidos(await rp.json());
+    }
     setAba(destino);
   }
 
@@ -1063,8 +1090,10 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
     } else { const d = await r.json().catch(() => ({})); setMsgIndicacao(d.error || 'Erro ao salvar'); }
   };
 
-  const lancarComissao = async (id: string) => {
-    const valor = parseFloat(comissaoInput.replace(',', '.'));
+  const totalBaseFor = (indicacaoId: string) =>
+    pedidos.filter(p => p.indicacao_id === indicacaoId && p.status === 'pago').reduce((s, p) => s + p.preco, 0);
+
+  const lancarComissao = async (id: string, valor: number) => {
     if (!valor || valor <= 0) { setMsgIndicacao('Informe um valor válido'); return; }
     const r = await fetch('/api/portal/indicacoes/comissao', {
       method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
@@ -1660,7 +1689,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                                   <option value="pago">Pago</option>
                                   <option value="cancelado">Cancelado</option>
                                 </select>
-                                <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
+                                <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga} totalBase={totalBaseFor(i.id)}
                                   mostrar={etapa === 'pago'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
                                   input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
                               </div>
@@ -1705,7 +1734,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                                 <option value="pago">Pago</option>
                                 <option value="cancelado">Cancelado</option>
                               </select>
-                              <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
+                              <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga} totalBase={totalBaseFor(i.id)}
                                 mostrar={i.status === 'pago'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
                                 input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
                             </td>
@@ -1831,7 +1860,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                             <option value="convertido">Convertido</option>
                             <option value="reprovado">Reprovado</option>
                           </select>
-                          <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
+                          <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga} totalBase={totalBaseFor(i.id)}
                             mostrar={etapa === 'convertido'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
                             input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
                         </div>
@@ -1877,7 +1906,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                           <option value="convertido">Convertido</option>
                           <option value="reprovado">Reprovado</option>
                         </select>
-                        <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
+                        <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga} totalBase={totalBaseFor(i.id)}
                           mostrar={i.status === 'convertido'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
                           input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
                       </td>
@@ -2828,7 +2857,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                     )}
                   </select>
                 </div>
-                <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
+                <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga} totalBase={totalBaseFor(i.id)}
                   mostrar={i.status === etapaSucesso} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
                   input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
               </div>
