@@ -4,6 +4,7 @@ import {
   mem_atribuirVendedor, mem_solicitarAcao,
   mem_aprovar, mem_rejeitar, mem_adicionarObs,
   mem_getConfig, mem_registrarEnvioEmail, mem_registrarLog,
+  mem_atualizarFunil, mem_definirTags, mem_editarCadastro,
 } from '@/lib/db-memory';
 import { randomUUID } from 'crypto';
 import { reloadFromSupabase } from '@/lib/ensure-equipe';
@@ -53,6 +54,42 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   if (membro.cargo === 'gerente' || membro.cargo === 'superadmin') {
+    if (action === 'transferir_vendedor') {
+      const { vendedor_id } = body;
+      if (!vendedor_id) return NextResponse.json({ error: 'vendedor_id obrigatório' }, { status: 400 });
+      const c = mem_atribuirVendedor(id, vendedor_id);
+      if (!c) return NextResponse.json({ error: 'Erro ao transferir' }, { status: 500 });
+      mem_registrarLog(ator, 'Transferiu consultor (portal)', nomeCadastro);
+      return NextResponse.json(c);
+    }
+
+    if (action === 'atualizar_funil') {
+      const { funil_status, motivo_perda } = body;
+      if (!funil_status) return NextResponse.json({ error: 'funil_status obrigatório' }, { status: 400 });
+      const c = mem_atualizarFunil(id, funil_status, motivo_perda);
+      if (!c) return NextResponse.json({ error: 'Erro ao mover no funil' }, { status: 500 });
+      mem_registrarLog(ator, 'Moveu lead no funil (portal)', `${nomeCadastro} → ${funil_status}`);
+      return NextResponse.json(c);
+    }
+
+    if (action === 'atualizar_tags') {
+      const { tags } = body;
+      if (!Array.isArray(tags)) return NextResponse.json({ error: 'tags inválidas' }, { status: 400 });
+      const c = mem_definirTags(id, tags.filter((t: unknown) => typeof t === 'string' && t.trim()).map((t: string) => t.trim()));
+      if (!c) return NextResponse.json({ error: 'Erro ao salvar etiquetas' }, { status: 500 });
+      mem_registrarLog(ator, 'Editou etiquetas (portal)', nomeCadastro);
+      return NextResponse.json(c);
+    }
+
+    if (action === 'atualizar_produtos_interesse') {
+      const { produtos_interesse } = body;
+      if (!Array.isArray(produtos_interesse)) return NextResponse.json({ error: 'produtos_interesse inválido' }, { status: 400 });
+      const c = mem_editarCadastro(id, { produtos_interesse: produtos_interesse.filter((p: unknown) => typeof p === 'string' && p.trim()).map((p: string) => p.trim()) });
+      if (!c) return NextResponse.json({ error: 'Erro ao salvar produtos de interesse' }, { status: 500 });
+      mem_registrarLog(ator, 'Editou produtos de interesse (portal)', nomeCadastro);
+      return NextResponse.json(c);
+    }
+
     if (action === 'aprovar') {
       const accessToken = randomUUID();
       const c = mem_aprovar(id, accessToken);

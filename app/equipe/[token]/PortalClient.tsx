@@ -13,7 +13,20 @@ type Cadastro = {
   obs?: string; motivo_rejeicao?: string;
   last_seen_loja?: string | null; last_seen_blog?: string | null;
   tags?: string[];
+  funil_status?: string | null; motivo_perda?: string | null;
+  produtos_interesse?: string[];
 };
+
+const FUNIL_ETAPAS = ['novo', 'primeiro_contato', 'aguardando_resposta', 'interessado', 'link_pix_enviado', 'cliente', 'perdido'] as const;
+const FUNIL_LABEL: Record<string, string> = {
+  novo: 'Novo Lead', primeiro_contato: 'Primeiro Contato', aguardando_resposta: 'Aguardando Resposta',
+  interessado: 'Interessado', link_pix_enviado: 'Link/Pix Enviado', cliente: 'Cliente', perdido: 'Perdido',
+};
+const FUNIL_COLOR: Record<string, string> = {
+  novo: '#9ca3af', primeiro_contato: '#6b7280', aguardando_resposta: '#4b5563',
+  interessado: '#374151', link_pix_enviado: '#111827', cliente: '#16a34a', perdido: '#dc2626',
+};
+const MOTIVOS_PERDA = ['Sem dinheiro', 'Adiou para depois', 'Escolheu concorrente', 'Não respondeu', 'Sem tempo', 'Desistiu', 'Outro'];
 
 function TagsLead({ tags }: { tags?: string[] }) {
   if (!tags || tags.length === 0) return null;
@@ -245,6 +258,8 @@ function LeadDetail({
   const [waLink, setWaLink] = useState('');
   const [emailEnviado, setEmailEnviado] = useState<boolean | null>(null);
   const [linkCopiado, setLinkCopiado] = useState(false);
+  const [perdaPrompt, setPerdaPrompt] = useState(false);
+  const [motivoPerda, setMotivoPerda] = useState('');
 
   const vendNome = equipe.find(e => e.id === lead.vendedor_id)?.nome;
 
@@ -324,6 +339,47 @@ function LeadDetail({
               </div>
             ))}
           </div>
+
+          {/* Funil de vendas e consultor (gerente/superadmin) */}
+          {(cargo === 'gerente' || cargo === 'superadmin') && (
+            <div style={{ background: '#f9fafb', borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#374151', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>Funil de Vendas</label>
+                <select value={lead.funil_status || 'novo'} onChange={e => {
+                    const v = e.target.value;
+                    if (v === 'perdido') { setPerdaPrompt(true); setMotivoPerda(''); }
+                    else acao('atualizar_funil', { funil_status: v });
+                  }}
+                  style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit', color: FUNIL_COLOR[lead.funil_status || 'novo'], fontWeight: 700, cursor: 'pointer', background: '#fff' }}>
+                  {FUNIL_ETAPAS.map(e => <option key={e} value={e}>{FUNIL_LABEL[e]}</option>)}
+                </select>
+                {perdaPrompt && (
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                    <select autoFocus value={motivoPerda} onChange={e => setMotivoPerda(e.target.value)}
+                      style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: 6, padding: '6px 8px', fontSize: 12, fontFamily: 'inherit' }}>
+                      <option value="">Motivo...</option>
+                      {MOTIVOS_PERDA.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                    <button onClick={() => { acao('atualizar_funil', { funil_status: 'perdido', motivo_perda: motivoPerda }); setPerdaPrompt(false); }}
+                      style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
+                  </div>
+                )}
+                {lead.funil_status === 'perdido' && lead.motivo_perda && (
+                  <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 4 }}>Motivo: {lead.motivo_perda}</div>
+                )}
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#374151', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>Consultor Atribuído</label>
+                <select value={lead.vendedor_id || ''} onChange={e => e.target.value && acao('transferir_vendedor', { vendedor_id: e.target.value })}
+                  style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit', color: '#111827', cursor: 'pointer', background: '#fff' }}>
+                  <option value="">Sem consultor</option>
+                  {equipe.filter(m => m.cargo === 'vendedor' && m.ativo).map(m => (
+                    <option key={m.id} value={m.id}>{m.nome}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
 
           {/* Botao WhatsApp contato */}
           {waLead && (
@@ -759,6 +815,13 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
   const [indicacoes, setIndicacoes] = useState<Indicacao[]>([]);
   const [aba, setAba] = useState<'dashboard' | 'leads' | 'pedidos' | 'indicacoes' | 'indicacoes-medicas' | 'financeiro' | 'mentoria' | 'blog' | 'rastreio'>('leads');
   const [buscaMedico, setBuscaMedico] = useState('');
+  const [verLeadsKanban, setVerLeadsKanban] = useState(true);
+  const [editandoProdutoCardId, setEditandoProdutoCardId] = useState<string | null>(null);
+  const [novoProdutoCardInput, setNovoProdutoCardInput] = useState('');
+  const [perdaPromptId, setPerdaPromptId] = useState<string | null>(null);
+  const [motivoPerdaInput, setMotivoPerdaInput] = useState('');
+  const [editandoTagsId, setEditandoTagsId] = useState<string | null>(null);
+  const [novaTagInput, setNovaTagInput] = useState('');
   const [buscaIndicacao, setBuscaIndicacao] = useState('');
   const [filtroIndicacao, setFiltroIndicacao] = useState('todos');
   const [verIndicacoesKanban, setVerIndicacoesKanban] = useState(true);
@@ -776,11 +839,15 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
   const [salvandoNovoCadastro, setSalvandoNovoCadastro] = useState(false);
   const [msgNovoCadastro, setMsgNovoCadastro] = useState('');
 
+  const [produtosCatalogo, setProdutosCatalogo] = useState<Produto[]>([]);
+
   useEffect(() => {
     if (indicacoes.length === 0) {
       fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } })
         .then(r => r.ok ? r.json() : null).then(d => { if (d) setIndicacoes(d); });
     }
+    fetch('/api/portal/produtos', { headers: { 'x-member-token': token } })
+      .then(r => r.ok ? r.json() : null).then(d => { if (d) setProdutosCatalogo(d); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -916,7 +983,6 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
     valorVendido: pedidos.filter(p => p.vendedor_id === v.id && p.status === 'pago').reduce((s, p) => s + p.preco, 0),
   }));
 
-  const [produtosCatalogo, setProdutosCatalogo] = useState<Produto[]>([]);
   const [novoPedidoAberto, setNovoPedidoAberto] = useState(false);
   const [novoPedidoTipoCliente, setNovoPedidoTipoCliente] = useState<'medico' | 'paciente'>('medico');
   const [novoPedidoMedicoId, setNovoPedidoMedicoId] = useState('');
@@ -1019,6 +1085,39 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
     });
     if (r.ok) { setIndicacoes(prev => prev.filter(x => x.id !== id)); }
     else { const d = await r.json().catch(() => ({})); setMsgIndicacao(d.error || 'Erro ao excluir'); }
+  };
+
+  const atualizarFunilLead = async (id: string, funil_status: string, motivo_perda?: string | null) => {
+    setLista(prev => prev.map(c => c.id === id ? { ...c, funil_status, motivo_perda: funil_status === 'perdido' ? (motivo_perda || null) : null } : c));
+    const r = await fetch(`/api/portal/leads/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
+      body: JSON.stringify({ action: 'atualizar_funil', funil_status, motivo_perda }),
+    });
+    if (!r.ok) { setMsgNovoCadastro('Erro ao mover no funil'); const rl = await fetch('/api/portal/leads', { headers: { 'x-member-token': token } }); if (rl.ok) setLista(await rl.json()); }
+  };
+
+  const transferirConsultor = async (id: string, vendedor_id: string) => {
+    setLista(prev => prev.map(c => c.id === id ? { ...c, vendedor_id } : c));
+    await fetch(`/api/portal/leads/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
+      body: JSON.stringify({ action: 'transferir_vendedor', vendedor_id }),
+    });
+  };
+
+  const atualizarProdutosInteresseLead = async (id: string, produtos_interesse: string[]) => {
+    setLista(prev => prev.map(c => c.id === id ? { ...c, produtos_interesse } : c));
+    await fetch(`/api/portal/leads/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
+      body: JSON.stringify({ action: 'atualizar_produtos_interesse', produtos_interesse }),
+    });
+  };
+
+  const atualizarTagsLead = async (id: string, tags: string[]) => {
+    setLista(prev => prev.map(c => c.id === id ? { ...c, tags } : c));
+    await fetch(`/api/portal/leads/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
+      body: JSON.stringify({ action: 'atualizar_tags', tags }),
+    });
   };
 
   async function carregarDashboard() {
@@ -2324,9 +2423,12 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
               ))}
             </div>
             <div style={{ padding: '12px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <input value={buscaMedico} onChange={e => setBuscaMedico(e.target.value)}
-                placeholder="Buscar médico por nome, e-mail, WhatsApp ou CRM..."
-                style={{ width: '100%', maxWidth: 380, border: '1px solid #d1d5db', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <input value={buscaMedico} onChange={e => setBuscaMedico(e.target.value)}
+                  placeholder="Buscar médico por nome, e-mail, WhatsApp ou CRM..."
+                  style={{ flex: 1, maxWidth: 380, border: '1px solid #d1d5db', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box' }} />
+                <ToggleListaKanban kanban={verLeadsKanban} onChange={setVerLeadsKanban} />
+              </div>
               {todasEtiquetas.length > 0 && (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 2 }}>Etiqueta:</span>
@@ -2347,6 +2449,92 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                 </div>
               )}
             </div>
+
+            {verLeadsKanban ? (
+              <div style={{ padding: 16 }}>
+                <datalist id="produtos-catalogo-kanban-portal">
+                  {produtosCatalogo.map(p => <option key={p.id} value={p.nome} />)}
+                </datalist>
+                <KanbanBoard>
+                  {FUNIL_ETAPAS.map(etapa => {
+                    const itens = visivel.filter(c => (c.funil_status || 'novo') === etapa);
+                    return (
+                      <KanbanColuna key={etapa} titulo={FUNIL_LABEL[etapa]} cor={FUNIL_COLOR[etapa]} total={itens.length}>
+                        {itens.map(c => (
+                          <KanbanCard key={c.id} onClick={() => setSelectedLead(c)}>
+                            <div style={{ fontWeight: 700, fontSize: 13, color: '#111827' }}>{c.nome} {c.sobrenome}</div>
+                            <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none' }}>{c.whatsapp}</a>
+                            <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 5, alignItems: 'center' }}>
+                              {(c.produtos_interesse || []).map(p => (
+                                <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 700, background: '#f3f4f6', color: '#374151', padding: '1px 6px', borderRadius: 10 }}>
+                                  {p}
+                                  <button onClick={() => atualizarProdutosInteresseLead(c.id, (c.produtos_interesse || []).filter(x => x !== p))}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#374151', fontSize: 11, lineHeight: 1, padding: 0, fontWeight: 900 }}>×</button>
+                                </span>
+                              ))}
+                              {editandoProdutoCardId === c.id ? (
+                                <input autoFocus value={novoProdutoCardInput} onChange={e => setNovoProdutoCardInput(e.target.value)}
+                                  list="produtos-catalogo-kanban-portal"
+                                  onBlur={() => { setEditandoProdutoCardId(null); setNovoProdutoCardInput(''); }}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                      const v = novoProdutoCardInput.trim();
+                                      if (v && !(c.produtos_interesse || []).includes(v)) atualizarProdutosInteresseLead(c.id, [...(c.produtos_interesse || []), v]);
+                                      setNovoProdutoCardInput(''); setEditandoProdutoCardId(null);
+                                    } else if (e.key === 'Escape') { setNovoProdutoCardInput(''); setEditandoProdutoCardId(null); }
+                                  }}
+                                  placeholder="produto..." style={{ width: 70, border: '1px solid #d1d5db', borderRadius: 10, padding: '1px 6px', fontSize: 9.5, fontFamily: 'inherit' }} />
+                              ) : (
+                                <button onClick={() => setEditandoProdutoCardId(c.id)}
+                                  style={{ background: '#f3f4f6', color: '#6b7280', border: '1px dashed #d1d5db', padding: '1px 6px', borderRadius: 10, fontSize: 9.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                                  + produto
+                                </button>
+                              )}
+                            </div>
+                            {(c.tags || []).length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
+                                {(c.tags || []).map(t => {
+                                  const cor = corDaEtiqueta(t);
+                                  return <span key={t} style={{ fontSize: 9.5, fontWeight: 700, background: `${cor}1a`, color: cor, padding: '1px 6px', borderRadius: 10 }}>{t}</span>;
+                                })}
+                              </div>
+                            )}
+                            <div onClick={e => e.stopPropagation()}>
+                              <select value={c.vendedor_id || ''} onChange={e => e.target.value && transferirConsultor(c.id, e.target.value)}
+                                style={{ width: '100%', marginTop: 6, border: '1px solid #d1d5db', borderRadius: 6, padding: '3px 6px', fontSize: 10.5, fontFamily: 'inherit', color: '#374151', cursor: 'pointer' }}>
+                                <option value="">Sem consultor</option>
+                                {equipe.filter(m => m.cargo === 'vendedor' && m.ativo).map(m => (
+                                  <option key={m.id} value={m.id}>{m.nome}</option>
+                                ))}
+                              </select>
+                              <select value={etapa} onChange={e => {
+                                  const v = e.target.value;
+                                  if (v === 'perdido') { setPerdaPromptId(c.id); setMotivoPerdaInput(''); }
+                                  else atualizarFunilLead(c.id, v);
+                                }}
+                                style={{ width: '100%', marginTop: 5, border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                {FUNIL_ETAPAS.map(e => <option key={e} value={e}>{FUNIL_LABEL[e]}</option>)}
+                              </select>
+                              {perdaPromptId === c.id && (
+                                <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+                                  <select autoFocus value={motivoPerdaInput} onChange={e => setMotivoPerdaInput(e.target.value)}
+                                    style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: 6, padding: '3px 4px', fontSize: 10.5, fontFamily: 'inherit' }}>
+                                    <option value="">Motivo...</option>
+                                    {MOTIVOS_PERDA.map(m => <option key={m} value={m}>{m}</option>)}
+                                  </select>
+                                  <button onClick={() => { atualizarFunilLead(c.id, 'perdido', motivoPerdaInput); setPerdaPromptId(null); setMotivoPerdaInput(''); }}
+                                    style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 7px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
+                                </div>
+                              )}
+                            </div>
+                          </KanbanCard>
+                        ))}
+                      </KanbanColuna>
+                    );
+                  })}
+                </KanbanBoard>
+              </div>
+            ) : (
             <div className="portal-table-scroll">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
@@ -2369,7 +2557,15 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                         <TagsLead tags={l.tags} />
                       </td>
                       <td style={{ padding: '11px 14px' }}><Badge status={l.status} map={STATUS_COLOR} /></td>
-                      <td style={{ padding: '11px 14px', color: '#111827', fontSize: 12 }}>{vendNome || <span style={{ color: '#6b7280' }}>Livre</span>}</td>
+                      <td style={{ padding: '11px 14px' }} onClick={e => e.stopPropagation()}>
+                        <select value={l.vendedor_id || ''} onChange={e => e.target.value && transferirConsultor(l.id, e.target.value)}
+                          style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 8px', fontSize: 11.5, fontFamily: 'inherit', color: '#374151', cursor: 'pointer', maxWidth: 130 }}>
+                          <option value="">Sem consultor</option>
+                          {equipe.filter(m => m.cargo === 'vendedor' && m.ativo).map(m => (
+                            <option key={m.id} value={m.id}>{m.nome}</option>
+                          ))}
+                        </select>
+                      </td>
                       <td style={{ padding: '11px 14px' }}>
                         {l.solicitacao ? (
                           <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: l.solicitacao === 'aprovar' ? '#dcfce7' : '#fef2f2', color: l.solicitacao === 'aprovar' ? '#15803d' : '#dc2626' }}>
@@ -2384,6 +2580,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
               </tbody>
             </table>
             </div>
+            )}
           </div>
 
           {/* Modal: novo cadastro (médico ou paciente) */}
