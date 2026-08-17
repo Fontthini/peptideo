@@ -52,7 +52,96 @@ type Indicacao = {
   id: string; medico_id: string; medico_nome: string;
   nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string;
   status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string;
+  obs?: string; comissao_valor?: number | null; comissao_paga?: boolean;
 };
+
+// Status compartilhado entre Pedidos e Indicações de pacientes (mesmo pipeline de venda).
+const PIPELINE_STATUS_LABEL: Record<string, string> = {
+  em_atendimento: 'Em Atendimento', negociacao: 'Negociação', pago: 'Pago', cancelado: 'Cancelado',
+};
+const PIPELINE_STATUS_COLOR: Record<string, { bg: string; text: string }> = {
+  em_atendimento: { bg: '#f3f4f6', text: '#374151' },
+  negociacao: { bg: '#f3f4f6', text: '#111827' },
+  pago: { bg: '#f0fdf4', text: '#15803d' },
+  cancelado: { bg: '#fef2f2', text: '#dc2626' },
+};
+// Status das indicações médico-para-médico (pipeline de recrutamento, diferente do de vendas).
+const INDICACAO_MEDICA_STATUS_LABEL: Record<string, string> = {
+  novo: 'Novo', contatado: 'Contatado', convertido: 'Convertido', reprovado: 'Reprovado',
+};
+const INDICACAO_MEDICA_STATUS_COLOR: Record<string, { bg: string; text: string }> = {
+  novo: { bg: '#f3f4f6', text: '#374151' }, contatado: { bg: '#f3f4f6', text: '#111827' },
+  convertido: { bg: '#f0fdf4', text: '#15803d' }, reprovado: { bg: '#fef2f2', text: '#dc2626' },
+};
+
+function ToggleListaKanban({ kanban, onChange }: { kanban: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div style={{ display: 'inline-flex', background: '#f3f4f6', borderRadius: 8, padding: 3, gap: 2 }}>
+      {[['Lista', false], ['Kanban', true]].map(([label, val]) => (
+        <button key={label as string} type="button" onClick={() => onChange(val as boolean)}
+          style={{ padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', background: kanban === val ? '#111827' : 'transparent', color: kanban === val ? '#fff' : '#6b7280' }}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function KanbanBoard({ children }: { children: React.ReactNode }) {
+  return <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, alignItems: 'flex-start' }}>{children}</div>;
+}
+
+function KanbanColuna({ titulo, cor, total, children }: { titulo: string; cor: string; total: number; children: React.ReactNode }) {
+  return (
+    <div style={{ minWidth: 250, maxWidth: 250, flexShrink: 0, background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 320px)' }}>
+      <div style={{ padding: '11px 14px', borderTop: `3px solid ${cor}`, borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', borderRadius: '10px 10px 0 0' }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: cor }}>{titulo}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', background: '#f3f4f6', padding: '1px 8px', borderRadius: 10 }}>{total}</span>
+      </div>
+      <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto', flex: 1 }}>
+        {total === 0
+          ? <div style={{ padding: '20px 8px', textAlign: 'center', color: '#9ca3af', fontSize: 12 }}>Vazio</div>
+          : children}
+      </div>
+    </div>
+  );
+}
+
+function KanbanCard({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
+  return (
+    <div onClick={onClick}
+      style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, boxShadow: '0 1px 2px rgba(0,0,0,0.04)', cursor: onClick ? 'pointer' : 'default' }}>
+      {children}
+    </div>
+  );
+}
+
+function ComissaoWidget({ id, comissaoValor, comissaoPaga, mostrar, promptId, setPromptId, input, setInput, onConfirmar }: {
+  id: string; comissaoValor?: number | null; comissaoPaga?: boolean; mostrar: boolean;
+  promptId: string | null; setPromptId: (id: string | null) => void;
+  input: string; setInput: (v: string) => void; onConfirmar: (id: string) => void;
+}) {
+  if (!mostrar) return null;
+  if (comissaoPaga) {
+    return <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', marginTop: 4 }}>OK Comissão: R$ {(comissaoValor || 0).toFixed(2)}</div>;
+  }
+  if (promptId === id) {
+    return (
+      <div style={{ display: 'flex', gap: 4, marginTop: 4 }} onClick={e => e.stopPropagation()}>
+        <input autoFocus type="number" min="0" step="0.01" value={input} onChange={e => setInput(e.target.value)}
+          placeholder="R$ comissão" style={{ width: 90, border: '1px solid #d1d5db', borderRadius: 6, padding: '3px 6px', fontSize: 11, fontFamily: 'inherit' }} />
+        <button onClick={() => onConfirmar(id)} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
+        <button onClick={() => setPromptId(null)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 13 }}>×</button>
+      </div>
+    );
+  }
+  return (
+    <button onClick={e => { e.stopPropagation(); setPromptId(id); setInput(''); }}
+      style={{ marginTop: 4, background: '#f0fdf4', color: '#16a34a', border: '1px dashed #86efac', padding: '2px 8px', borderRadius: 6, fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+      + Comissão
+    </button>
+  );
+}
 type Produto = { id: string; nome: string; preco: number };
 type Despesa = { id: string; tipo: 'entrada' | 'saida'; categoria: string; descricao: string; valor: number; data: string; comprovante_url?: string; created_at: string; };
 type MentoriaCliqueLog = { id: string; medico_id: string; medico_nome: string; created_at: string; };
@@ -671,6 +760,14 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
   const [aba, setAba] = useState<'dashboard' | 'leads' | 'pedidos' | 'indicacoes' | 'indicacoes-medicas' | 'financeiro' | 'mentoria' | 'blog' | 'rastreio'>('leads');
   const [buscaMedico, setBuscaMedico] = useState('');
   const [buscaIndicacao, setBuscaIndicacao] = useState('');
+  const [filtroIndicacao, setFiltroIndicacao] = useState('todos');
+  const [verIndicacoesKanban, setVerIndicacoesKanban] = useState(true);
+  const [verIndicacoesMedicasKanban, setVerIndicacoesMedicasKanban] = useState(true);
+  const [comissaoPromptId, setComissaoPromptId] = useState<string | null>(null);
+  const [comissaoInput, setComissaoInput] = useState('');
+  const [editandoIndicacao, setEditandoIndicacao] = useState<Indicacao | null>(null);
+  const [salvandoIndicacao, setSalvandoIndicacao] = useState(false);
+  const [msgIndicacao, setMsgIndicacao] = useState('');
   const [filtroEtiqueta, setFiltroEtiqueta] = useState('todas');
   const [novoCadastroTipo, setNovoCadastroTipo] = useState<'escolher' | 'medico' | 'paciente' | null>(null);
   const [novoMedico, setNovoMedico] = useState({ nome: '', sobrenome: '', email: '', whatsapp: '', endereco: '', crm: '', onde_conheceu: '' });
@@ -875,6 +972,54 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
     if (r.ok) setIndicacoes(await r.json());
     setAba(destino);
   }
+
+  const atualizarStatusIndicacao = async (i: Indicacao, status: string) => {
+    setIndicacoes(prev => prev.map(x => x.id === i.id ? { ...x, status } : x));
+    const r = await fetch('/api/portal/indicacoes', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
+      body: JSON.stringify({ ...i, status }),
+    });
+    if (!r.ok) { const d = await r.json().catch(() => ({})); setMsgIndicacao(d.error || 'Erro ao atualizar'); carregarIndicacoes(aba === 'indicacoes-medicas' ? 'indicacoes-medicas' : 'indicacoes'); }
+  };
+
+  const salvarEdicaoIndicacao = async () => {
+    if (!editandoIndicacao) return;
+    setSalvandoIndicacao(true);
+    const r = await fetch('/api/portal/indicacoes', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
+      body: JSON.stringify(editandoIndicacao),
+    });
+    setSalvandoIndicacao(false);
+    if (r.ok) {
+      const salvo = editandoIndicacao;
+      setIndicacoes(prev => prev.map(x => x.id === salvo.id ? salvo : x));
+      setEditandoIndicacao(null);
+    } else { const d = await r.json().catch(() => ({})); setMsgIndicacao(d.error || 'Erro ao salvar'); }
+  };
+
+  const lancarComissao = async (id: string) => {
+    const valor = parseFloat(comissaoInput.replace(',', '.'));
+    if (!valor || valor <= 0) { setMsgIndicacao('Informe um valor válido'); return; }
+    const r = await fetch('/api/portal/indicacoes/comissao', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
+      body: JSON.stringify({ id, comissao_valor: valor }),
+    });
+    if (r.ok) {
+      setIndicacoes(prev => prev.map(x => x.id === id ? { ...x, comissao_valor: valor, comissao_paga: true } : x));
+      setEditandoIndicacao(prev => prev && prev.id === id ? { ...prev, comissao_valor: valor, comissao_paga: true } : prev);
+      setComissaoPromptId(null); setComissaoInput('');
+    } else { const d = await r.json().catch(() => ({})); setMsgIndicacao(d.error || 'Erro ao lançar comissão'); }
+  };
+
+  const excluirIndicacao = async (id: string, nome: string) => {
+    if (!confirm(`Excluir permanentemente a indicação de ${nome}?`)) return;
+    const r = await fetch('/api/portal/indicacoes', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
+      body: JSON.stringify({ id }),
+    });
+    if (r.ok) { setIndicacoes(prev => prev.filter(x => x.id !== id)); }
+    else { const d = await r.json().catch(() => ({})); setMsgIndicacao(d.error || 'Erro ao excluir'); }
+  };
 
   async function carregarDashboard() {
     setAba('dashboard');
@@ -1309,169 +1454,367 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
       )}
 
       {/* ABA INDICACOES */}
-      {aba === 'indicacoes' && (
+      {aba === 'indicacoes' && (() => {
+        const indicacoesPacientes = indicacoes.filter(i => i.tipo !== 'medico');
+        return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
-          placeholder="Buscar por médico indicador ou paciente indicado..."
-          style={{ maxWidth: 380, border: '1px solid #d1d5db', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box' }} />
-        {(() => {
-          const indicacoesPacientes = indicacoes.filter(i => i.tipo !== 'medico');
-          const q = buscaIndicacao.trim().toLowerCase();
-          const indicacoesFiltradas = !q ? indicacoesPacientes : indicacoesPacientes.filter(i =>
-            `${i.medico_nome} ${i.nome} ${i.sobrenome} ${i.email || ''}`.toLowerCase().includes(q));
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
+              placeholder="Buscar por médico indicador ou paciente indicado..."
+              style={{ maxWidth: 380, flex: 1, border: '1px solid #d1d5db', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box' }} />
+            <ToggleListaKanban kanban={verIndicacoesKanban} onChange={setVerIndicacoesKanban} />
+          </div>
+          {msgIndicacao && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#dc2626' }}>{msgIndicacao}</div>}
 
-          const porMedico = new Map<string, number>();
-          indicacoesFiltradas.forEach(i => porMedico.set(i.medico_nome, (porMedico.get(i.medico_nome) || 0) + 1));
-          const ranking = [...porMedico.entries()].sort((a, b) => b[1] - a[1]);
-          const maxIndic = Math.max(...ranking.map(([, n]) => n), 1);
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {(['todos', 'em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(val => {
+              const cor = val === 'todos' ? '#111827' : (PIPELINE_STATUS_COLOR[val]?.text || '#374151');
+              const label = val === 'todos' ? 'Todos' : PIPELINE_STATUS_LABEL[val];
+              const n = val === 'todos' ? indicacoesPacientes.length : indicacoesPacientes.filter(i => i.status === val).length;
+              return (
+                <button key={val} onClick={() => setFiltroIndicacao(val)}
+                  style={{ background: filtroIndicacao === val ? cor : '#fff', color: filtroIndicacao === val ? '#fff' : '#374151', border: `1px solid ${filtroIndicacao === val ? cor : '#d1d5db'}`, padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: filtroIndicacao === val ? 700 : 400, fontFamily: 'inherit', fontSize: 13 }}>
+                  {label} ({n})
+                </button>
+              );
+            })}
+          </div>
 
-          return (
-            <>
-              {ranking.length > 0 && (
-                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Indicações por Médico</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {ranking.map(([medico, n]) => (
-                      <div key={medico}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                          <span style={{ color: '#374151', fontWeight: 600 }}>{medico}</span>
-                          <span style={{ color: '#111827', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
+          {(() => {
+            const porFiltro = filtroIndicacao === 'todos' ? indicacoesPacientes : indicacoesPacientes.filter(i => i.status === filtroIndicacao);
+            const q = buscaIndicacao.trim().toLowerCase();
+            const indicacoesFiltradas = !q ? porFiltro : porFiltro.filter(i =>
+              `${i.medico_nome} ${i.nome} ${i.sobrenome} ${i.email || ''}`.toLowerCase().includes(q));
+
+            const porMedico = new Map<string, number>();
+            indicacoesFiltradas.forEach(i => porMedico.set(i.medico_nome, (porMedico.get(i.medico_nome) || 0) + 1));
+            const ranking = [...porMedico.entries()].sort((a, b) => b[1] - a[1]);
+            const maxIndic = Math.max(...ranking.map(([, n]) => n), 1);
+
+            const comComissao = indicacoesPacientes.filter(i => i.comissao_paga);
+            const totalComissoes = comComissao.reduce((s, i) => s + (i.comissao_valor || 0), 0);
+
+            return (
+              <>
+                {ranking.length > 0 && (
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Indicações por Médico</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {ranking.map(([medico, n]) => (
+                        <div key={medico}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                            <span style={{ color: '#374151', fontWeight: 600 }}>{medico}</span>
+                            <span style={{ color: '#111827', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
+                          </div>
+                          <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
+                            <div style={{ background: '#111827', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
+                          </div>
                         </div>
-                        <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
-                          <div style={{ background: '#111827', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
+                )}
+
+                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: comComissao.length > 0 ? 16 : 0 }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Comissões Pagas</div>
+                      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Lançada quando uma indicação chega em &quot;Pago&quot; e você informa o valor no botão + Comissão</div>
+                    </div>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {totalComissoes.toFixed(2)}</div>
+                  </div>
+                  {comComissao.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 16 }}>
+                      {comComissao.map(i => (
+                        <div key={i.id} onClick={() => setEditandoIndicacao(i)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '8px 0', borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}>
+                          <span style={{ color: '#374151' }}>{i.medico_nome} <span style={{ color: '#9ca3af' }}>· indicou {i.nome} {i.sobrenome}</span></span>
+                          <span style={{ color: '#16a34a', fontWeight: 700 }}>R$ {(i.comissao_valor || 0).toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
-                <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Todas as Indicações de Pacientes</div>
-                {indicacoesFiltradas.length === 0 && (
-                  <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>
+
+                {indicacoesFiltradas.length === 0 ? (
+                  <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
                     {indicacoesPacientes.length === 0 ? 'Nenhuma indicação ainda.' : 'Nenhuma indicação encontrada para essa busca.'}
                   </div>
+                ) : verIndicacoesKanban ? (
+                  <KanbanBoard>
+                    {(['em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(etapa => {
+                      const itens = indicacoesFiltradas.filter(i => i.status === etapa);
+                      const cor = PIPELINE_STATUS_COLOR[etapa]?.text || '#374151';
+                      return (
+                        <KanbanColuna key={etapa} titulo={PIPELINE_STATUS_LABEL[etapa]} cor={cor} total={itens.length}>
+                          {itens.map(i => (
+                            <KanbanCard key={i.id} onClick={() => setEditandoIndicacao(i)}>
+                              <div style={{ fontSize: 10.5, fontWeight: 700, color: '#111827', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
+                              <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
+                              {i.whatsapp && (
+                                <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
+                              )}
+                              <div onClick={e => e.stopPropagation()}>
+                                <select value={etapa} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
+                                  style={{ width: '100%', marginTop: 7, border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                  <option value="em_atendimento">Em Atendimento</option>
+                                  <option value="negociacao">Negociação</option>
+                                  <option value="pago">Pago</option>
+                                  <option value="cancelado">Cancelado</option>
+                                </select>
+                                <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
+                                  mostrar={etapa === 'pago'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
+                                  input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
+                              </div>
+                            </KanbanCard>
+                          ))}
+                        </KanbanColuna>
+                      );
+                    })}
+                  </KanbanBoard>
+                ) : (
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                    <div className="portal-table-scroll">
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                          {['Paciente', 'Contato', 'Médico Indicador', 'Status', 'Data', 'Ações'].map(h => (
+                            <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {indicacoesFiltradas.map(i => (
+                          <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                            <td style={{ padding: '10px 14px' }}>
+                              <div style={{ fontWeight: 600, color: '#111827' }}>{i.nome} {i.sobrenome}</div>
+                              <div style={{ fontSize: 11, color: '#6b7280' }}>{i.email || '—'}</div>
+                            </td>
+                            <td style={{ padding: '10px 14px' }}>
+                              {i.whatsapp && (
+                                <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                                  style={{ fontSize: 12, color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>
+                                  {i.whatsapp}
+                                </a>
+                              )}
+                            </td>
+                            <td style={{ padding: '10px 14px', color: '#111827', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
+                            <td style={{ padding: '10px 14px' }}>
+                              <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
+                                style={{ background: (PIPELINE_STATUS_COLOR[i.status] || { bg: '#fff' }).bg, color: (PIPELINE_STATUS_COLOR[i.status] || { text: '#111827' }).text, border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                <option value="em_atendimento">Em Atendimento</option>
+                                <option value="negociacao">Negociação</option>
+                                <option value="pago">Pago</option>
+                                <option value="cancelado">Cancelado</option>
+                              </select>
+                              <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
+                                mostrar={i.status === 'pago'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
+                                input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
+                            </td>
+                            <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{formatDate(i.created_at)}</td>
+                            <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                {i.whatsapp && (
+                                  <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                                    style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
+                                    WhatsApp
+                                  </a>
+                                )}
+                                {membro.cargo === 'superadmin' && (
+                                  <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
+                                    style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
+                                    Excluir
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    </div>
+                  </div>
                 )}
-                <div className="portal-table-scroll">
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                      {['Paciente', 'Contato', 'Médico Indicador', 'Data'].map(h => (
-                        <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {indicacoesFiltradas.map(i => (
-                      <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                        <td style={{ padding: '10px 14px' }}>
-                          <div style={{ fontWeight: 600, color: '#111827' }}>{i.nome} {i.sobrenome}</div>
-                          <div style={{ fontSize: 11, color: '#6b7280' }}>{i.email || '—'}</div>
-                        </td>
-                        <td style={{ padding: '10px 14px' }}>
-                          {i.whatsapp && (
-                            <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
-                              style={{ fontSize: 12, color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>
-                              {i.whatsapp}
-                            </a>
-                          )}
-                        </td>
-                        <td style={{ padding: '10px 14px', color: '#111827', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
-                        <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{formatDate(i.created_at)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
-              </div>
-            </>
-          );
-        })()}
+              </>
+            );
+          })()}
         </div>
-      )}
+        );
+      })()}
 
       {/* ABA INDICACOES MEDICAS */}
-      {aba === 'indicacoes-medicas' && (
+      {aba === 'indicacoes-medicas' && (() => {
+        const indicacoesMedicas = indicacoes.filter(i => i.tipo === 'medico');
+        const q = buscaIndicacao.trim().toLowerCase();
+        const filtradas = !q ? indicacoesMedicas : indicacoesMedicas.filter(i =>
+          `${i.medico_nome} ${i.nome} ${i.sobrenome} ${i.email || ''} ${i.crm || ''}`.toLowerCase().includes(q));
+
+        const porMedico = new Map<string, number>();
+        filtradas.forEach(i => porMedico.set(i.medico_nome, (porMedico.get(i.medico_nome) || 0) + 1));
+        const ranking = [...porMedico.entries()].sort((a, b) => b[1] - a[1]);
+        const maxIndic = Math.max(...ranking.map(([, n]) => n), 1);
+
+        const comComissao = indicacoesMedicas.filter(i => i.comissao_paga);
+        const totalComissoes = comComissao.reduce((s, i) => s + (i.comissao_valor || 0), 0);
+
+        return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
-          placeholder="Buscar por médico indicador, indicado ou CRM..."
-          style={{ maxWidth: 380, border: '1px solid #d1d5db', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box' }} />
-        {(() => {
-          const indicacoesMedicas = indicacoes.filter(i => i.tipo === 'medico');
-          const q = buscaIndicacao.trim().toLowerCase();
-          const indicacoesFiltradas = !q ? indicacoesMedicas : indicacoesMedicas.filter(i =>
-            `${i.medico_nome} ${i.nome} ${i.sobrenome} ${i.email || ''} ${i.crm || ''}`.toLowerCase().includes(q));
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
+              placeholder="Buscar por médico indicador, indicado ou CRM..."
+              style={{ maxWidth: 380, flex: 1, border: '1px solid #d1d5db', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', color: '#111827', background: '#fff', boxSizing: 'border-box' }} />
+            <ToggleListaKanban kanban={verIndicacoesMedicasKanban} onChange={setVerIndicacoesMedicasKanban} />
+          </div>
+          {msgIndicacao && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#dc2626' }}>{msgIndicacao}</div>}
 
-          const porMedico = new Map<string, number>();
-          indicacoesFiltradas.forEach(i => porMedico.set(i.medico_nome, (porMedico.get(i.medico_nome) || 0) + 1));
-          const ranking = [...porMedico.entries()].sort((a, b) => b[1] - a[1]);
-          const maxIndic = Math.max(...ranking.map(([, n]) => n), 1);
+          {ranking.length > 0 && (
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Indicações Médicas por Médico</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {ranking.map(([medico, n]) => (
+                  <div key={medico}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                      <span style={{ color: '#374151', fontWeight: 600 }}>{medico}</span>
+                      <span style={{ color: '#374151', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
+                    </div>
+                    <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
+                      <div style={{ background: '#374151', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-          return (
-            <>
-              {ranking.length > 0 && (
-                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Indicações Médicas por Médico</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {ranking.map(([medico, n]) => (
-                      <div key={medico}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                          <span style={{ color: '#374151', fontWeight: 600 }}>{medico}</span>
-                          <span style={{ color: '#374151', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: comComissao.length > 0 ? 16 : 0 }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Comissões Pagas</div>
+                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Lançada quando uma indicação chega em &quot;Convertido&quot; e você informa o valor no botão + Comissão</div>
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {totalComissoes.toFixed(2)}</div>
+            </div>
+            {comComissao.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 16 }}>
+                {comComissao.map(i => (
+                  <div key={i.id} onClick={() => setEditandoIndicacao(i)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '8px 0', borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}>
+                    <span style={{ color: '#374151' }}>{i.medico_nome} <span style={{ color: '#9ca3af' }}>· indicou {i.nome} {i.sobrenome}</span></span>
+                    <span style={{ color: '#16a34a', fontWeight: 700 }}>R$ {(i.comissao_valor || 0).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {filtradas.length === 0 ? (
+            <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+              {indicacoesMedicas.length === 0 ? 'Nenhuma indicação médica ainda.' : 'Nenhuma indicação encontrada para essa busca.'}
+            </div>
+          ) : verIndicacoesMedicasKanban ? (
+            <KanbanBoard>
+              {(['novo', 'contatado', 'convertido', 'reprovado'] as const).map(etapa => {
+                const itens = filtradas.filter(i => i.status === etapa);
+                const cor = INDICACAO_MEDICA_STATUS_COLOR[etapa]?.text || '#374151';
+                return (
+                  <KanbanColuna key={etapa} titulo={INDICACAO_MEDICA_STATUS_LABEL[etapa]} cor={cor} total={itens.length}>
+                    {itens.map(i => (
+                      <KanbanCard key={i.id} onClick={() => setEditandoIndicacao(i)}>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
+                        {i.crm && <div style={{ fontSize: 11, color: '#6b7280' }}>CRM {i.crm}</div>}
+                        {i.whatsapp && (
+                          <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
+                        )}
+                        <div onClick={e => e.stopPropagation()}>
+                          <select value={etapa} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
+                            style={{ width: '100%', marginTop: 7, border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                            <option value="novo">Novo</option>
+                            <option value="contatado">Contatado</option>
+                            <option value="convertido">Convertido</option>
+                            <option value="reprovado">Reprovado</option>
+                          </select>
+                          <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
+                            mostrar={etapa === 'convertido'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
+                            input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
                         </div>
-                        <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
-                          <div style={{ background: '#374151', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
-                        </div>
-                      </div>
+                      </KanbanCard>
                     ))}
-                  </div>
-                </div>
-              )}
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
-                <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>Todas as Indicações Médicas</div>
-                {indicacoesFiltradas.length === 0 && (
-                  <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>
-                    {indicacoesMedicas.length === 0 ? 'Nenhuma indicação médica ainda.' : 'Nenhuma indicação encontrada para essa busca.'}
-                  </div>
-                )}
-                <div className="portal-table-scroll">
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                      {['Médico Indicado', 'CRM', 'Contato', 'Médico Indicador', 'Data'].map(h => (
-                        <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {indicacoesFiltradas.map(i => (
-                      <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                        <td style={{ padding: '10px 14px' }}>
-                          <div style={{ fontWeight: 600, color: '#111827' }}>{i.nome} {i.sobrenome}</div>
-                          <div style={{ fontSize: 11, color: '#6b7280' }}>{i.email || '—'}</div>
-                        </td>
-                        <td style={{ padding: '10px 14px', color: '#6b7280' }}>{i.crm || '—'}</td>
-                        <td style={{ padding: '10px 14px' }}>
+                  </KanbanColuna>
+                );
+              })}
+            </KanbanBoard>
+          ) : (
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+              <div className="portal-table-scroll">
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                    {['Médico Indicado', 'CRM', 'Contato', 'Médico Indicador', 'Status', 'Data', 'Ações'].map(h => (
+                      <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtradas.map(i => (
+                    <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '10px 14px' }}>
+                        <div style={{ fontWeight: 600, color: '#111827' }}>{i.nome} {i.sobrenome}</div>
+                        <div style={{ fontSize: 11, color: '#6b7280' }}>{i.email || '—'}</div>
+                      </td>
+                      <td style={{ padding: '10px 14px', color: '#6b7280' }}>{i.crm || '—'}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        {i.whatsapp && (
+                          <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                            style={{ fontSize: 12, color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>
+                            {i.whatsapp}
+                          </a>
+                        )}
+                      </td>
+                      <td style={{ padding: '10px 14px', color: '#374151', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
+                          style={{ background: (INDICACAO_MEDICA_STATUS_COLOR[i.status] || { bg: '#fff' }).bg, color: (INDICACAO_MEDICA_STATUS_COLOR[i.status] || { text: '#111827' }).text, border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                          <option value="novo">Novo</option>
+                          <option value="contatado">Contatado</option>
+                          <option value="convertido">Convertido</option>
+                          <option value="reprovado">Reprovado</option>
+                        </select>
+                        <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
+                          mostrar={i.status === 'convertido'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
+                          input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
+                      </td>
+                      <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{formatDate(i.created_at)}</td>
+                      <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', gap: 6 }}>
                           {i.whatsapp && (
-                            <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
-                              style={{ fontSize: 12, color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>
-                              {i.whatsapp}
+                            <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                              style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
+                              WhatsApp
                             </a>
                           )}
-                        </td>
-                        <td style={{ padding: '10px 14px', color: '#374151', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
-                        <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{formatDate(i.created_at)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
+                          {i.status !== 'reprovado' && (
+                            <button onClick={() => atualizarStatusIndicacao(i, 'reprovado')}
+                              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', fontWeight: 600 }}>
+                              Reprovar
+                            </button>
+                          )}
+                          {membro.cargo === 'superadmin' && (
+                            <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
+                              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
+                              Excluir
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
               </div>
-            </>
-          );
-        })()}
+            </div>
+          )}
         </div>
-      )}
+        );
+      })()}
 
       {/* ABA FINANCEIRO (gerente pode criar/editar, nao pode excluir) */}
       {aba === 'financeiro' && (() => {
@@ -2203,6 +2546,108 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
           )}
         </div>
       )}
+
+      {/* Modal: detalhe/edição de indicação (médica ou paciente) */}
+      {editandoIndicacao && (() => {
+        const i = editandoIndicacao;
+        const ehMedico = i.tipo === 'medico';
+        const etapaSucesso = ehMedico ? 'convertido' : 'pago';
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 700, overflowY: 'auto', padding: '24px 16px' }}>
+            <div onClick={() => setEditandoIndicacao(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
+            <div style={{ position: 'relative', maxWidth: 520, margin: '0 auto', background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
+              <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 17, color: '#111827' }}>{i.nome} {i.sobrenome}</div>
+                  <div style={{ fontSize: 12, color: ehMedico ? '#374151' : '#111827', fontWeight: 700, marginTop: 2 }}>Indicado por {i.medico_nome}</div>
+                </div>
+                <button onClick={() => setEditandoIndicacao(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#6b7280' }}>×</button>
+              </div>
+
+              <div style={{ padding: '14px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {i.whatsapp && (
+                  <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                    style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '7px 14px', borderRadius: 6, fontSize: 12.5, fontFamily: 'inherit', textDecoration: 'none' }}>
+                    WhatsApp
+                  </a>
+                )}
+                {membro.cargo === 'superadmin' && (
+                  <button onClick={() => { excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`); setEditandoIndicacao(null); }}
+                    style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontFamily: 'inherit' }}>
+                    Excluir
+                  </button>
+                )}
+              </div>
+
+              <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                  <div>
+                    <label style={labelStyle}>Nome</label>
+                    <input value={i.nome} onChange={e => setEditandoIndicacao(v => v && { ...v, nome: e.target.value })} style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Sobrenome</label>
+                    <input value={i.sobrenome || ''} onChange={e => setEditandoIndicacao(v => v && { ...v, sobrenome: e.target.value })} style={inputStyle} />
+                  </div>
+                </div>
+                <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                  <div>
+                    <label style={labelStyle}>WhatsApp</label>
+                    <input value={i.whatsapp} onChange={e => setEditandoIndicacao(v => v && { ...v, whatsapp: e.target.value })} style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>E-mail</label>
+                    <input type="email" value={i.email || ''} onChange={e => setEditandoIndicacao(v => v && { ...v, email: e.target.value })} style={inputStyle} />
+                  </div>
+                </div>
+                {ehMedico && (
+                  <div>
+                    <label style={labelStyle}>CRM</label>
+                    <input value={i.crm || ''} onChange={e => setEditandoIndicacao(v => v && { ...v, crm: e.target.value })} style={inputStyle} />
+                  </div>
+                )}
+                <div>
+                  <label style={labelStyle}>Endereço</label>
+                  <input value={i.endereco || ''} onChange={e => setEditandoIndicacao(v => v && { ...v, endereco: e.target.value })} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Status</label>
+                  <select value={i.status} onChange={e => setEditandoIndicacao(v => v && { ...v, status: e.target.value })}
+                    style={{ ...inputStyle, cursor: 'pointer' }}>
+                    {ehMedico ? (
+                      <>
+                        <option value="novo">Novo</option>
+                        <option value="contatado">Contatado</option>
+                        <option value="convertido">Convertido</option>
+                        <option value="reprovado">Reprovado</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="em_atendimento">Em Atendimento</option>
+                        <option value="negociacao">Negociação</option>
+                        <option value="pago">Pago</option>
+                        <option value="cancelado">Cancelado</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+                <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga}
+                  mostrar={i.status === etapaSucesso} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
+                  input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
+              </div>
+              <div style={{ padding: '16px 24px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button onClick={() => setEditandoIndicacao(null)} style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                  Cancelar
+                </button>
+                <button onClick={salvarEdicaoIndicacao} disabled={salvandoIndicacao} style={{ background: '#111827', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoIndicacao ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoIndicacao ? 0.6 : 1 }}>
+                  {salvandoIndicacao ? 'Salvando...' : 'Salvar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       </div>
     </div>
   );
