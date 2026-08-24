@@ -299,6 +299,7 @@ export async function sbSaveIndicacao(i: Indicacao) {
     status: i.status, obs: i.obs || '', created_at: i.created_at,
     tipo: i.tipo || 'paciente', crm: i.crm || '',
     comissao_valor: i.comissao_valor ?? null, comissao_paga: i.comissao_paga || false,
+    comissao_despesa_id: i.comissao_despesa_id ?? null,
   });
   if (error) throw new Error(`sbSaveIndicacao: ${error.message} (${error.code})`);
 }

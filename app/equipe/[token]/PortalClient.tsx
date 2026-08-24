@@ -135,8 +135,16 @@ function ComissaoWidget({ id, comissaoValor, comissaoPaga, mostrar, totalBase, p
   input: string; setInput: (v: string) => void; onConfirmar: (id: string, valor: number) => void;
 }) {
   if (!mostrar) return null;
-  if (comissaoPaga) {
-    return <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', marginTop: 4 }}>OK Comissão: R$ {(comissaoValor || 0).toFixed(2)}</div>;
+  if (comissaoPaga && promptId !== id) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }} onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>OK Comissão: R$ {(comissaoValor || 0).toFixed(2)}</div>
+        <button onClick={() => {
+          setPromptId(id);
+          setInput(totalBase > 0 ? ((comissaoValor || 0) / totalBase * 100).toFixed(2) : String(comissaoValor || ''));
+        }} style={{ background: 'none', border: 'none', color: '#6b7280', textDecoration: 'underline', cursor: 'pointer', fontSize: 10.5, fontFamily: 'inherit' }}>Editar</button>
+      </div>
+    );
   }
   if (promptId === id) {
     if (totalBase > 0) {

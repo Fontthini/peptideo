@@ -202,6 +202,7 @@ export type Indicacao = {
   crm?: string;
   comissao_valor?: number | null;
   comissao_paga?: boolean;
+  comissao_despesa_id?: string | null;
 };
 
 export type PedidoItem = { nome: string; preco: number; quantidade: number };
