@@ -4135,16 +4135,17 @@ export default function AdminPage() {
             })();
 
             const agrupadoPorMedico = (() => {
-              const m = new Map<string, { nome: string; qtd: number; total: number }>();
+              const m = new Map<string, { nome: string; qtdProprio: number; totalProprio: number; qtdIndicado: number; totalIndicado: number }>();
               pedidosPeriodo.forEach(p => {
-                const cur = m.get(p.cadastro_id) || { nome: p.cadastro_nome, qtd: 0, total: 0 };
-                cur.qtd += 1; cur.total += p.preco;
+                const cur = m.get(p.cadastro_id) || { nome: p.cadastro_nome, qtdProprio: 0, totalProprio: 0, qtdIndicado: 0, totalIndicado: 0 };
+                if (p.indicacao_id) { cur.qtdIndicado += 1; cur.totalIndicado += p.preco; }
+                else { cur.qtdProprio += 1; cur.totalProprio += p.preco; }
                 m.set(p.cadastro_id, cur);
               });
               const comissaoPorMedico = new Map<string, number>();
               comissoesPeriodo.forEach(i => comissaoPorMedico.set(i.medico_id, (comissaoPorMedico.get(i.medico_id) || 0) + (i.comissao_valor || 0)));
               return [...m.entries()]
-                .map(([id, v]) => ({ id, ...v, comissao: comissaoPorMedico.get(id) || 0 }))
+                .map(([id, v]) => ({ id, ...v, total: v.totalProprio + v.totalIndicado, comissao: comissaoPorMedico.get(id) || 0 }))
                 .sort((a, b) => b.total - a.total);
             })();
 
@@ -4198,18 +4199,18 @@ export default function AdminPage() {
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4 }}>DE</div>
                     <input type="date" value={relFiltroInicio} onChange={e => setRelFiltroInicio(e.target.value)}
-                      style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit' }} />
+                      style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: '#fff', color: '#111827', colorScheme: 'light' }} />
                   </div>
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4 }}>ATÉ</div>
                     <input type="date" value={relFiltroFim} onChange={e => setRelFiltroFim(e.target.value)}
-                      style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit' }} />
+                      style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: '#fff', color: '#111827', colorScheme: 'light' }} />
                   </div>
                   {(relatorioTipo === 'faturamento' || relatorioTipo === 'medicos' || relatorioTipo === 'comissoes') && (
                     <div>
                       <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4 }}>MÉDICO</div>
                       <select value={relFiltroMedico} onChange={e => setRelFiltroMedico(e.target.value)}
-                        style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', maxWidth: 220 }}>
+                        style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', maxWidth: 220, background: '#fff', color: '#111827', colorScheme: 'light' }}>
                         <option value="">Todos os médicos</option>
                         {medicosOrdenados.map(c => <option key={c.id} value={c.id}>{c.nome} {c.sobrenome}</option>)}
                       </select>
@@ -4219,7 +4220,7 @@ export default function AdminPage() {
                     <div>
                       <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4 }}>AGRUPAR POR</div>
                       <select value={relAgrupamento} onChange={e => setRelAgrupamento(e.target.value as 'dia' | 'mes')}
-                        style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit' }}>
+                        style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: '#fff', color: '#111827', colorScheme: 'light' }}>
                         <option value="dia">Dia</option>
                         <option value="mes">Mês</option>
                       </select>
@@ -4229,7 +4230,7 @@ export default function AdminPage() {
                     <div>
                       <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4 }}>TIPO</div>
                       <select value={relFiltroTipoFin} onChange={e => setRelFiltroTipoFin(e.target.value as 'todos' | 'entrada' | 'saida')}
-                        style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit' }}>
+                        style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: '#fff', color: '#111827', colorScheme: 'light' }}>
                         <option value="todos">Todos</option>
                         <option value="entrada">Entrada</option>
                         <option value="saida">Saída</option>
@@ -4250,8 +4251,8 @@ export default function AdminPage() {
                       baixarCSV('faturamento.csv', ['Período', 'Nº Pedidos', 'Faturamento'],
                         agrupadoFaturamento.map(([k, v]) => [formatPeriodoKey(k), v.qtd, v.total.toFixed(2)]));
                     } else if (relatorioTipo === 'medicos') {
-                      baixarCSV('faturamento-por-medico.csv', ['Médico', 'Nº Pedidos', 'Faturamento', 'Comissões Pagas'],
-                        agrupadoPorMedico.map(m => [m.nome, m.qtd, m.total.toFixed(2), m.comissao.toFixed(2)]));
+                      baixarCSV('faturamento-por-medico.csv', ['Médico', 'Pedidos Próprios', 'Faturamento Próprio', 'Pedidos de Indicados', 'Faturamento de Indicados', 'Comissões Pagas'],
+                        agrupadoPorMedico.map(m => [m.nome, m.qtdProprio, m.totalProprio.toFixed(2), m.qtdIndicado, m.totalIndicado.toFixed(2), m.comissao.toFixed(2)]));
                     } else if (relatorioTipo === 'comissoes') {
                       baixarCSV('comissoes-atribuidas.csv', ['Data', 'Médico Indicador', 'Indicado', 'Tipo', 'Valor'],
                         comissoesPeriodo.map(i => [formatData(i._data), i.medico_nome, `${i.nome} ${i.sobrenome || ''}`.trim(), i.tipo === 'medico' ? 'Médico Indicado' : 'Paciente', (i.comissao_valor || 0).toFixed(2)]));
@@ -4315,19 +4316,21 @@ export default function AdminPage() {
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-                            {['Médico', 'Nº Pedidos', 'Faturamento', 'Comissões Pagas'].map(h => (
+                            {['Médico', 'Pedidos Próprios', 'Faturamento Próprio', 'Pedidos de Indicados', 'Faturamento de Indicados', 'Comissões Pagas'].map(h => (
                               <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
                           {agrupadoPorMedico.length === 0 ? (
-                            <tr><td colSpan={4} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Nenhum pedido pago no período.</td></tr>
+                            <tr><td colSpan={6} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Nenhum pedido pago no período.</td></tr>
                           ) : agrupadoPorMedico.map((m, idx) => (
                             <tr key={m.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
                               <td style={{ padding: '11px 14px', color: '#111827', fontWeight: 600 }}>{m.nome}</td>
-                              <td style={{ padding: '11px 14px', color: '#6b7280' }}>{m.qtd}</td>
-                              <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>R$ {m.total.toFixed(2)}</td>
+                              <td style={{ padding: '11px 14px', color: '#6b7280' }}>{m.qtdProprio || '-'}</td>
+                              <td style={{ padding: '11px 14px', fontWeight: 700, color: m.totalProprio > 0 ? '#16a34a' : '#d1d5db', fontVariantNumeric: 'tabular-nums' }}>{m.totalProprio > 0 ? `R$ ${m.totalProprio.toFixed(2)}` : '-'}</td>
+                              <td style={{ padding: '11px 14px', color: '#6b7280' }}>{m.qtdIndicado || '-'}</td>
+                              <td style={{ padding: '11px 14px', fontWeight: 700, color: m.totalIndicado > 0 ? '#16a34a' : '#d1d5db', fontVariantNumeric: 'tabular-nums' }}>{m.totalIndicado > 0 ? `R$ ${m.totalIndicado.toFixed(2)}` : '-'}</td>
                               <td style={{ padding: '11px 14px', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>{m.comissao > 0 ? `R$ ${m.comissao.toFixed(2)}` : '-'}</td>
                             </tr>
                           ))}
