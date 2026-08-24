@@ -39,7 +39,7 @@ type Artigo = { id: string; titulo: string; conteudo: string; imagem?: string; v
 type Membro = { id: string; nome: string; email: string; cargo: string; ativo: boolean; created_at: string; senha?: string; token_acesso?: string; last_seen?: string | null; };
 type PedidoItem = { nome: string; preco: number; quantidade: number };
 type Pedido = { id: string; cadastro_id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string; indicacao_id?: string | null; paciente_nome?: string; produto_nome: string; preco: number; itens?: PedidoItem[]; vendedor_id?: string; status: string; obs?: string; created_at: string; };
-type Indicacao = { id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string; status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string; comissao_valor?: number | null; comissao_paga?: boolean; };
+type Indicacao = { id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string; status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string; comissao_valor?: number | null; comissao_paga?: boolean; comissao_despesa_id?: string | null; };
 type Despesa = { id: string; tipo: 'entrada' | 'saida'; categoria: string; descricao: string; valor: number; data: string; comprovante_url?: string; created_at: string; updated_at?: string; };
 
 // Status compartilhado entre Pedidos e Indicações de pacientes (mesmo pipeline de venda).
@@ -192,13 +192,35 @@ function ComissaoWidget({ id, comissaoValor, comissaoPaga, mostrar, totalBase, p
   );
 }
 
+function dentroPeriodo(dataStr: string | undefined | null, inicio: string, fim: string): boolean {
+  if (!dataStr) return false;
+  const d = dataStr.slice(0, 10);
+  if (inicio && d < inicio) return false;
+  if (fim && d > fim) return false;
+  return true;
+}
+
+function baixarCSV(nomeArquivo: string, headers: string[], linhas: (string | number)[][]) {
+  const escapar = (v: string | number) => {
+    const s = String(v);
+    return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const csv = [headers, ...linhas].map(row => row.map(escapar).join(';')).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nomeArquivo;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export default function AdminPage() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [logado, setLogado] = useState(false);
   const [adminNome, setAdminNome] = useState('');
   const [isSuperadmin, setIsSuperadmin] = useState(false);
-  const [aba, setAba] = useState<'leads' | 'clientes' | 'produtos' | 'banners' | 'blog' | 'despesas' | 'equipe' | 'indicacoes' | 'indicacoes-medicas' | 'pedidos' | 'config' | 'dashboard' | 'logs' | 'mentoria' | 'carrinho' | 'rastreio'>('leads');
+  const [aba, setAba] = useState<'leads' | 'clientes' | 'produtos' | 'banners' | 'blog' | 'despesas' | 'equipe' | 'indicacoes' | 'indicacoes-medicas' | 'pedidos' | 'config' | 'dashboard' | 'logs' | 'mentoria' | 'carrinho' | 'rastreio' | 'relatorios'>('leads');
   const [msg, setMsg] = useState('');
   const [logs, setLogs] = useState<AdminLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -209,6 +231,12 @@ export default function AdminPage() {
   const [loadingCarrinho, setLoadingCarrinho] = useState(false);
 
   const [despesas, setDespesas] = useState<Despesa[]>([]);
+  const [relatorioTipo, setRelatorioTipo] = useState<'faturamento' | 'medicos' | 'comissoes' | 'financeiro'>('faturamento');
+  const [relFiltroInicio, setRelFiltroInicio] = useState('');
+  const [relFiltroFim, setRelFiltroFim] = useState('');
+  const [relFiltroMedico, setRelFiltroMedico] = useState('');
+  const [relFiltroTipoFin, setRelFiltroTipoFin] = useState<'todos' | 'entrada' | 'saida'>('todos');
+  const [relAgrupamento, setRelAgrupamento] = useState<'dia' | 'mes'>('mes');
   const [loadingDespesas, setLoadingDespesas] = useState(false);
   const [categoriasFinanceiras, setCategoriasFinanceiras] = useState<string[]>([]);
   const [novaCategoriaFinanceira, setNovaCategoriaFinanceira] = useState('');
@@ -657,6 +685,7 @@ export default function AdminPage() {
     if (a === 'despesas') { carregarDespesas(); carregarCategoriasFinanceiras(); }
     if (a === 'carrinho') { carregarCarrinho(); carregarPedidos(); }
     if (a === 'rastreio') { if (cadastros.length === 0) carregarCadastros(); if (indicacoes.length === 0) carregarIndicacoes(); }
+    if (a === 'relatorios') { carregarPedidos(); carregarDespesas(); if (cadastros.length === 0) carregarCadastros(); if (indicacoes.length === 0) carregarIndicacoes(); }
   };
 
   const aprovar = async (id: string) => {
@@ -1119,6 +1148,7 @@ export default function AdminPage() {
           {navItem('indicacoes', '>', 'Indicações')}
           {navItem('indicacoes-medicas', '+', 'Indicações Médicas')}
           {navItem('pedidos', '$', 'Pedidos')}
+          {navItem('relatorios', 'i', 'Relatórios')}
           {navItem('config', '=', 'Config')}
           {navItem('mentoria', '%', 'Mentoria')}
           {navItem('carrinho', 'C', 'Monitoramento de Carrinho')}
@@ -4059,6 +4089,349 @@ export default function AdminPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+            );
+          })()}
+
+          {/* ======== ABA RELATÓRIOS ======== */}
+          {aba === 'relatorios' && (() => {
+            const medicosOrdenados = [...cadastros].sort((a, b) => a.nome.localeCompare(b.nome));
+            const despesaPorId = new Map(despesas.map(d => [d.id, d]));
+
+            const pedidosPeriodo = pedidos.filter(p =>
+              p.status === 'pago' &&
+              dentroPeriodo(p.created_at, relFiltroInicio, relFiltroFim) &&
+              (!relFiltroMedico || p.cadastro_id === relFiltroMedico)
+            );
+
+            const comissoesPeriodo = indicacoes
+              .filter(i => i.comissao_paga && (!relFiltroMedico || i.medico_id === relFiltroMedico))
+              .map(i => {
+                const desp = i.comissao_despesa_id ? despesaPorId.get(i.comissao_despesa_id) : undefined;
+                return { ...i, _data: desp?.data || i.created_at.slice(0, 10) };
+              })
+              .filter(i => dentroPeriodo(i._data, relFiltroInicio, relFiltroFim))
+              .sort((a, b) => b._data.localeCompare(a._data));
+
+            const despesasPeriodo = despesas
+              .filter(d => dentroPeriodo(d.data, relFiltroInicio, relFiltroFim) && (relFiltroTipoFin === 'todos' || d.tipo === relFiltroTipoFin))
+              .sort((a, b) => b.data.localeCompare(a.data));
+
+            const totalFaturamento = pedidosPeriodo.reduce((s, p) => s + p.preco, 0);
+            const ticketMedio = pedidosPeriodo.length ? totalFaturamento / pedidosPeriodo.length : 0;
+            const totalComissoes = comissoesPeriodo.reduce((s, i) => s + (i.comissao_valor || 0), 0);
+            const totalEntradasFin = despesasPeriodo.filter(d => d.tipo === 'entrada').reduce((s, d) => s + d.valor, 0);
+            const totalSaidasFin = despesasPeriodo.filter(d => d.tipo === 'saida').reduce((s, d) => s + d.valor, 0);
+
+            const agrupadoFaturamento = (() => {
+              const m = new Map<string, { qtd: number; total: number }>();
+              pedidosPeriodo.forEach(p => {
+                const key = relAgrupamento === 'dia' ? p.created_at.slice(0, 10) : p.created_at.slice(0, 7);
+                const cur = m.get(key) || { qtd: 0, total: 0 };
+                cur.qtd += 1; cur.total += p.preco;
+                m.set(key, cur);
+              });
+              return [...m.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+            })();
+
+            const agrupadoPorMedico = (() => {
+              const m = new Map<string, { nome: string; qtd: number; total: number }>();
+              pedidosPeriodo.forEach(p => {
+                const cur = m.get(p.cadastro_id) || { nome: p.cadastro_nome, qtd: 0, total: 0 };
+                cur.qtd += 1; cur.total += p.preco;
+                m.set(p.cadastro_id, cur);
+              });
+              const comissaoPorMedico = new Map<string, number>();
+              comissoesPeriodo.forEach(i => comissaoPorMedico.set(i.medico_id, (comissaoPorMedico.get(i.medico_id) || 0) + (i.comissao_valor || 0)));
+              return [...m.entries()]
+                .map(([id, v]) => ({ id, ...v, comissao: comissaoPorMedico.get(id) || 0 }))
+                .sort((a, b) => b.total - a.total);
+            })();
+
+            const formatData = (d: string) => new Date(d.slice(0, 10) + 'T00:00:00').toLocaleDateString('pt-BR');
+            const formatPeriodoKey = (key: string) => relAgrupamento === 'dia'
+              ? formatData(key)
+              : new Date(key + '-01T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+            const limparFiltros = () => { setRelFiltroInicio(''); setRelFiltroFim(''); setRelFiltroMedico(''); setRelFiltroTipoFin('todos'); };
+
+            const pills: { key: typeof relatorioTipo; label: string }[] = [
+              { key: 'faturamento', label: 'Faturamento' },
+              { key: 'medicos', label: 'Por Médico' },
+              { key: 'comissoes', label: 'Comissões Atribuídas' },
+              { key: 'financeiro', label: 'Entradas e Saídas' },
+            ];
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <style>{`
+                  @media print {
+                    .admin-sidebar, header, .no-print { display: none !important; }
+                    .admin-main { padding: 0 !important; overflow: visible !important; }
+                    body { background: #fff !important; }
+                  }
+                `}</style>
+
+                <div>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>Relatórios</h2>
+                  <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>
+                    Faturamento, comissões e financeiro — filtre por período e médico, imprima ou baixe em CSV.
+                  </p>
+                </div>
+
+                {/* Seletor de relatório */}
+                <div className="no-print" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {pills.map(p => (
+                    <button key={p.key} onClick={() => setRelatorioTipo(p.key)}
+                      style={{
+                        background: relatorioTipo === p.key ? '#111827' : '#fff', color: relatorioTipo === p.key ? '#fff' : '#374151',
+                        border: '1px solid ' + (relatorioTipo === p.key ? '#111827' : '#d1d5db'), padding: '8px 16px', borderRadius: 20,
+                        fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                      }}>
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Filtros */}
+                <div className="no-print" style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4 }}>DE</div>
+                    <input type="date" value={relFiltroInicio} onChange={e => setRelFiltroInicio(e.target.value)}
+                      style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4 }}>ATÉ</div>
+                    <input type="date" value={relFiltroFim} onChange={e => setRelFiltroFim(e.target.value)}
+                      style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit' }} />
+                  </div>
+                  {(relatorioTipo === 'faturamento' || relatorioTipo === 'medicos' || relatorioTipo === 'comissoes') && (
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4 }}>MÉDICO</div>
+                      <select value={relFiltroMedico} onChange={e => setRelFiltroMedico(e.target.value)}
+                        style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', maxWidth: 220 }}>
+                        <option value="">Todos os médicos</option>
+                        {medicosOrdenados.map(c => <option key={c.id} value={c.id}>{c.nome} {c.sobrenome}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  {relatorioTipo === 'faturamento' && (
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4 }}>AGRUPAR POR</div>
+                      <select value={relAgrupamento} onChange={e => setRelAgrupamento(e.target.value as 'dia' | 'mes')}
+                        style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit' }}>
+                        <option value="dia">Dia</option>
+                        <option value="mes">Mês</option>
+                      </select>
+                    </div>
+                  )}
+                  {relatorioTipo === 'financeiro' && (
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4 }}>TIPO</div>
+                      <select value={relFiltroTipoFin} onChange={e => setRelFiltroTipoFin(e.target.value as 'todos' | 'entrada' | 'saida')}
+                        style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit' }}>
+                        <option value="todos">Todos</option>
+                        <option value="entrada">Entrada</option>
+                        <option value="saida">Saída</option>
+                      </select>
+                    </div>
+                  )}
+                  <button onClick={limparFiltros}
+                    style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
+                    Limpar filtros
+                  </button>
+                  <div style={{ flex: 1 }} />
+                  <button onClick={() => window.print()}
+                    style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit' }}>
+                    Imprimir
+                  </button>
+                  <button onClick={() => {
+                    if (relatorioTipo === 'faturamento') {
+                      baixarCSV('faturamento.csv', ['Período', 'Nº Pedidos', 'Faturamento'],
+                        agrupadoFaturamento.map(([k, v]) => [formatPeriodoKey(k), v.qtd, v.total.toFixed(2)]));
+                    } else if (relatorioTipo === 'medicos') {
+                      baixarCSV('faturamento-por-medico.csv', ['Médico', 'Nº Pedidos', 'Faturamento', 'Comissões Pagas'],
+                        agrupadoPorMedico.map(m => [m.nome, m.qtd, m.total.toFixed(2), m.comissao.toFixed(2)]));
+                    } else if (relatorioTipo === 'comissoes') {
+                      baixarCSV('comissoes-atribuidas.csv', ['Data', 'Médico Indicador', 'Indicado', 'Tipo', 'Valor'],
+                        comissoesPeriodo.map(i => [formatData(i._data), i.medico_nome, `${i.nome} ${i.sobrenome || ''}`.trim(), i.tipo === 'medico' ? 'Médico Indicado' : 'Paciente', (i.comissao_valor || 0).toFixed(2)]));
+                    } else {
+                      baixarCSV('entradas-e-saidas.csv', ['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor'],
+                        despesasPeriodo.map(d => [formatData(d.data), d.tipo === 'entrada' ? 'Entrada' : 'Saída', d.categoria, d.descricao, d.valor.toFixed(2)]));
+                    }
+                  }} style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>
+                    Baixar CSV
+                  </button>
+                </div>
+
+                {/* ===== Faturamento ===== */}
+                {relatorioTipo === 'faturamento' && (
+                  <>
+                    <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                      <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalFaturamento.toFixed(2)}</div>
+                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Faturamento Total</div>
+                      </div>
+                      <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: '#111827' }}>{pedidosPeriodo.length}</div>
+                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Pedidos Pagos</div>
+                      </div>
+                      <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: '#111827' }}>R$ {ticketMedio.toFixed(2)}</div>
+                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Ticket Médio</div>
+                      </div>
+                    </div>
+                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                      <div className="admin-table-scroll">
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                              {['Período', 'Nº Pedidos', 'Faturamento'].map(h => (
+                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {agrupadoFaturamento.length === 0 ? (
+                              <tr><td colSpan={3} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Nenhum pedido pago no período.</td></tr>
+                            ) : agrupadoFaturamento.map(([k, v], idx) => (
+                              <tr key={k} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                                <td style={{ padding: '11px 14px', color: '#374151', textTransform: 'capitalize' }}>{formatPeriodoKey(k)}</td>
+                                <td style={{ padding: '11px 14px', color: '#6b7280' }}>{v.qtd}</td>
+                                <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>R$ {v.total.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* ===== Por Médico ===== */}
+                {relatorioTipo === 'medicos' && (
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                    <div className="admin-table-scroll">
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                            {['Médico', 'Nº Pedidos', 'Faturamento', 'Comissões Pagas'].map(h => (
+                              <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {agrupadoPorMedico.length === 0 ? (
+                            <tr><td colSpan={4} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Nenhum pedido pago no período.</td></tr>
+                          ) : agrupadoPorMedico.map((m, idx) => (
+                            <tr key={m.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                              <td style={{ padding: '11px 14px', color: '#111827', fontWeight: 600 }}>{m.nome}</td>
+                              <td style={{ padding: '11px 14px', color: '#6b7280' }}>{m.qtd}</td>
+                              <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>R$ {m.total.toFixed(2)}</td>
+                              <td style={{ padding: '11px 14px', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>{m.comissao > 0 ? `R$ ${m.comissao.toFixed(2)}` : '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* ===== Comissões Atribuídas ===== */}
+                {relatorioTipo === 'comissoes' && (
+                  <>
+                    <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                      <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalComissoes.toFixed(2)}</div>
+                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Total em Comissões</div>
+                      </div>
+                      <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: '#111827' }}>{comissoesPeriodo.length}</div>
+                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Comissões Lançadas</div>
+                      </div>
+                    </div>
+                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                      <div className="admin-table-scroll">
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                              {['Data', 'Médico Indicador', 'Indicado', 'Tipo', 'Valor'].map(h => (
+                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {comissoesPeriodo.length === 0 ? (
+                              <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Nenhuma comissão lançada no período.</td></tr>
+                            ) : comissoesPeriodo.map((i, idx) => (
+                              <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                                <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap' }}>{formatData(i._data)}</td>
+                                <td style={{ padding: '11px 14px', color: '#111827', fontWeight: 600 }}>{i.medico_nome}</td>
+                                <td style={{ padding: '11px 14px', color: '#374151' }}>{i.nome} {i.sobrenome || ''}</td>
+                                <td style={{ padding: '11px 14px' }}>
+                                  <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: i.tipo === 'medico' ? '#f0fdf4' : '#f3f4f6', color: i.tipo === 'medico' ? '#16a34a' : '#374151' }}>
+                                    {i.tipo === 'medico' ? 'Médico Indicado' : 'Paciente'}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>R$ {(i.comissao_valor || 0).toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* ===== Entradas e Saídas ===== */}
+                {relatorioTipo === 'financeiro' && (
+                  <>
+                    <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                      <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalEntradasFin.toFixed(2)}</div>
+                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Total Entradas</div>
+                      </div>
+                      <div style={{ background: '#dc26260d', border: '1px solid #dc262633', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #dc2626' }}>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: '#dc2626' }}>R$ {totalSaidasFin.toFixed(2)}</div>
+                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Total Saídas</div>
+                      </div>
+                      <div style={{ background: `${totalEntradasFin - totalSaidasFin >= 0 ? '#111827' : '#dc2626'}0d`, border: `1px solid ${totalEntradasFin - totalSaidasFin >= 0 ? '#111827' : '#dc2626'}33`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${totalEntradasFin - totalSaidasFin >= 0 ? '#111827' : '#dc2626'}` }}>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: totalEntradasFin - totalSaidasFin >= 0 ? '#111827' : '#dc2626' }}>R$ {(totalEntradasFin - totalSaidasFin).toFixed(2)}</div>
+                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Saldo</div>
+                      </div>
+                    </div>
+                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                      <div className="admin-table-scroll">
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                              {['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor'].map(h => (
+                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {despesasPeriodo.length === 0 ? (
+                              <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Nenhum lançamento no período.</td></tr>
+                            ) : despesasPeriodo.map((d, idx) => (
+                              <tr key={d.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                                <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap' }}>{formatData(d.data)}</td>
+                                <td style={{ padding: '11px 14px' }}>
+                                  <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: d.tipo === 'entrada' ? '#dcfce7' : '#fee2e2', color: d.tipo === 'entrada' ? '#15803d' : '#dc2626' }}>
+                                    {d.tipo === 'entrada' ? 'Entrada' : 'Saída'}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '11px 14px', color: '#374151', whiteSpace: 'nowrap' }}>{d.categoria}</td>
+                                <td style={{ padding: '11px 14px', color: '#6b7280' }}>{d.descricao}</td>
+                                <td style={{ padding: '11px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626', fontVariantNumeric: 'tabular-nums' }}>R$ {d.valor.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             );
           })()}
