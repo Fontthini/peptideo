@@ -3998,10 +3998,10 @@ export default function AdminPage() {
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                 <div>
-                  <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>
-                    Financeiro <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({despesas.length})</span>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 6, marginTop: 0 }}>
+                    Financeiro <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({despesas.length})</span>
                   </h2>
-                  <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>
+                  <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, margin: 0 }}>
                     Controle de entradas e saídas — categorias, lançamentos e relatórios.
                   </p>
                 </div>
@@ -4010,26 +4010,26 @@ export default function AdminPage() {
                 <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
                   <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
                     <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalEntradas.toFixed(2)}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Total Entradas</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total Entradas</div>
                   </div>
                   <div style={{ background: '#dc26260d', border: '1px solid #dc262633', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #dc2626' }}>
                     <div style={{ fontSize: 26, fontWeight: 800, color: '#dc2626' }}>R$ {totalSaidas.toFixed(2)}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Total Saídas</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total Saídas</div>
                   </div>
-                  <div style={{ background: `${saldo >= 0 ? '#111827' : '#dc2626'}0d`, border: `1px solid ${saldo >= 0 ? '#111827' : '#dc2626'}33`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${saldo >= 0 ? '#111827' : '#dc2626'}` }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: saldo >= 0 ? '#111827' : '#dc2626' }}>R$ {saldo.toFixed(2)}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Saldo</div>
+                  <div style={{ background: saldo >= 0 ? 'var(--surface-hover)' : '#dc26260d', border: `1px solid ${saldo >= 0 ? 'var(--border)' : '#dc262633'}`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${saldo >= 0 ? 'var(--text-soft, #9ca3af)' : '#dc2626'}` }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: saldo >= 0 ? 'var(--text)' : '#dc2626' }}>R$ {saldo.toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Saldo</div>
                   </div>
                 </div>
 
                 {/* Relatorio por categoria */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Entradas por Categoria</div>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Entradas por Categoria</div>
                     <HBarChart color="#16a34a" emptyLabel="Sem entradas ainda." items={porCategoria('entrada')} />
                   </div>
-                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Saídas por Categoria</div>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Saídas por Categoria</div>
                     <HBarChart color="#dc2626" emptyLabel="Sem saídas ainda." items={porCategoria('saida')} />
                   </div>
                 </div>
@@ -4038,26 +4038,26 @@ export default function AdminPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     {/* Lista de lancamentos */}
                     {loadingDespesas ? (
-                      <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+                      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
                     ) : despesas.length === 0 ? (
-                      <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                      <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
                         Nenhum lançamento ainda.
                       </div>
                     ) : (
-                      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                         <div className="admin-table-scroll">
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                           <thead>
-                            <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                            <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
                               {['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor', 'Comprovante', 'Ações'].map(h => (
-                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
                             {despesas.map((d, idx) => (
-                              <tr key={d.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                                <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                              <tr key={d.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
                                   {new Date(d.data + 'T00:00:00').toLocaleDateString('pt-BR')}
                                 </td>
                                 <td style={{ padding: '11px 14px' }}>
@@ -4065,25 +4065,25 @@ export default function AdminPage() {
                                     {d.tipo === 'entrada' ? 'Entrada' : 'Saída'}
                                   </span>
                                 </td>
-                                <td style={{ padding: '11px 14px', color: '#374151', whiteSpace: 'nowrap' }}>{d.categoria}</td>
-                                <td style={{ padding: '11px 14px', color: '#6b7280' }}>{d.descricao}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap' }}>{d.categoria}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{d.descricao}</td>
                                 <td style={{ padding: '11px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                                   R$ {d.valor.toFixed(2)}
                                 </td>
                                 <td style={{ padding: '11px 14px' }}>
                                   {d.comprovante_url ? (
                                     <a href={d.comprovante_url} target="_blank" rel="noreferrer"
-                                      style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
+                                      style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
                                       Ver
                                     </a>
                                   ) : (
-                                    <span style={{ color: '#d1d5db', fontSize: 12 }}>-</span>
+                                    <span style={{ color: 'var(--text-soft, #9ca3af)', fontSize: 12 }}>-</span>
                                   )}
                                 </td>
                                 <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                                   <div style={{ display: 'flex', gap: 6 }}>
                                     <button onClick={() => setEditandoDespesa(d)}
-                                      style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                                      style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
                                       Editar
                                     </button>
                                     <button onClick={() => excluirDespesa(d.id, d.descricao)}
@@ -4103,19 +4103,19 @@ export default function AdminPage() {
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     {/* Categorias */}
-                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                       <button type="button" onClick={() => setMostrarCatsFinanceiras(v => !v)}
                         style={{ width: '100%', background: 'none', border: 'none', padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', fontFamily: 'inherit' }}>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Categorias ({categoriasFinanceiras.length})</span>
-                        <span style={{ color: '#6b7280', fontSize: 13 }}>{mostrarCatsFinanceiras ? '▲' : '▼'}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Categorias ({categoriasFinanceiras.length})</span>
+                        <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13 }}>{mostrarCatsFinanceiras ? '▲' : '▼'}</span>
                       </button>
                       {mostrarCatsFinanceiras && (
-                        <div style={{ padding: '0 16px 16px', borderTop: '1px solid #f3f4f6' }}>
+                        <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--border)' }}>
                           <div style={{ paddingTop: 12, marginBottom: 10 }}>
-                            {categoriasFinanceiras.length === 0 && <div style={{ fontSize: 12, color: '#6b7280', fontStyle: 'italic' }}>Nenhuma ainda.</div>}
+                            {categoriasFinanceiras.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', fontStyle: 'italic' }}>Nenhuma ainda.</div>}
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                               {categoriasFinanceiras.map(c => (
-                                <span key={c} style={{ background: '#f9fafb', border: '1px solid #d1d5db', color: '#374151', padding: '3px 10px', borderRadius: 12, fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <span key={c} style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', color: 'var(--text-secondary, #374151)', padding: '3px 10px', borderRadius: 12, fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}>
                                   {c}
                                   <button type="button" onClick={() => deletarCategoriaFinanceira(c)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: 0 }}>-</button>
                                 </span>
@@ -4124,17 +4124,17 @@ export default function AdminPage() {
                           </div>
                           <form onSubmit={adicionarCategoriaFinanceira} style={{ display: 'flex', gap: 6 }}>
                             <input value={novaCategoriaFinanceira} onChange={e => setNovaCategoriaFinanceira(e.target.value)} placeholder="Nova categoria..." style={{ ...inputStyle, flex: 1, padding: '8px 12px', fontSize: 12 }} />
-                            <button type="submit" style={{ background: '#111827', color: '#fff', border: 'none', borderRadius: 7, padding: '8px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 12, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>+ Add</button>
+                            <button type="submit" style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 7, padding: '8px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 12, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>+ Add</button>
                           </form>
                         </div>
                       )}
                     </div>
 
                     {/* Novo / editar lancamento */}
-                    <div style={{ background: '#fff', border: editandoDespesa ? '1px solid #d1d5db' : '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+                    <div style={{ background: 'var(--surface)', border: editandoDespesa ? '1px solid var(--border)' : '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                        <h3 style={{ fontSize: 15, fontWeight: 800, color: '#111827', margin: 0 }}>{editandoDespesa ? 'Editar Lançamento' : 'Novo Lançamento'}</h3>
-                        {editandoDespesa && <button onClick={() => setEditandoDespesa(null)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 20 }}>-</button>}
+                        <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', margin: 0 }}>{editandoDespesa ? 'Editar Lançamento' : 'Novo Lançamento'}</h3>
+                        {editandoDespesa && <button onClick={() => setEditandoDespesa(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted, #6b7280)', cursor: 'pointer', fontSize: 20 }}>-</button>}
                       </div>
                       <form onSubmit={salvarDespesa} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
                         <div style={{ display: 'flex', gap: 8 }}>
@@ -4144,7 +4144,7 @@ export default function AdminPage() {
                             return (
                               <button key={t} type="button"
                                 onClick={() => editandoDespesa ? setEditandoDespesa(v => v && ({ ...v, tipo: t })) : setNovaDespesa(v => ({ ...v, tipo: t }))}
-                                style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: `1px solid ${atual === t ? cor : '#d1d5db'}`, background: atual === t ? `${cor}14` : '#fff', color: atual === t ? cor : '#374151', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                                style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: `1px solid ${atual === t ? cor : 'var(--border)'}`, background: atual === t ? `${cor}14` : 'var(--surface)', color: atual === t ? cor : 'var(--text-secondary, #374151)', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
                                 {t === 'entrada' ? 'Entrada' : 'Saída'}
                               </button>
                             );
@@ -4181,15 +4181,15 @@ export default function AdminPage() {
                           </div>
                         </div>
                         <div>
-                          <label style={labelStyle}>Comprovante <span style={{ color: '#6b7280', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(nota fiscal, recibo — imagem ou PDF)</span></label>
+                          <label style={labelStyle}>Comprovante <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(nota fiscal, recibo — imagem ou PDF)</span></label>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                             {(editandoDespesa ? editandoDespesa.comprovante_url : novaDespesa.comprovante_url) && (
                               <a href={editandoDespesa ? editandoDespesa.comprovante_url : novaDespesa.comprovante_url} target="_blank" rel="noreferrer"
-                                style={{ fontSize: 12, color: '#374151', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 6, padding: '6px 10px', textDecoration: 'none', fontWeight: 600 }}>
+                                style={{ fontSize: 12, color: 'var(--text-secondary, #374151)', background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 10px', textDecoration: 'none', fontWeight: 600 }}>
                                 Ver comprovante atual
                               </a>
                             )}
-                            <label style={{ background: uploadando === 'comprovante' ? '#e5e7eb' : '#f9fafb', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <label style={{ background: uploadando === 'comprovante' ? 'var(--border)' : 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
                               {uploadando === 'comprovante' ? '...' : 'Enviar comprovante'}
                               <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={async e => {
                                 const f = e.target.files?.[0]; if (!f) return;
@@ -4199,7 +4199,7 @@ export default function AdminPage() {
                             </label>
                           </div>
                         </div>
-                        <button type="submit" style={{ background: '#111827', color: '#fff', fontWeight: 700, padding: '12px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
+                        <button type="submit" style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', fontWeight: 700, padding: '12px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
                           {editandoDespesa ? 'Salvar Alterações' : 'Registrar Lançamento'}
                         </button>
                       </form>
