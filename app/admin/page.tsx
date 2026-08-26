@@ -270,6 +270,17 @@ function baixarCSV(nomeArquivo: string, headers: string[], linhas: (string | num
 }
 
 export default function AdminPage() {
+  const [tema, setTema] = useState<'light' | 'dark'>('light');
+  useEffect(() => {
+    const salvo = typeof window !== 'undefined' ? localStorage.getItem('admin_tema') : null;
+    if (salvo === 'dark' || salvo === 'light') setTema(salvo);
+  }, []);
+  const alternarTema = () => {
+    const novo = tema === 'light' ? 'dark' : 'light';
+    setTema(novo);
+    localStorage.setItem('admin_tema', novo);
+  };
+
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [logado, setLogado] = useState(false);
@@ -1127,7 +1138,6 @@ export default function AdminPage() {
   const totalPacientes = indicacoes.filter(i => i.tipo !== 'medico').length;
 
   const navItem = (key: typeof aba, icon: string, label: string) => {
-    const cor = '#16a34a';
     const ativo = aba === key;
     return (
       <button
@@ -1136,17 +1146,18 @@ export default function AdminPage() {
         onClick={() => mudarAba(key)}
         style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          padding: '9px 12px', border: 'none', borderRadius: 8,
-          background: ativo ? '#f0fdf4' : 'transparent',
-          color: ativo ? cor : '#374151',
-          fontWeight: ativo ? 700 : 500, fontSize: 14, fontFamily: 'inherit',
-          cursor: 'pointer', textAlign: 'left',
+          padding: '9px 12px 9px 10px', border: 'none', borderRadius: 8,
+          borderLeft: `3px solid ${ativo ? 'var(--accent)' : 'transparent'}`,
+          background: ativo ? 'var(--accent-soft)' : 'transparent',
+          color: ativo ? 'var(--accent-text)' : 'var(--text-muted)',
+          fontWeight: ativo ? 700 : 500, fontSize: 13.5, fontFamily: 'inherit',
+          cursor: 'pointer', textAlign: 'left', transition: 'background .15s, color .15s',
         }}
       >
         <span style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          width: 26, height: 26, borderRadius: 7, fontSize: 13, fontWeight: 800, flexShrink: 0,
-          background: ativo ? cor : '#f3f4f6', color: ativo ? '#fff' : '#6b7280',
+          width: 24, height: 24, borderRadius: 6, fontSize: 12, fontWeight: 800, flexShrink: 0,
+          background: ativo ? 'var(--accent)' : 'var(--surface-hover)', color: ativo ? '#fff' : 'var(--text-soft)',
         }}>{icon}</span>
         {label}
       </button>
@@ -1154,17 +1165,31 @@ export default function AdminPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+    <div className="admin-root" data-theme={tema} style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
 
       <style>{`
+        .admin-root {
+          --bg: #f8fafc; --surface: #ffffff; --surface-hover: #f3f4f6;
+          --border: #e5e7eb; --text: #111827; --text-muted: #6b7280; --text-soft: #9ca3af;
+          --accent: #16a34a; --accent-text: #15803d; --accent-soft: #f0fdf4; --accent-border: #86efac;
+          --shadow-header: 0 1px 0 rgba(0,0,0,0.03);
+          color: var(--text);
+        }
+        .admin-root[data-theme="dark"] {
+          --bg: #0d0f12; --surface: #16181d; --surface-hover: #1f2229;
+          --border: #272b33; --text: #f3f4f6; --text-muted: #9ca3af; --text-soft: #6b7280;
+          --accent: #22c55e; --accent-text: #4ade80; --accent-soft: rgba(34,197,94,0.14); --accent-border: rgba(34,197,94,0.35);
+          --shadow-header: 0 1px 0 rgba(0,0,0,0.4);
+        }
         .admin-shell { display: flex; flex-direction: row; }
-        .admin-sidebar { width: 220px; flex-direction: column; border-right: 1px solid #e5e7eb; padding: 20px 12px; }
+        .admin-sidebar { width: 220px; flex-direction: column; border-right: 1px solid var(--border); padding: 20px 12px; }
         .admin-sidebar-extra { display: block; }
         .admin-navitem { width: 100%; margin-bottom: 2px; }
+        .admin-navitem:hover { background: var(--surface-hover) !important; }
         .admin-main { padding: 24px 28px; }
         @media (max-width: 860px) {
           .admin-shell { flex-direction: column; }
-          .admin-sidebar { width: auto; flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid #e5e7eb; padding: 8px 10px; align-items: center; gap: 6px; }
+          .admin-sidebar { width: auto; flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--border); padding: 8px 10px; align-items: center; gap: 6px; }
           .admin-sidebar-title, .admin-sidebar-extra { display: none; }
           .admin-navitem { width: auto; margin-bottom: 0; white-space: nowrap; }
           .admin-main { padding: 16px 14px; }
@@ -1178,23 +1203,28 @@ export default function AdminPage() {
           .admin-split-360, .admin-split-340, .admin-split-380 { grid-template-columns: 1fr; }
         }
         .admin-table-scroll { overflow-x: auto; }
+        .admin-theme-toggle:hover { background: var(--surface-hover) !important; }
       `}</style>
 
       {/* Header */}
-      <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, flexShrink: 0, boxShadow: '0 1px 0 rgba(0,0,0,0.02)' }}>
+      <header style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, flexShrink: 0, boxShadow: 'var(--shadow-header)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ padding: 3, borderRadius: 10, background: '#111827' }}>
             <img src={config.logo || 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg'}
               alt="PeptideZ" style={{ height: 36, maxWidth: 150, objectFit: 'contain', display: 'block', borderRadius: 7, background: '#fff', padding: '2px 6px' }} />
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button onClick={alternarTema} className="admin-theme-toggle" title={tema === 'light' ? 'Modo escuro' : 'Modo claro'}
+            style={{ background: 'var(--surface-hover)', color: 'var(--text-muted)', border: '1px solid var(--border)', width: 32, height: 32, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {tema === 'light' ? '🌙' : '☀️'}
+          </button>
           <button onClick={() => { carregarCadastros(); showMsg('Atualizado!'); }}
-            style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 600 }}>
+            style={{ background: 'var(--surface-hover)', color: 'var(--text-muted)', border: '1px solid var(--border)', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 600 }}>
             Atualizar
           </button>
           <button onClick={sair}
-            style={{ background: 'transparent', color: '#6b7280', border: '1px solid #e5e7eb', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
+            style={{ background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border)', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
             Sair
           </button>
         </div>
@@ -1203,8 +1233,8 @@ export default function AdminPage() {
       <div className="admin-shell" style={{ flex: 1, overflow: 'hidden' }}>
 
         {/* Sidebar */}
-        <aside className="admin-sidebar" style={{ background: '#fff', flexShrink: 0, display: 'flex' }}>
-          <div className="admin-sidebar-title" style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', letterSpacing: 1, marginBottom: 10, paddingLeft: 6, textTransform: 'uppercase' }}>Menu</div>
+        <aside className="admin-sidebar" style={{ background: 'var(--surface)', flexShrink: 0, display: 'flex' }}>
+          <div className="admin-sidebar-title" style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-soft)', letterSpacing: 1, marginBottom: 10, paddingLeft: 6, textTransform: 'uppercase' }}>Menu</div>
           {navItem('dashboard', '#', 'Dashboard')}
           {navItem('leads', '-', 'Leads')}
           {navItem('clientes', 'C', 'Clientes')}
@@ -1224,8 +1254,8 @@ export default function AdminPage() {
           {navItem('rastreio', 'R', 'Link de Rastreio')}
           {isSuperadmin && navItem('logs', '!', 'Log')}
 
-          <div className="admin-sidebar-extra" style={{ marginTop: 'auto', paddingTop: 20, borderTop: '1px solid #f3f4f6' }}>
-            <div style={{ fontSize: 11, color: '#6b7280', textAlign: 'center', lineHeight: 1.5 }}>
+          <div className="admin-sidebar-extra" style={{ marginTop: 'auto', paddingTop: 20, borderTop: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
               {counts.aprovado} aprovados<br />{counts.pendente} pendentes
             </div>
           </div>
