@@ -2988,7 +2988,7 @@ export default function AdminPage() {
                                 <td style={{ padding: '11px 14px' }}>
                                   {i.whatsapp && (
                                     <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
-                                      style={{ color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>{i.whatsapp}</a>
+                                      style={{ color: '#128C46', textDecoration: 'none', fontWeight: 600 }}>{i.whatsapp}</a>
                                   )}
                                 </td>
                                 <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{i.email || '—'}</td>
@@ -3173,7 +3173,7 @@ export default function AdminPage() {
                             <td style={{ padding: '11px 14px' }}>
                               {i.whatsapp && (
                                 <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
-                                  style={{ color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>{i.whatsapp}</a>
+                                  style={{ color: '#128C46', textDecoration: 'none', fontWeight: 600 }}>{i.whatsapp}</a>
                               )}
                             </td>
                             <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{i.email || '—'}</td>
