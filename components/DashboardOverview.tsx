@@ -22,8 +22,8 @@ const PIPELINE_STATUS_LABEL: Record<string, string> = {
   em_atendimento: 'Em Atendimento', negociacao: 'Negociação', pago: 'Pago', cancelado: 'Cancelado',
 };
 const PIPELINE_STATUS_COLOR: Record<string, { bg: string; text: string }> = {
-  em_atendimento: { bg: '#f3f4f6', text: '#374151' },
-  negociacao: { bg: '#f3f4f6', text: '#374151' },
+  em_atendimento: { bg: 'var(--surface-hover)', text: 'var(--text-secondary, #374151)' },
+  negociacao: { bg: 'var(--surface-hover)', text: 'var(--text-secondary, #374151)' },
   pago: { bg: '#dcfce7', text: '#15803d' },
   cancelado: { bg: '#fef2f2', text: '#dc2626' },
 };
@@ -36,6 +36,38 @@ const CARDS_INICIO: { key: string; label: string }[] = [
   { key: 'suporte', label: 'Suporte' },
   { key: 'mentoria', label: 'Mentoria Sobre Peptídeos' },
 ];
+
+const SEMANTIC_COLORS = new Set(['#16a34a', '#dc2626', '#d97706', '#b45309']);
+
+function KpiCard({ label, value, sub, color, live, size = 26 }: {
+  label: string; value: string | number; sub?: string; color?: string; live?: boolean; size?: number;
+}) {
+  const semantic = !!color && SEMANTIC_COLORS.has(color);
+  const muted = color === '#6b7280';
+  const bg = semantic ? `${color}0d` : 'var(--surface-hover)';
+  const border = semantic ? `1px solid ${color}33` : '1px solid var(--border)';
+  const borderTop = semantic ? `4px solid ${color}` : '4px solid var(--text-soft, #9ca3af)';
+  const textColor = semantic ? color : muted ? 'var(--text-muted, #6b7280)' : 'var(--text)';
+  return (
+    <div style={{ background: bg, border, borderRadius: 12, padding: '18px 20px', borderTop, position: 'relative' }}>
+      {live && (
+        <span style={{ position: 'absolute', top: 16, right: 16, width: 8, height: 8, borderRadius: '50%', background: '#16a34a', boxShadow: '0 0 0 3px #16a34a33' }} />
+      )}
+      <div style={{ fontSize: size, fontWeight: 800, color: textColor }}>{value}</div>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #374151)', marginTop: 3 }}>{label}</div>
+      {sub && <div style={{ fontSize: 10, color: 'var(--text-soft, #9ca3af)', marginTop: 1 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function DashCard({ title, children }: { title?: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24 }}>
+      {title && <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>{title}</div>}
+      {children}
+    </div>
+  );
+}
 
 export function DashboardOverview({
   cadastros, pedidos, equipe, produtos, config, onVerTodosLeads, totalPacientes = 0,
@@ -90,8 +122,6 @@ export function DashboardOverview({
     const status: 'esgotado' | 'baixo' | 'ok' = atual <= 0 ? 'esgotado' : atual <= (p.estoque_minimo ?? 0) ? 'baixo' : 'ok';
     return { atual, valorAtivo: Math.max(atual, 0) * (p.custo ?? 0), status };
   });
-  const pecasEmEstoque = estoqueLinhas.reduce((s, l) => s + Math.max(l.atual, 0), 0);
-  const valorAtivoEstoque = estoqueLinhas.reduce((s, l) => s + l.valorAtivo, 0);
   const estoqueBaixoCount = estoqueLinhas.filter(l => l.status === 'baixo').length;
   const estoqueEsgotadoCount = estoqueLinhas.filter(l => l.status === 'esgotado').length;
 
@@ -149,8 +179,8 @@ export function DashboardOverview({
   const limiteMes = config.limite_emails_mes || 3000;
   const pctDia = Math.min((emailsHoje / limiteDia) * 100, 100);
   const pctMes = Math.min((emailsMes / limiteMes) * 100, 100);
-  const corDia = pctDia >= 90 ? '#dc2626' : pctDia >= 70 ? '#6b7280' : '#16a34a';
-  const corMes = pctMes >= 90 ? '#dc2626' : pctMes >= 70 ? '#6b7280' : '#16a34a';
+  const corDia = pctDia >= 90 ? '#dc2626' : pctDia >= 70 ? 'var(--text-muted, #6b7280)' : '#16a34a';
+  const corMes = pctMes >= 90 ? '#dc2626' : pctMes >= 70 ? 'var(--text-muted, #6b7280)' : '#16a34a';
 
   const cliques = config.cliques_cards || {};
   const cliquesHoje = config.cliques_cards_hoje || {};
@@ -166,16 +196,16 @@ export function DashboardOverview({
         .admin-table-scroll { overflow-x: auto; }
       `}</style>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>Dashboard Geral</h2>
+        <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: 0 }}>Dashboard Geral</h2>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {onIrParaRelatorios && (
-            <button onClick={onIrParaRelatorios} style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>Relatórios →</button>
+            <button onClick={onIrParaRelatorios} style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>Relatórios →</button>
           )}
           {onIrParaEstoque && (
-            <button onClick={onIrParaEstoque} style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>Estoque →</button>
+            <button onClick={onIrParaEstoque} style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>Estoque →</button>
           )}
           {onIrParaFinanceiro && (
-            <button onClick={onIrParaFinanceiro} style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>Financeiro →</button>
+            <button onClick={onIrParaFinanceiro} style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>Financeiro →</button>
           )}
         </div>
       </div>
@@ -183,44 +213,25 @@ export function DashboardOverview({
       {/* ==== Visao do Negocio: faturamento, financeiro, comissoes, estoque ==== */}
       {mostrarVisaoNegocio && (
       <div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Visão do Negócio</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Visão do Negócio</div>
         <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 20 }}>
-          <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 12, padding: '18px 20px', borderTop: '4px solid #16a34a' }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#16a34a' }}>R$ {valorVendido.toFixed(2)}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>Faturamento Total</div>
-          </div>
-          <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 12, padding: '18px 20px', borderTop: '4px solid #16a34a' }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#16a34a' }}>R$ {faturamento30d.toFixed(2)}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>Faturamento (30D)</div>
-          </div>
-          <div style={{ background: `${saldo >= 0 ? '#111827' : '#dc2626'}0d`, border: `1px solid ${saldo >= 0 ? '#111827' : '#dc2626'}33`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${saldo >= 0 ? '#111827' : '#dc2626'}` }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: saldo >= 0 ? '#111827' : '#dc2626' }}>R$ {saldo.toFixed(2)}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>Saldo Financeiro</div>
-          </div>
-          <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 12, padding: '18px 20px', borderTop: '4px solid #111827' }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#111827' }}>R$ {totalComissoesPagas.toFixed(2)}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>Comissões Pagas</div>
-          </div>
-          <div style={{ background: comissoesPendentes > 0 ? '#fffbeb' : '#1118270d', border: `1px solid ${comissoesPendentes > 0 ? '#fde68a' : '#11182733'}`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${comissoesPendentes > 0 ? '#d97706' : '#111827'}` }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: comissoesPendentes > 0 ? '#b45309' : '#111827' }}>{comissoesPendentes}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>Comissões Pendentes</div>
-          </div>
-          <div style={{ background: (estoqueBaixoCount + estoqueEsgotadoCount) > 0 ? '#fef2f2' : '#1118270d', border: `1px solid ${(estoqueBaixoCount + estoqueEsgotadoCount) > 0 ? '#fecaca' : '#11182733'}`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${(estoqueBaixoCount + estoqueEsgotadoCount) > 0 ? '#dc2626' : '#111827'}` }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: (estoqueBaixoCount + estoqueEsgotadoCount) > 0 ? '#dc2626' : '#111827' }}>{estoqueEsgotadoCount + estoqueBaixoCount}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>Alertas de Estoque</div>
-            <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 1 }}>{estoqueEsgotadoCount} esgotado · {estoqueBaixoCount} baixo</div>
-          </div>
+          <KpiCard size={22} label="Faturamento Total" value={`R$ ${valorVendido.toFixed(2)}`} color="#16a34a" />
+          <KpiCard size={22} label="Faturamento (30D)" value={`R$ ${faturamento30d.toFixed(2)}`} color="#16a34a" />
+          <KpiCard size={22} label="Saldo Financeiro" value={`R$ ${saldo.toFixed(2)}`} color={saldo >= 0 ? undefined : '#dc2626'} />
+          <KpiCard size={22} label="Comissões Pagas" value={`R$ ${totalComissoesPagas.toFixed(2)}`} />
+          <KpiCard size={22} label="Comissões Pendentes" value={comissoesPendentes} color={comissoesPendentes > 0 ? '#d97706' : undefined} />
+          <KpiCard size={22} label="Alertas de Estoque" value={estoqueEsgotadoCount + estoqueBaixoCount}
+            color={(estoqueBaixoCount + estoqueEsgotadoCount) > 0 ? '#dc2626' : undefined}
+            sub={`${estoqueEsgotadoCount} esgotado · ${estoqueBaixoCount} baixo`} />
         </div>
 
         <div className="admin-grid-auto" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Faturamento Diário (30D)</div>
+          <DashCard title="Faturamento Diário (30D)">
             <FaturamentoChart30d data={historicoFaturamento} />
-          </div>
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Top Médicos por Faturamento</div>
+          </DashCard>
+          <DashCard title="Top Médicos por Faturamento">
             {topMedicos.length === 0 ? (
-              <div style={{ color: '#6b7280', fontSize: 13, textAlign: 'center', padding: '30px 0' }}>Sem pedidos pagos ainda.</div>
+              <div style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, textAlign: 'center', padding: '30px 0' }}>Sem pedidos pagos ainda.</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {topMedicos.map((m, i) => {
@@ -228,10 +239,10 @@ export function DashboardOverview({
                   return (
                     <div key={m.nome + i}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
-                        <span style={{ color: '#374151', fontWeight: 600 }}>{m.nome}</span>
+                        <span style={{ color: 'var(--text-secondary, #374151)', fontWeight: 600 }}>{m.nome}</span>
                         <span style={{ color: '#16a34a', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>R$ {m.total.toFixed(2)}</span>
                       </div>
-                      <div style={{ background: '#f1f5f9', borderRadius: 8, height: 8, overflow: 'hidden' }}>
+                      <div style={{ background: 'var(--surface-hover)', borderRadius: 8, height: 8, overflow: 'hidden' }}>
                         <div style={{ background: '#16a34a', borderRadius: 8, height: '100%', width: `${(m.total / max) * 100}%` }} />
                       </div>
                     </div>
@@ -239,81 +250,54 @@ export function DashboardOverview({
                 })}
               </div>
             )}
-          </div>
+          </DashCard>
         </div>
       </div>
       )}
 
       {/* Total / Médicos / Pacientes */}
       <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
-        {[
-          { label: 'Total', value: total + totalPacientes, color: '#111827' },
-          { label: 'Médicos', value: total, color: '#374151' },
-          { label: 'Pacientes', value: totalPacientes, color: '#111827' },
-        ].map(k => (
-          <div key={k.label} style={{ background: `${k.color}0d`, border: `1px solid ${k.color}33`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${k.color}` }}>
-            <div style={{ fontSize: 26, fontWeight: 800, color: k.color }}>{k.value}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>{k.label}</div>
-          </div>
-        ))}
+        <KpiCard size={32} label="Total" value={total + totalPacientes} />
+        <KpiCard size={32} label="Médicos" value={total} />
+        <KpiCard size={32} label="Pacientes" value={totalPacientes} />
       </div>
 
       {/* KPIs */}
       <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
-        {[
-          { label: 'Total Leads', value: total, color: '#111827' },
-          { label: 'Aprovados', value: aprovados, color: '#16a34a' },
-          { label: 'Pendentes', value: pendentes, color: '#6b7280' },
-          { label: 'Em Análise', value: emAnalise, color: '#6b7280' },
-          { label: 'Tempo Médio', value: tempoLabel, color: '#111827', sub: 'de aprovação' },
-        ].map(k => (
-          <div key={k.label} style={{ background: `${k.color}0d`, border: `1px solid ${k.color}33`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${k.color}` }}>
-            <div style={{ fontSize: 26, fontWeight: 800, color: k.color }}>{k.value}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>{k.label}</div>
-            {k.sub && <div style={{ fontSize: 10, color: '#6b7280', marginTop: 1 }}>{k.sub}</div>}
-          </div>
-        ))}
+        <KpiCard label="Total Leads" value={total} />
+        <KpiCard label="Aprovados" value={aprovados} color="#16a34a" />
+        <KpiCard label="Pendentes" value={pendentes} color="#6b7280" />
+        <KpiCard label="Em Análise" value={emAnalise} color="#6b7280" />
+        <KpiCard label="Tempo Médio" value={tempoLabel} sub="de aprovação" />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
         {/* Gráfico 30 dias */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Leads — últimos 30 dias</div>
+        <DashCard title="Leads — últimos 30 dias">
           <LeadsChart30d data={ultimos30} />
-        </div>
+        </DashCard>
 
         {/* Origem */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Origem dos Leads</div>
-          <HBarChart color="#111827" items={origensSort.map(([orig, qtd]) => ({ key: orig, label: orig, value: qtd }))} />
-        </div>
+        <DashCard title="Origem dos Leads">
+          <HBarChart color="#16a34a" items={origensSort.map(([orig, qtd]) => ({ key: orig, label: orig, value: qtd }))} />
+        </DashCard>
       </div>
 
       {/* Engajamento na Loja/Blog */}
       <div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Engajamento</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Engajamento</div>
         <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: onlineLoja > 0 ? 14 : 0 }}>
-          {[
-            { label: 'Online na Loja Agora', value: onlineLoja, color: '#16a34a', live: onlineLoja > 0 },
-            { label: 'Já Acessaram o Blog', value: acessaramBlog, color: '#111827' },
-            { label: 'Cliques na Mentoria', value: cliquesMentoria, color: '#111827' },
-            { label: 'Adições ao Carrinho', value: totalCartAdds, color: '#111827' },
-          ].map(k => (
-            <div key={k.label} style={{ background: `${k.color}0d`, border: `1px solid ${k.color}33`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${k.color}`, position: 'relative' }}>
-              {k.live && (
-                <span style={{ position: 'absolute', top: 16, right: 16, width: 8, height: 8, borderRadius: '50%', background: '#16a34a', boxShadow: '0 0 0 3px #16a34a33' }} />
-              )}
-              <div style={{ fontSize: 26, fontWeight: 800, color: k.color }}>{k.value}</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>{k.label}</div>
-            </div>
-          ))}
+          <KpiCard label="Online na Loja Agora" value={onlineLoja} color="#16a34a" live={onlineLoja > 0} />
+          <KpiCard label="Já Acessaram o Blog" value={acessaramBlog} />
+          <KpiCard label="Cliques na Mentoria" value={cliquesMentoria} />
+          <KpiCard label="Adições ao Carrinho" value={totalCartAdds} />
         </div>
         {onlineLoja > 0 && (
-          <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: '12px 16px' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#15803d', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Quem está online agora</div>
+          <div style={{ background: 'var(--accent-soft, #f0fdf4)', border: '1px solid var(--accent-border, #86efac)', borderRadius: 10, padding: '12px 16px' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-text, #15803d)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Quem está online agora</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {onlineLojaLista.map(c => (
-                <span key={c.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #bbf7d0', borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 600, color: '#111827' }}>
+                <span key={c.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--surface)', border: '1px solid var(--accent-border, #bbf7d0)', borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a' }} />
                   {c.nome} {c.sobrenome || ''}
                 </span>
@@ -324,24 +308,23 @@ export function DashboardOverview({
       </div>
 
       {/* E-mails enviados */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>E-mails Enviados</div>
+      <DashCard title="E-mails Enviados">
         <div className="admin-grid-auto" style={{ display: 'grid', gap: 20 }}>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 6 }}>
-              <span style={{ color: '#374151', fontWeight: 600 }}>Hoje</span>
+              <span style={{ color: 'var(--text-secondary, #374151)', fontWeight: 600 }}>Hoje</span>
               <span style={{ color: corDia, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{emailsHoje} / {limiteDia}</span>
             </div>
-            <div style={{ background: '#f1f5f9', borderRadius: 8, height: 9, overflow: 'hidden' }}>
+            <div style={{ background: 'var(--surface-hover)', borderRadius: 8, height: 9, overflow: 'hidden' }}>
               <div style={{ background: corDia, borderRadius: 8, height: '100%', width: `${pctDia}%`, transition: 'width .5s cubic-bezier(.4,0,.2,1)' }} />
             </div>
           </div>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 6 }}>
-              <span style={{ color: '#374151', fontWeight: 600 }}>Este mês</span>
+              <span style={{ color: 'var(--text-secondary, #374151)', fontWeight: 600 }}>Este mês</span>
               <span style={{ color: corMes, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{emailsMes} / {limiteMes}</span>
             </div>
-            <div style={{ background: '#f1f5f9', borderRadius: 8, height: 9, overflow: 'hidden' }}>
+            <div style={{ background: 'var(--surface-hover)', borderRadius: 8, height: 9, overflow: 'hidden' }}>
               <div style={{ background: corMes, borderRadius: 8, height: '100%', width: `${pctMes}%`, transition: 'width .5s cubic-bezier(.4,0,.2,1)' }} />
             </div>
           </div>
@@ -351,56 +334,54 @@ export function DashboardOverview({
             <strong>Atenção:</strong> você está perto do limite de e-mails do Resend. Quando o limite for atingido, os e-mails de aprovação/rejeição param de ser enviados automaticamente (mas a aprovação em si continua funcionando normalmente — use o link do WhatsApp como alternativa).
           </div>
         )}
-      </div>
+      </DashCard>
 
       {/* Cliques nos cards da tela inicial */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Cliques nos Cards (Início)</div>
+      <DashCard title="Cliques nos Cards (Início)">
         <HBarChart color="#16a34a"
           items={CARDS_INICIO.map(c => ({ key: c.key, label: c.label, value: cliques[c.key] || 0, sub: ' cliques', hoje: cliquesHoje[c.key] || 0 }))} />
-      </div>
+      </DashCard>
 
       {/* Produtos mais vistos */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Produtos Mais Vistos</div>
-        <HBarChart color="#111827" emptyLabel="Sem dados ainda."
+      <DashCard title="Produtos Mais Vistos">
+        <HBarChart color="#16a34a" emptyLabel="Sem dados ainda."
           items={produtosOrdenados.filter(p => (p.views || 0) > 0).map(p => ({
             key: p.id, label: p.nome, value: p.views || 0, sub: ` vistos · ${p.cart_adds || 0} no carrinho`, hoje: p.views_hoje || 0,
           }))} />
-      </div>
+      </DashCard>
 
       {/* Performance Vendedores */}
       {perfVend.length > 0 && (
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>
             Performance Vendedores
           </div>
           <div className="admin-table-scroll">
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+              <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
                 {['Vendedor', 'Leads Ativos', 'Em Análise', 'Convertidos', 'Taxa Conversão'].map(h => (
-                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
+                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {perfVend.map(v => (
-                <tr key={v.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{v.nome}</td>
-                  <td style={{ padding: '11px 14px', color: '#374151' }}>{v.ativos}</td>
+                <tr key={v.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--text)' }}>{v.nome}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)' }}>{v.ativos}</td>
                   <td style={{ padding: '11px 14px' }}>
                     {v.analise > 0
-                      ? <span style={{ background: '#f3f4f6', color: '#374151', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{v.analise} solicitações</span>
-                      : <span style={{ color: '#6b7280' }}>—</span>}
+                      ? <span style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{v.analise} solicitações</span>
+                      : <span style={{ color: 'var(--text-muted, #6b7280)' }}>—</span>}
                   </td>
                   <td style={{ padding: '11px 14px', color: '#15803d', fontWeight: 700 }}>{v.aprovados}</td>
                   <td style={{ padding: '11px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6, width: 60 }}>
+                      <div style={{ background: 'var(--surface-hover)', borderRadius: 4, height: 6, width: 60 }}>
                         <div style={{ background: '#16a34a', borderRadius: 4, height: '100%', width: `${v.ativos > 0 ? (v.aprovados / v.ativos) * 100 : 0}%` }} />
                       </div>
-                      <span style={{ fontSize: 12, color: '#374151' }}>{v.ativos > 0 ? `${Math.round((v.aprovados / v.ativos) * 100)}%` : '—'}</span>
+                      <span style={{ fontSize: 12, color: 'var(--text-secondary, #374151)' }}>{v.ativos > 0 ? `${Math.round((v.aprovados / v.ativos) * 100)}%` : '—'}</span>
                     </div>
                   </td>
                 </tr>
@@ -413,54 +394,47 @@ export function DashboardOverview({
 
       {/* KPIs Pedidos */}
       <div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Pedidos</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Pedidos</div>
         <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
-          {[
-            { label: 'Total Pedidos', value: totalPedidos, color: '#111827' },
-            { label: 'Valor Total', value: `R$ ${valorTotalPedidos.toFixed(2)}`, color: '#111827' },
-            { label: 'Pagos', value: pedidosVendidos, color: '#16a34a' },
-            { label: 'Valor Pago', value: `R$ ${valorVendido.toFixed(2)}`, color: '#16a34a' },
-          ].map(k => (
-            <div key={k.label} style={{ background: `${k.color}0d`, border: `1px solid ${k.color}33`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${k.color}` }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: k.color }}>{k.value}</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>{k.label}</div>
-            </div>
-          ))}
+          <KpiCard size={22} label="Total Pedidos" value={totalPedidos} />
+          <KpiCard size={22} label="Valor Total" value={`R$ ${valorTotalPedidos.toFixed(2)}`} />
+          <KpiCard size={22} label="Pagos" value={pedidosVendidos} color="#16a34a" />
+          <KpiCard size={22} label="Valor Pago" value={`R$ ${valorVendido.toFixed(2)}`} color="#16a34a" />
         </div>
       </div>
 
       {/* Pedidos recentes */}
       {pedidos.length > 0 && (
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: 14, color: '#111827' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>
             Pedidos Recentes
           </div>
           <div className="admin-table-scroll">
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+              <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
                 {['Cliente', 'Produto', 'Valor', 'Status', 'Data'].map(h => (
-                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
+                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {pedidos.slice(0, 10).map(p => {
-                const cc = PIPELINE_STATUS_COLOR[p.status] || { bg: '#f3f4f6', text: '#374151' };
+                const cc = PIPELINE_STATUS_COLOR[p.status] || { bg: 'var(--surface-hover)', text: 'var(--text-secondary, #374151)' };
                 return (
-                  <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                  <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '10px 14px' }}>
-                      <div style={{ fontWeight: 600, color: '#111827' }}>{p.indicacao_id ? p.paciente_nome : p.cadastro_nome}</div>
-                      <div style={{ fontSize: 11, color: '#6b7280' }}>{p.indicacao_id ? `indicado por ${p.cadastro_nome}` : p.cadastro_email}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{p.indicacao_id ? p.paciente_nome : p.cadastro_nome}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>{p.indicacao_id ? `indicado por ${p.cadastro_nome}` : p.cadastro_email}</div>
                     </td>
-                    <td style={{ padding: '10px 14px', color: '#374151' }}>{p.produto_nome}</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)' }}>{p.produto_nome}</td>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#16a34a' }}>R$ {p.preco.toFixed(2)}</td>
                     <td style={{ padding: '10px 14px' }}>
                       <span style={{ padding: '3px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: cc.bg, color: cc.text }}>
                         {PIPELINE_STATUS_LABEL[p.status] || p.status}
                       </span>
                     </td>
-                    <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{new Date(p.created_at).toLocaleDateString('pt-BR')}</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>{new Date(p.created_at).toLocaleDateString('pt-BR')}</td>
                   </tr>
                 );
               })}
@@ -471,40 +445,40 @@ export function DashboardOverview({
       )}
 
       {/* Leads recentes */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>Ultimos Leads</span>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Ultimos Leads</span>
           {onVerTodosLeads && <button onClick={onVerTodosLeads} style={{ background: 'none', border: 'none', color: '#16a34a', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Ver todos</button>}
         </div>
         <div className="admin-table-scroll">
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
-            <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+            <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
               {['Paciente', 'CRM', 'Status', 'Origem', 'Data'].map(h => (
-                <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
+                <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {cadastros.slice(0, 8).map(c => {
               const sc: Record<string, { bg: string; text: string }> = {
-                pendente: { bg: '#f3f4f6', text: '#374151' }, aprovado: { bg: '#dcfce7', text: '#15803d' },
-                rejeitado: { bg: '#fef2f2', text: '#dc2626' }, em_analise: { bg: '#f3f4f6', text: '#374151' },
+                pendente: { bg: 'var(--surface-hover)', text: 'var(--text-secondary, #374151)' }, aprovado: { bg: '#dcfce7', text: '#15803d' },
+                rejeitado: { bg: '#fef2f2', text: '#dc2626' }, em_analise: { bg: 'var(--surface-hover)', text: 'var(--text-secondary, #374151)' },
               };
-              const cc = sc[c.status] || { bg: '#f3f4f6', text: '#374151' };
+              const cc = sc[c.status] || { bg: 'var(--surface-hover)', text: 'var(--text-secondary, #374151)' };
               return (
-                <tr key={c.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <td style={{ padding: '10px 14px', fontWeight: 600, color: '#111827' }}>{c.nome} {c.sobrenome}</td>
-                  <td style={{ padding: '10px 14px', color: '#6b7280' }}>{c.crm || '—'}</td>
+                <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text)' }}>{c.nome} {c.sobrenome}</td>
+                  <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)' }}>{c.crm || '—'}</td>
                   <td style={{ padding: '10px 14px' }}>
                     <span style={{ padding: '3px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: cc.bg, color: cc.text }}>{c.status}</span>
                   </td>
-                  <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{c.onde_conheceu || '—'}</td>
-                  <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{new Date(c.created_at).toLocaleDateString('pt-BR')}</td>
+                  <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>{c.onde_conheceu || '—'}</td>
+                  <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>{new Date(c.created_at).toLocaleDateString('pt-BR')}</td>
                 </tr>
               );
             })}
-            {cadastros.length === 0 && <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Nenhum lead ainda.</td></tr>}
+            {cadastros.length === 0 && <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum lead ainda.</td></tr>}
           </tbody>
         </table>
         </div>

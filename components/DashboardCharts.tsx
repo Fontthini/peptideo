@@ -56,15 +56,15 @@ export function LeadsChart30d({ data }: { data: [string, number][] }) {
           const y = yFor(v);
           return (
             <g key={i}>
-              <line x1={padL} x2={w - padR} y1={y} y2={y} stroke="#f1f5f9" strokeWidth={1} />
-              <text x={padL - 6} y={y + 3} textAnchor="end" fontSize={9} fill="#9ca3af">{v}</text>
+              <line x1={padL} x2={w - padR} y1={y} y2={y} stroke="var(--border, #f1f5f9)" strokeWidth={1} />
+              <text x={padL - 6} y={y + 3} textAnchor="end" fontSize={9} fill="var(--text-soft, #9ca3af)">{v}</text>
             </g>
           );
         })}
 
         {/* Rotulos de data no eixo X */}
         {labelIdxs.map(i => (
-          <text key={i} x={pts[i][0]} y={h - 6} textAnchor="middle" fontSize={9} fill="#9ca3af">{data[i][0]}</text>
+          <text key={i} x={pts[i][0]} y={h - 6} textAnchor="middle" fontSize={9} fill="var(--text-soft, #9ca3af)">{data[i][0]}</text>
         ))}
 
         <path d={areaPath} fill="url(#leadsGrad)" stroke="none" />
@@ -72,19 +72,19 @@ export function LeadsChart30d({ data }: { data: [string, number][] }) {
 
         {/* Rotulo direto no pico (se houver leads) */}
         {data[peakIdx][1] > 0 && (
-          <text x={pts[peakIdx][0]} y={yFor(data[peakIdx][1]) - 8} textAnchor="middle" fontSize={10} fontWeight={700} fill="#15803d">
+          <text x={pts[peakIdx][0]} y={yFor(data[peakIdx][1]) - 8} textAnchor="middle" fontSize={10} fontWeight={700} fill="var(--accent-text, #15803d)">
             {data[peakIdx][1]}
           </text>
         )}
 
         {/* Marcador fixo de "hoje" */}
-        <circle cx={pts[todayIdx][0]} cy={pts[todayIdx][1]} r={3} fill="#fff" stroke="#16a34a" strokeWidth={2} />
+        <circle cx={pts[todayIdx][0]} cy={pts[todayIdx][1]} r={3} fill="var(--surface, #fff)" stroke="#16a34a" strokeWidth={2} />
 
         {/* Crosshair + ponto no hover */}
         {hi >= 0 && (
           <>
             <line x1={pts[hi][0]} x2={pts[hi][0]} y1={padT} y2={padT + plotH} stroke="#16a34a" strokeWidth={1} strokeDasharray="3,3" opacity={0.5} />
-            <circle cx={pts[hi][0]} cy={pts[hi][1]} r={4} fill="#16a34a" stroke="#fff" strokeWidth={2} />
+            <circle cx={pts[hi][0]} cy={pts[hi][1]} r={4} fill="#16a34a" stroke="var(--surface, #fff)" strokeWidth={2} />
           </>
         )}
 
@@ -106,7 +106,7 @@ export function LeadsChart30d({ data }: { data: [string, number][] }) {
         </div>
       )}
 
-      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{total} leads nos últimos 30 dias</div>
+      <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)', marginTop: 2 }}>{total} leads nos últimos 30 dias</div>
     </div>
   );
 }
@@ -157,31 +157,31 @@ export function FaturamentoChart30d({ data }: { data: [string, number][] }) {
           const y = yFor(v);
           return (
             <g key={i}>
-              <line x1={padL} x2={w - padR} y1={y} y2={y} stroke="#f1f5f9" strokeWidth={1} />
-              <text x={padL - 6} y={y + 3} textAnchor="end" fontSize={9} fill="#9ca3af">{fmt(v)}</text>
+              <line x1={padL} x2={w - padR} y1={y} y2={y} stroke="var(--border, #f1f5f9)" strokeWidth={1} />
+              <text x={padL - 6} y={y + 3} textAnchor="end" fontSize={9} fill="var(--text-soft, #9ca3af)">{fmt(v)}</text>
             </g>
           );
         })}
 
         {labelIdxs.map(i => (
-          <text key={i} x={pts[i][0]} y={h - 6} textAnchor="middle" fontSize={9} fill="#9ca3af">{data[i][0]}</text>
+          <text key={i} x={pts[i][0]} y={h - 6} textAnchor="middle" fontSize={9} fill="var(--text-soft, #9ca3af)">{data[i][0]}</text>
         ))}
 
         <path d={areaPath} fill="url(#faturamentoGrad)" stroke="none" />
         <path d={linePath} fill="none" stroke="#16a34a" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
 
         {data[peakIdx][1] > 0 && (
-          <text x={pts[peakIdx][0]} y={yFor(data[peakIdx][1]) - 8} textAnchor="middle" fontSize={10} fontWeight={700} fill="#15803d">
+          <text x={pts[peakIdx][0]} y={yFor(data[peakIdx][1]) - 8} textAnchor="middle" fontSize={10} fontWeight={700} fill="var(--accent-text, #15803d)">
             {fmt(data[peakIdx][1])}
           </text>
         )}
 
-        <circle cx={pts[todayIdx][0]} cy={pts[todayIdx][1]} r={3} fill="#fff" stroke="#16a34a" strokeWidth={2} />
+        <circle cx={pts[todayIdx][0]} cy={pts[todayIdx][1]} r={3} fill="var(--surface, #fff)" stroke="#16a34a" strokeWidth={2} />
 
         {hi >= 0 && (
           <>
             <line x1={pts[hi][0]} x2={pts[hi][0]} y1={padT} y2={padT + plotH} stroke="#16a34a" strokeWidth={1} strokeDasharray="3,3" opacity={0.5} />
-            <circle cx={pts[hi][0]} cy={pts[hi][1]} r={4} fill="#16a34a" stroke="#fff" strokeWidth={2} />
+            <circle cx={pts[hi][0]} cy={pts[hi][1]} r={4} fill="#16a34a" stroke="var(--surface, #fff)" strokeWidth={2} />
           </>
         )}
 
@@ -202,7 +202,7 @@ export function FaturamentoChart30d({ data }: { data: [string, number][] }) {
         </div>
       )}
 
-      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Total: {fmt(total)} nos últimos {n} dias</div>
+      <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)', marginTop: 2 }}>Total: {fmt(total)} nos últimos {n} dias</div>
     </div>
   );
 }
@@ -214,7 +214,7 @@ export function HBarChart({ items, color, emptyLabel = 'Sem dados ainda.' }: { i
   const max = Math.max(...items.map(i => i.value), 1);
 
   if (items.length === 0) {
-    return <div style={{ color: '#6b7280', fontSize: 13 }}>{emptyLabel}</div>;
+    return <div style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13 }}>{emptyLabel}</div>;
   }
 
   return (
@@ -226,12 +226,12 @@ export function HBarChart({ items, color, emptyLabel = 'Sem dados ainda.' }: { i
           <div key={item.key}
             onMouseEnter={() => setHover(item.key)} onMouseLeave={() => setHover(null)}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12.5, marginBottom: 5, gap: 10 }}>
-              <span style={{ color: hovered ? color : '#374151', fontWeight: hovered ? 700 : 600, transition: 'color .15s', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ color: hovered ? color : 'var(--text-secondary, #374151)', fontWeight: hovered ? 700 : 600, transition: 'color .15s', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {item.label}
               </span>
               <span style={{ flexShrink: 0, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span style={{ color: '#111827', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
-                  {item.value}{item.sub && <span style={{ color: '#9ca3af', fontWeight: 500, marginLeft: 4 }}>{item.sub}</span>}
+                <span style={{ color: 'var(--text)', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
+                  {item.value}{item.sub && <span style={{ color: 'var(--text-soft, #9ca3af)', fontWeight: 500, marginLeft: 4 }}>{item.sub}</span>}
                 </span>
                 {!!item.hoje && (
                   <span style={{ background: `${color}1a`, color, fontWeight: 700, fontSize: 10, padding: '2px 6px', borderRadius: 10, whiteSpace: 'nowrap' }}>
@@ -240,7 +240,7 @@ export function HBarChart({ items, color, emptyLabel = 'Sem dados ainda.' }: { i
                 )}
               </span>
             </div>
-            <div style={{ background: '#f1f5f9', borderRadius: 8, height: 9, overflow: 'hidden' }}>
+            <div style={{ background: 'var(--surface-hover, #f1f5f9)', borderRadius: 8, height: 9, overflow: 'hidden' }}>
               <div style={{
                 background: color, borderRadius: 8, height: '100%', width: `${pct}%`,
                 opacity: hovered ? 1 : 0.82,

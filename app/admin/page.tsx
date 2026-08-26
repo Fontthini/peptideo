@@ -1170,14 +1170,14 @@ export default function AdminPage() {
       <style>{`
         .admin-root {
           --bg: #f8fafc; --surface: #ffffff; --surface-hover: #f3f4f6;
-          --border: #e5e7eb; --text: #111827; --text-muted: #6b7280; --text-soft: #9ca3af;
+          --border: #e5e7eb; --text: #111827; --text-secondary: #374151; --text-muted: #6b7280; --text-soft: #9ca3af;
           --accent: #16a34a; --accent-text: #15803d; --accent-soft: #f0fdf4; --accent-border: #86efac;
           --shadow-header: 0 1px 0 rgba(0,0,0,0.03);
           color: var(--text);
         }
         .admin-root[data-theme="dark"] {
           --bg: #0d0f12; --surface: #16181d; --surface-hover: #1f2229;
-          --border: #272b33; --text: #f3f4f6; --text-muted: #9ca3af; --text-soft: #6b7280;
+          --border: #272b33; --text: #f3f4f6; --text-secondary: #d1d5db; --text-muted: #9ca3af; --text-soft: #6b7280;
           --accent: #22c55e; --accent-text: #4ade80; --accent-soft: rgba(34,197,94,0.14); --accent-border: rgba(34,197,94,0.35);
           --shadow-header: 0 1px 0 rgba(0,0,0,0.4);
         }
