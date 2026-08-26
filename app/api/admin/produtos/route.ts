@@ -56,17 +56,22 @@ export async function PUT(req: NextRequest) {
   mem_seedProdutos(PRODUTOS);
   const data = await req.json();
   if (!data.id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
+  const atual = mem_listarProdutos().find(x => x.id === data.id);
+  if (!atual) return NextResponse.json({ error: 'Produto não encontrado' }, { status: 404 });
   const p = mem_editarProduto(data.id, {
-    nome: data.nome,
-    dose: data.dose || '',
-    preco: parseFloat(data.preco) || 0,
-    categoria: data.categoria || 'Outros',
-    categoria2: data.categoria2 || null,
-    descricao: data.descricao || '',
-    imagem: data.imagem || '',
-    video: data.video || undefined,
-    protocolo: data.protocolo || undefined,
-    galeria: Array.isArray(data.galeria) ? data.galeria : [],
+    nome: data.nome !== undefined ? data.nome : atual.nome,
+    dose: data.dose !== undefined ? data.dose : atual.dose,
+    preco: data.preco !== undefined ? (parseFloat(data.preco) || 0) : atual.preco,
+    categoria: data.categoria !== undefined ? data.categoria : atual.categoria,
+    categoria2: data.categoria2 !== undefined ? data.categoria2 : atual.categoria2,
+    descricao: data.descricao !== undefined ? data.descricao : atual.descricao,
+    imagem: data.imagem !== undefined ? data.imagem : atual.imagem,
+    video: data.video !== undefined ? data.video : atual.video,
+    protocolo: data.protocolo !== undefined ? data.protocolo : atual.protocolo,
+    galeria: data.galeria !== undefined ? (Array.isArray(data.galeria) ? data.galeria : []) : atual.galeria,
+    estoque_inicial: data.estoque_inicial !== undefined ? (parseFloat(data.estoque_inicial) || 0) : atual.estoque_inicial,
+    estoque_minimo: data.estoque_minimo !== undefined ? (parseFloat(data.estoque_minimo) || 0) : atual.estoque_minimo,
+    custo: data.custo !== undefined ? (parseFloat(data.custo) || 0) : atual.custo,
   });
   if (!p) return NextResponse.json({ error: 'Produto não encontrado' }, { status: 404 });
   try { const { sbSaveProduto } = await import('@/lib/supabase-sync'); await sbSaveProduto(p); } catch (e) { console.error('[PRODUTO] save error:', e); }

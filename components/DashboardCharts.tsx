@@ -111,6 +111,102 @@ export function LeadsChart30d({ data }: { data: [string, number][] }) {
   );
 }
 
+export function FaturamentoChart30d({ data }: { data: [string, number][] }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const w = 600, h = 180, padL = 44, padR = 8, padT = 10, padB = 26;
+  const plotW = w - padL - padR, plotH = h - padT - padB;
+  const n = data.length;
+  const max = Math.max(...data.map(([, v]) => v), 1);
+  const total = data.reduce((s, [, v]) => s + v, 0);
+  const stepX = n > 1 ? plotW / (n - 1) : plotW;
+  const yFor = (v: number) => padT + plotH - (v / max) * plotH;
+  const pts = data.map(([, v], i) => [padL + i * stepX, yFor(v)] as const);
+  const linePath = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  const areaPath = `${linePath} L${pts[n - 1][0].toFixed(1)},${padT + plotH} L${pts[0][0].toFixed(1)},${padT + plotH} Z`;
+
+  let peakIdx = 0;
+  data.forEach(([, v], i) => { if (v >= data[peakIdx][1]) peakIdx = i; });
+  const todayIdx = n - 1;
+
+  const labelCount = Math.min(6, n);
+  const labelIdxs = Array.from({ length: labelCount }, (_, k) => Math.round((k * (n - 1)) / (labelCount - 1 || 1)));
+
+  const handleMove = (e: React.MouseEvent<SVGRectElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * w;
+    let idx = Math.round((x - padL) / stepX);
+    idx = Math.max(0, Math.min(n - 1, idx));
+    setHover(idx);
+  };
+
+  const hi = hover ?? -1;
+  const gridVals = [0, Math.round(max / 2), max];
+  const fmt = (v: number) => 'R$ ' + v.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: '100%', height: h, display: 'block', overflow: 'visible' }}>
+        <defs>
+          <linearGradient id="faturamentoGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#16a34a" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="#16a34a" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {gridVals.map((v, i) => {
+          const y = yFor(v);
+          return (
+            <g key={i}>
+              <line x1={padL} x2={w - padR} y1={y} y2={y} stroke="#f1f5f9" strokeWidth={1} />
+              <text x={padL - 6} y={y + 3} textAnchor="end" fontSize={9} fill="#9ca3af">{fmt(v)}</text>
+            </g>
+          );
+        })}
+
+        {labelIdxs.map(i => (
+          <text key={i} x={pts[i][0]} y={h - 6} textAnchor="middle" fontSize={9} fill="#9ca3af">{data[i][0]}</text>
+        ))}
+
+        <path d={areaPath} fill="url(#faturamentoGrad)" stroke="none" />
+        <path d={linePath} fill="none" stroke="#16a34a" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+
+        {data[peakIdx][1] > 0 && (
+          <text x={pts[peakIdx][0]} y={yFor(data[peakIdx][1]) - 8} textAnchor="middle" fontSize={10} fontWeight={700} fill="#15803d">
+            {fmt(data[peakIdx][1])}
+          </text>
+        )}
+
+        <circle cx={pts[todayIdx][0]} cy={pts[todayIdx][1]} r={3} fill="#fff" stroke="#16a34a" strokeWidth={2} />
+
+        {hi >= 0 && (
+          <>
+            <line x1={pts[hi][0]} x2={pts[hi][0]} y1={padT} y2={padT + plotH} stroke="#16a34a" strokeWidth={1} strokeDasharray="3,3" opacity={0.5} />
+            <circle cx={pts[hi][0]} cy={pts[hi][1]} r={4} fill="#16a34a" stroke="#fff" strokeWidth={2} />
+          </>
+        )}
+
+        <rect x={padL} y={0} width={plotW} height={h} fill="transparent"
+          onMouseMove={handleMove} onMouseLeave={() => setHover(null)} style={{ cursor: 'crosshair' }} />
+      </svg>
+
+      {hi >= 0 && (
+        <div style={{
+          position: 'absolute', pointerEvents: 'none',
+          left: `${(pts[hi][0] / w) * 100}%`, top: 0,
+          transform: `translateX(${hi > n - 5 ? '-100%' : '0%'})`,
+          background: '#111827', color: '#fff', borderRadius: 6, padding: '5px 9px',
+          fontSize: 11, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        }}>
+          <div style={{ fontWeight: 700 }}>{data[hi][0]}</div>
+          <div style={{ color: '#86efac' }}>{fmt(data[hi][1])}</div>
+        </div>
+      )}
+
+      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Total: {fmt(total)} nos últimos {n} dias</div>
+    </div>
+  );
+}
+
 export type HBarItem = { key: string; label: string; value: number; sub?: string; hoje?: number };
 
 export function HBarChart({ items, color, emptyLabel = 'Sem dados ainda.' }: { items: HBarItem[]; color: string; emptyLabel?: string }) {

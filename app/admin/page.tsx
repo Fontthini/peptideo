@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { CATEGORIAS } from '@/lib/produtos';
-import { estaOnline, HBarChart, LeadsChart30d, type HBarItem } from '@/components/DashboardCharts';
+import { estaOnline, HBarChart, LeadsChart30d, FaturamentoChart30d, type HBarItem } from '@/components/DashboardCharts';
 import { DashboardOverview } from '@/components/DashboardOverview';
 import { corDaEtiqueta } from '@/lib/etiquetas';
 
@@ -23,6 +23,7 @@ type Produto = {
   custom: boolean;
   views?: number; cart_adds?: number;
   views_hoje?: number; cart_adds_hoje?: number;
+  estoque_inicial?: number; estoque_minimo?: number; custo?: number;
 };
 type Config = {
   mercadopago_token: string; resend_api_key: string; whatsapp_numero: string; base_url: string;
@@ -192,6 +193,60 @@ function ComissaoWidget({ id, comissaoValor, comissaoPaga, mostrar, totalBase, p
   );
 }
 
+function EstoqueRow({ produto, vendido, onSalvar }: {
+  produto: Produto; vendido: number;
+  onSalvar: (id: string, dados: { estoque_inicial: number; estoque_minimo: number; custo: number }) => Promise<void>;
+}) {
+  const [inicial, setInicial] = useState(String(produto.estoque_inicial ?? 0));
+  const [minimo, setMinimo] = useState(String(produto.estoque_minimo ?? 0));
+  const [custo, setCusto] = useState(String(produto.custo ?? 0));
+  const [salvando, setSalvando] = useState(false);
+
+  const inicialNum = parseFloat(inicial) || 0;
+  const minimoNum = parseFloat(minimo) || 0;
+  const custoNum = parseFloat(custo) || 0;
+  const atual = inicialNum - vendido;
+  const valorAtivo = Math.max(atual, 0) * custoNum;
+  const status = atual <= 0 ? 'esgotado' : atual <= minimoNum ? 'baixo' : 'ok';
+  const dirty = inicialNum !== (produto.estoque_inicial ?? 0) || minimoNum !== (produto.estoque_minimo ?? 0) || custoNum !== (produto.custo ?? 0);
+
+  const numInputStyle: React.CSSProperties = { width: 80, border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12.5, fontFamily: 'inherit', background: '#fff', color: '#111827' };
+
+  return (
+    <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
+      <td style={{ padding: '10px 14px', color: '#111827', fontWeight: 600 }}>
+        {produto.nome} <span style={{ color: '#9ca3af', fontWeight: 400 }}>{produto.dose}</span>
+      </td>
+      <td style={{ padding: '10px 14px' }}>
+        <input type="number" min="0" step="1" value={inicial} onChange={e => setInicial(e.target.value)} style={numInputStyle} />
+      </td>
+      <td style={{ padding: '10px 14px', color: '#6b7280' }}>{vendido}</td>
+      <td style={{ padding: '10px 14px', fontWeight: 700, color: status === 'esgotado' ? '#dc2626' : status === 'baixo' ? '#b45309' : '#16a34a', fontVariantNumeric: 'tabular-nums' }}>{atual}</td>
+      <td style={{ padding: '10px 14px' }}>
+        <input type="number" min="0" step="1" value={minimo} onChange={e => setMinimo(e.target.value)} style={numInputStyle} />
+      </td>
+      <td style={{ padding: '10px 14px' }}>
+        <input type="number" min="0" step="0.01" value={custo} onChange={e => setCusto(e.target.value)} style={numInputStyle} />
+      </td>
+      <td style={{ padding: '10px 14px', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>R$ {valorAtivo.toFixed(2)}</td>
+      <td style={{ padding: '10px 14px' }}>
+        <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: status === 'esgotado' ? '#fef2f2' : status === 'baixo' ? '#fffbeb' : '#f0fdf4', color: status === 'esgotado' ? '#dc2626' : status === 'baixo' ? '#b45309' : '#16a34a' }}>
+          {status === 'esgotado' ? 'Esgotado' : status === 'baixo' ? 'Estoque Baixo' : 'OK'}
+        </span>
+      </td>
+      <td style={{ padding: '10px 14px' }}>
+        <button disabled={!dirty || salvando} onClick={async () => {
+          setSalvando(true);
+          await onSalvar(produto.id, { estoque_inicial: inicialNum, estoque_minimo: minimoNum, custo: custoNum });
+          setSalvando(false);
+        }} style={{ background: dirty ? '#111827' : '#f3f4f6', color: dirty ? '#fff' : '#9ca3af', border: 'none', padding: '6px 12px', borderRadius: 6, cursor: dirty ? 'pointer' : 'default', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>
+          {salvando ? '...' : 'Salvar'}
+        </button>
+      </td>
+    </tr>
+  );
+}
+
 function dentroPeriodo(dataStr: string | undefined | null, inicio: string, fim: string): boolean {
   if (!dataStr) return false;
   const d = dataStr.slice(0, 10);
@@ -220,7 +275,7 @@ export default function AdminPage() {
   const [logado, setLogado] = useState(false);
   const [adminNome, setAdminNome] = useState('');
   const [isSuperadmin, setIsSuperadmin] = useState(false);
-  const [aba, setAba] = useState<'leads' | 'clientes' | 'produtos' | 'banners' | 'blog' | 'despesas' | 'equipe' | 'indicacoes' | 'indicacoes-medicas' | 'pedidos' | 'config' | 'dashboard' | 'logs' | 'mentoria' | 'carrinho' | 'rastreio' | 'relatorios'>('leads');
+  const [aba, setAba] = useState<'leads' | 'clientes' | 'produtos' | 'banners' | 'blog' | 'despesas' | 'equipe' | 'indicacoes' | 'indicacoes-medicas' | 'pedidos' | 'config' | 'dashboard' | 'logs' | 'mentoria' | 'carrinho' | 'rastreio' | 'relatorios' | 'estoque'>('leads');
   const [msg, setMsg] = useState('');
   const [logs, setLogs] = useState<AdminLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -512,6 +567,18 @@ export default function AdminPage() {
     } finally { setLoadingProd(false); }
   };
 
+  const salvarEstoqueProduto = async (id: string, dados: { estoque_inicial: number; estoque_minimo: number; custo: number }) => {
+    const r = await fetch('/api/admin/produtos', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify({ id, ...dados }),
+    });
+    if (r.ok) {
+      const atualizado = await r.json();
+      setProdutos(prev => prev.map(p => p.id === id ? atualizado : p));
+      showMsg('OK: Estoque atualizado!');
+    } else { showMsg('R Erro ao atualizar estoque'); }
+  };
+
   const carregarConfig = async () => {
     setLoadingConfig(true);
     try {
@@ -686,6 +753,7 @@ export default function AdminPage() {
     if (a === 'carrinho') { carregarCarrinho(); carregarPedidos(); }
     if (a === 'rastreio') { if (cadastros.length === 0) carregarCadastros(); if (indicacoes.length === 0) carregarIndicacoes(); }
     if (a === 'relatorios') { carregarPedidos(); carregarDespesas(); if (cadastros.length === 0) carregarCadastros(); if (indicacoes.length === 0) carregarIndicacoes(); }
+    if (a === 'estoque') { if (produtos.length === 0) carregarProdutos(); carregarPedidos(); }
   };
 
   const aprovar = async (id: string) => {
@@ -1141,6 +1209,7 @@ export default function AdminPage() {
           {navItem('leads', '-', 'Leads')}
           {navItem('clientes', 'C', 'Clientes')}
           {navItem('produtos', '+', 'Produtos')}
+          {navItem('estoque', 'E', 'Estoque')}
           {navItem('banners', '*', 'Banners')}
           {navItem('blog', '~', 'Blog')}
           {navItem('despesas', '&', 'Financeiro')}
@@ -4435,6 +4504,161 @@ export default function AdminPage() {
                     </div>
                   </>
                 )}
+              </div>
+            );
+          })()}
+
+          {/* ======== ABA ESTOQUE ======== */}
+          {aba === 'estoque' && (() => {
+            const pedidosPagos = pedidos.filter(p => p.status === 'pago');
+
+            // Vendido total — usa TODO o historico de pedidos pagos (nao so um periodo)
+            const vendidoPorNome = new Map<string, number>();
+            pedidosPagos.forEach(p => {
+              if (p.itens && p.itens.length) {
+                p.itens.forEach(item => vendidoPorNome.set(item.nome, (vendidoPorNome.get(item.nome) || 0) + item.quantidade));
+              } else {
+                vendidoPorNome.set(p.produto_nome, (vendidoPorNome.get(p.produto_nome) || 0) + 1);
+              }
+            });
+
+            const linhas = produtos.map(p => {
+              const vendido = vendidoPorNome.get(p.nome) || 0;
+              const atual = (p.estoque_inicial ?? 0) - vendido;
+              const status: 'esgotado' | 'baixo' | 'ok' = atual <= 0 ? 'esgotado' : atual <= (p.estoque_minimo ?? 0) ? 'baixo' : 'ok';
+              return { produto: p, vendido, atual, valorAtivo: Math.max(atual, 0) * (p.custo ?? 0), status };
+            });
+
+            const totalSkus = produtos.length;
+            const pecasEmEstoque = linhas.reduce((s, l) => s + Math.max(l.atual, 0), 0);
+            const valorAtivoTotal = linhas.reduce((s, l) => s + l.valorAtivo, 0);
+            const estoqueBaixoCount = linhas.filter(l => l.status === 'baixo').length;
+            const esgotadoCount = linhas.filter(l => l.status === 'esgotado').length;
+            const alertas = linhas.filter(l => l.status !== 'ok').sort((a, b) => a.atual - b.atual);
+
+            // Janela de 30 dias — faturamento, custo do vendido e historico diario
+            const hoje = new Date();
+            const dias30: string[] = [];
+            for (let i = 29; i >= 0; i--) {
+              const d = new Date(hoje); d.setDate(d.getDate() - i);
+              dias30.push(d.toISOString().slice(0, 10));
+            }
+            const inicio30 = dias30[0];
+            const pedidos30d = pedidosPagos.filter(p => p.created_at.slice(0, 10) >= inicio30);
+            const faturamento30d = pedidos30d.reduce((s, p) => s + p.preco, 0);
+            const custoPorNome = new Map(produtos.map(p => [p.nome, p.custo ?? 0]));
+            const custoVendido30d = pedidos30d.reduce((s, p) => {
+              if (p.itens && p.itens.length) return s + p.itens.reduce((s2, item) => s2 + item.quantidade * (custoPorNome.get(item.nome) || 0), 0);
+              return s + (custoPorNome.get(p.produto_nome) || 0);
+            }, 0);
+            const lucroBruto30d = faturamento30d - custoVendido30d;
+            const margemMedia30d = faturamento30d > 0 ? (lucroBruto30d / faturamento30d) * 100 : 0;
+
+            const historicoDiario: [string, number][] = dias30.map(dia => {
+              const total = pedidosPagos.filter(p => p.created_at.slice(0, 10) === dia).reduce((s, p) => s + p.preco, 0);
+              const label = new Date(dia + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+              return [label, Math.round(total)];
+            });
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>Estoque</h2>
+                  <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>
+                    Estoque atual calculado a partir de todo o histórico de pedidos pagos.
+                  </p>
+                </div>
+
+                {/* KPIs */}
+                <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #6b7280' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#111827' }}>{totalSkus}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Total de SKUs</div>
+                  </div>
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#111827' }}>{pecasEmEstoque}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Peças em Estoque</div>
+                  </div>
+                  <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {valorAtivoTotal.toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Valor Ativo (Custo)</div>
+                  </div>
+                  <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {faturamento30d.toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Faturamento (30D)</div>
+                  </div>
+                  <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#111827' }}>R$ {lucroBruto30d.toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Lucro Bruto (30D)</div>
+                  </div>
+                  <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#111827' }}>{margemMedia30d.toFixed(1)}%</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Margem Média (30D)</div>
+                  </div>
+                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #d97706' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#b45309' }}>{estoqueBaixoCount}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Estoque Baixo</div>
+                  </div>
+                  <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #dc2626' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#dc2626' }}>{esgotadoCount}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Item Esgotado</div>
+                  </div>
+                </div>
+
+                <div className="admin-split-360" style={{ display: 'grid', gap: 20, alignItems: 'start' }}>
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Histórico de Faturamento Diário (R$)</div>
+                    <FaturamentoChart30d data={historicoDiario} />
+                  </div>
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Alertas de Reposição</div>
+                    {alertas.length === 0 ? (
+                      <div style={{ color: '#6b7280', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>Nenhum alerta — estoque saudável.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
+                        {alertas.map(l => (
+                          <div key={l.produto.id} style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 8,
+                            background: l.status === 'esgotado' ? '#fef2f2' : '#fffbeb', border: `1px solid ${l.status === 'esgotado' ? '#fecaca' : '#fde68a'}`,
+                          }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{l.produto.nome}</div>
+                              <div style={{ fontSize: 11, color: '#6b7280' }}>{l.produto.dose}</div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontSize: 13, fontWeight: 800, color: l.status === 'esgotado' ? '#dc2626' : '#b45309' }}>{l.atual}</div>
+                              <div style={{ fontSize: 10, color: '#9ca3af' }}>mín: {l.produto.estoque_minimo ?? 0}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tabela de produtos com edicao de estoque/custo */}
+                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                  <div className="admin-table-scroll">
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                          {['Produto', 'Estoque Inicial', 'Vendido (histórico)', 'Estoque Atual', 'Mínimo', 'Custo Unit.', 'Valor Ativo', 'Status', ''].map(h => (
+                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {loadingProd ? (
+                          <tr><td colSpan={9} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</td></tr>
+                        ) : produtos.length === 0 ? (
+                          <tr><td colSpan={9} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Nenhum produto cadastrado.</td></tr>
+                        ) : produtos.map(p => (
+                          <EstoqueRow key={p.id} produto={p} vendido={vendidoPorNome.get(p.nome) || 0} onSalvar={salvarEstoqueProduto} />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             );
           })()}

@@ -77,6 +77,9 @@ export type ProdutoMemory = {
   views_hoje?: number;
   cart_adds_hoje?: number;
   views_dia_referencia?: string;
+  estoque_inicial?: number;
+  estoque_minimo?: number;
+  custo?: number;
 };
 
 export type Config = {

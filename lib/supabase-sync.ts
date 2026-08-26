@@ -109,6 +109,7 @@ export async function sbSaveProduto(p: ProdutoMemory) {
     views: p.views || 0, cart_adds: p.cart_adds || 0,
     views_hoje: p.views_hoje || 0, cart_adds_hoje: p.cart_adds_hoje || 0,
     views_dia_referencia: p.views_dia_referencia || null,
+    estoque_inicial: p.estoque_inicial ?? 0, estoque_minimo: p.estoque_minimo ?? 0, custo: p.custo ?? 0,
   });
   if (error) throw new Error(`sbSaveProduto: ${error.message} (${error.code})`);
 }
