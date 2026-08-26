@@ -48,8 +48,8 @@ const PIPELINE_STATUS_LABEL: Record<string, string> = {
   em_atendimento: 'Em Atendimento', negociacao: 'Negociação', pago: 'Pago', cancelado: 'Cancelado',
 };
 const PIPELINE_STATUS_COLOR: Record<string, { bg: string; text: string }> = {
-  em_atendimento: { bg: '#f3f4f6', text: '#374151' },
-  negociacao: { bg: '#f3f4f6', text: '#111827' },
+  em_atendimento: { bg: 'var(--surface-hover)', text: 'var(--text-secondary, #374151)' },
+  negociacao: { bg: 'var(--surface-hover)', text: 'var(--text)' },
   pago: { bg: '#f0fdf4', text: '#15803d' },
   cancelado: { bg: '#fef2f2', text: '#dc2626' },
 };
@@ -95,10 +95,10 @@ const MOTIVOS_PERDA = ['Sem dinheiro', 'Adiou para depois', 'Escolheu concorrent
 
 function ToggleListaKanban({ kanban, onChange }: { kanban: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div style={{ display: 'inline-flex', background: '#f3f4f6', borderRadius: 8, padding: 3, gap: 2 }}>
+    <div style={{ display: 'inline-flex', background: 'var(--surface-hover)', borderRadius: 8, padding: 3, gap: 2 }}>
       {[['Lista', false], ['Kanban', true]].map(([label, val]) => (
         <button key={label as string} type="button" onClick={() => onChange(val as boolean)}
-          style={{ padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', background: kanban === val ? '#111827' : 'transparent', color: kanban === val ? '#fff' : '#6b7280' }}>
+          style={{ padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', background: kanban === val ? 'var(--btn-primary-bg)' : 'transparent', color: kanban === val ? 'var(--btn-primary-text)' : 'var(--text-muted, #6b7280)' }}>
           {label}
         </button>
       ))}
@@ -112,14 +112,14 @@ function KanbanBoard({ children }: { children: React.ReactNode }) {
 
 function KanbanColuna({ titulo, cor, total, children }: { titulo: string; cor: string; total: number; children: React.ReactNode }) {
   return (
-    <div style={{ minWidth: 250, maxWidth: 250, flexShrink: 0, background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 320px)' }}>
-      <div style={{ padding: '11px 14px', borderTop: `3px solid ${cor}`, borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', borderRadius: '10px 10px 0 0' }}>
+    <div style={{ minWidth: 250, maxWidth: 250, flexShrink: 0, background: 'var(--surface-hover)', borderRadius: 12, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 320px)' }}>
+      <div style={{ padding: '11px 14px', borderTop: `3px solid ${cor}`, borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface)', borderRadius: '10px 10px 0 0' }}>
         <span style={{ fontSize: 12, fontWeight: 800, color: cor }}>{titulo}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', background: '#f3f4f6', padding: '1px 8px', borderRadius: 10 }}>{total}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', padding: '1px 8px', borderRadius: 10 }}>{total}</span>
       </div>
       <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto', flex: 1 }}>
         {total === 0
-          ? <div style={{ padding: '20px 8px', textAlign: 'center', color: '#9ca3af', fontSize: 12 }}>Vazio</div>
+          ? <div style={{ padding: '20px 8px', textAlign: 'center', color: 'var(--text-soft, #9ca3af)', fontSize: 12 }}>Vazio</div>
           : children}
       </div>
     </div>
@@ -129,7 +129,7 @@ function KanbanColuna({ titulo, cor, total, children }: { titulo: string; cor: s
 function KanbanCard({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
   return (
     <div onClick={onClick}
-      style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, boxShadow: '0 1px 2px rgba(0,0,0,0.04)', cursor: onClick ? 'pointer' : 'default' }}>
+      style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 10, boxShadow: '0 1px 2px rgba(0,0,0,0.04)', cursor: onClick ? 'pointer' : 'default' }}>
       {children}
     </div>
   );
@@ -2847,12 +2847,18 @@ export default function AdminPage() {
               {/* Filtros */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
                 {(['todos', 'em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(val => {
-                  const cor = val === 'todos' ? '#111827' : (PIPELINE_STATUS_COLOR[val]?.text || '#374151');
+                  const corSemantica = val === 'pago' ? '#15803d' : val === 'cancelado' ? '#dc2626' : null;
                   const label = val === 'todos' ? 'Todos' : PIPELINE_STATUS_LABEL[val];
                   const n = val === 'todos' ? indicacoesPacientes.length : indicacoesPacientes.filter(i => i.status === val).length;
+                  const ativo = filtroIndicacao === val;
                   return (
                     <button key={val} onClick={() => setFiltroIndicacao(val)}
-                      style={{ background: filtroIndicacao === val ? cor : '#fff', color: filtroIndicacao === val ? '#fff' : '#374151', border: `1px solid ${filtroIndicacao === val ? cor : '#d1d5db'}`, padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: filtroIndicacao === val ? 700 : 400, fontFamily: 'inherit', fontSize: 13 }}>
+                      style={{
+                        background: ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--surface)',
+                        color: ativo ? (corSemantica ? '#fff' : 'var(--btn-primary-text)') : 'var(--text-secondary, #374151)',
+                        border: `1px solid ${ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--border)'}`,
+                        padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: ativo ? 700 : 400, fontFamily: 'inherit', fontSize: 13,
+                      }}>
                       {label} ({n})
                     </button>
                   );
@@ -2926,7 +2932,7 @@ export default function AdminPage() {
                       <KanbanBoard>
                         {(['em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(etapa => {
                           const itens = indicacoesFiltradas.filter(i => i.status === etapa);
-                          const cor = PIPELINE_STATUS_COLOR[etapa]?.text || '#374151';
+                          const cor = PIPELINE_STATUS_COLOR[etapa]?.text || 'var(--text-secondary, #374151)';
                           return (
                             <KanbanColuna key={etapa} titulo={PIPELINE_STATUS_LABEL[etapa]} cor={cor} total={itens.length}>
                               {itens.map(i => (
@@ -2980,7 +2986,7 @@ export default function AdminPage() {
                                 <td style={{ padding: '11px 14px', color: '#111827', fontWeight: 700 }}>{i.medico_nome}</td>
                                 <td style={{ padding: '11px 14px' }}>
                                   <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                                    style={{ background: (PIPELINE_STATUS_COLOR[i.status] || { bg: '#fff' }).bg, color: (PIPELINE_STATUS_COLOR[i.status] || { text: '#111827' }).text, border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                    style={{ background: (PIPELINE_STATUS_COLOR[i.status] || { bg: 'var(--surface)' }).bg, color: (PIPELINE_STATUS_COLOR[i.status] || { text: 'var(--text)' }).text, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
                                     <option value="em_atendimento">Em Atendimento</option>
                                     <option value="negociacao">Negociação</option>
                                     <option value="pago">Pago</option>
@@ -3224,26 +3230,32 @@ export default function AdminPage() {
             return (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>
-                  Pedidos <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({pedidos.length})</span>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: 0 }}>
+                  Pedidos <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({pedidos.length})</span>
                 </h2>
                 <button onClick={() => setNovoPedidoAberto(true)}
-                  style={{ background: '#111827', color: '#fff', border: 'none', padding: '9px 16px', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
+                  style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 16px', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
                   + Novo Pedido
                 </button>
               </div>
-              <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>
+              <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, marginBottom: 20 }}>
                 Todos os pedidos feitos na loja pelos médicos aprovados. Você pode alterar o status ou excluir pedidos de teste.
               </p>
 
               {/* Filtros */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
                 {(['todos', 'em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(val => {
-                  const cor = val === 'todos' ? '#111827' : (PIPELINE_STATUS_COLOR[val]?.text || '#374151');
+                  const corSemantica = val === 'pago' ? '#15803d' : val === 'cancelado' ? '#dc2626' : null;
                   const label = val === 'todos' ? 'Todos' : PIPELINE_STATUS_LABEL[val];
+                  const ativo = filtroPedido === val;
                   return (
                     <button key={val} onClick={() => setFiltroPedido(val)}
-                      style={{ background: filtroPedido === val ? cor : '#fff', color: filtroPedido === val ? '#fff' : '#374151', border: `1px solid ${filtroPedido === val ? cor : '#d1d5db'}`, padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: filtroPedido === val ? 700 : 400, fontFamily: 'inherit', fontSize: 13 }}>
+                      style={{
+                        background: ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--surface)',
+                        color: ativo ? (corSemantica ? '#fff' : 'var(--btn-primary-text)') : 'var(--text-secondary, #374151)',
+                        border: `1px solid ${ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--border)'}`,
+                        padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: ativo ? 700 : 400, fontFamily: 'inherit', fontSize: 13,
+                      }}>
                       {label} ({pedidosCounts[val]})
                     </button>
                   );
@@ -3251,57 +3263,57 @@ export default function AdminPage() {
               </div>
 
               {pedidosFiltrados.length === 0 ? (
-                <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
                   Nenhum pedido encontrado para esse filtro.
                 </div>
               ) : (
-                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                   <div className="admin-table-scroll">
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
-                      <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
                         {['Cliente', 'Produto(s)', 'Valor', 'Status', 'Data', 'Ações'].map(h => (
-                          <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                          <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {pedidosFiltrados.map((p, idx) => {
-                        const cc = PIPELINE_STATUS_COLOR[p.status] || { bg: '#f3f4f6', text: '#374151' };
+                        const cc = PIPELINE_STATUS_COLOR[p.status] || { bg: 'var(--surface-hover)', text: 'var(--text-secondary, #374151)' };
                         return (
-                        <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                        <tr key={p.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
                           <td style={{ padding: '11px 14px' }}>
-                            <div style={{ fontWeight: 700, color: '#111827' }}>{p.indicacao_id ? p.paciente_nome : p.cadastro_nome}</div>
+                            <div style={{ fontWeight: 700, color: 'var(--text)' }}>{p.indicacao_id ? p.paciente_nome : p.cadastro_nome}</div>
                             {p.indicacao_id ? (
-                              <div style={{ fontSize: 11, color: '#6b7280' }}>indicado por {p.cadastro_nome}</div>
+                              <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>indicado por {p.cadastro_nome}</div>
                             ) : (
-                              <div style={{ fontSize: 11, color: '#6b7280' }}>{p.cadastro_email}</div>
+                              <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>{p.cadastro_email}</div>
                             )}
                           </td>
-                          <td style={{ padding: '11px 14px', color: '#374151', maxWidth: 220, fontSize: 12 }}>
+                          <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', maxWidth: 220, fontSize: 12 }}>
                             {p.itens && p.itens.length > 0 ? p.itens.map(it => `${it.nome} x${it.quantidade}`).join(', ') : p.produto_nome}
                           </td>
                           <td style={{ padding: '11px 14px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                              <span style={{ color: '#6b7280', fontSize: 12 }}>R$</span>
+                              <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>R$</span>
                               <input type="number" step="0.01" min="0" defaultValue={p.preco} key={`${p.id}-${p.preco}`}
                                 onBlur={e => {
                                   const v = parseFloat(e.target.value);
                                   if (!isNaN(v) && v !== p.preco) atualizarValorPedido(p.id, v);
                                 }}
-                                style={{ width: 88, border: '1px solid #d1d5db', borderRadius: 5, padding: '4px 6px', fontSize: 13, fontWeight: 700, color: '#16a34a', fontFamily: 'inherit' }} />
+                                style={{ width: 88, border: '1px solid var(--border)', borderRadius: 5, padding: '4px 6px', fontSize: 13, fontWeight: 700, color: '#16a34a', fontFamily: 'inherit' }} />
                             </div>
                           </td>
                           <td style={{ padding: '11px 14px' }}>
                             <select value={p.status} onChange={e => atualizarStatusPedido(p.id, e.target.value)}
-                              style={{ background: cc.bg, color: cc.text, border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                              style={{ background: cc.bg, color: cc.text, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
                               <option value="em_atendimento">Em Atendimento</option>
                               <option value="negociacao">Negociação</option>
                               <option value="pago">Pago</option>
                               <option value="cancelado">Cancelado</option>
                             </select>
                           </td>
-                          <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                          <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
                             {new Date(p.created_at).toLocaleDateString('pt-BR')}
                           </td>
                           <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
@@ -3333,10 +3345,10 @@ export default function AdminPage() {
               {novoPedidoAberto && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 700, overflowY: 'auto', padding: '24px 16px' }}>
                   <div onClick={fecharNovoPedido} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
-                  <div style={{ position: 'relative', maxWidth: 520, margin: '0 auto', background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
-                    <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontWeight: 800, fontSize: 17, color: '#111827' }}>Novo Pedido</div>
-                      <button onClick={fecharNovoPedido} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#6b7280' }}>×</button>
+                  <div style={{ position: 'relative', maxWidth: 520, margin: '0 auto', background: 'var(--surface)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
+                    <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text)' }}>Novo Pedido</div>
+                      <button onClick={fecharNovoPedido} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--text-muted, #6b7280)' }}>×</button>
                     </div>
                     <form onSubmit={criarPedidoManual} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
                       <div>
@@ -3347,9 +3359,9 @@ export default function AdminPage() {
                               onClick={() => { setNovoPedidoTipoCliente(tipo); setNovoPedidoMedicoId(''); setBuscaMedicoPedido(''); setNovoPedidoIndicacaoId(''); setBuscaPacientePedido(''); }}
                               style={{
                                 flex: 1, padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit',
-                                background: novoPedidoTipoCliente === tipo ? '#111827' : '#f3f4f6',
-                                color: novoPedidoTipoCliente === tipo ? '#fff' : '#374151',
-                                border: '1px solid ' + (novoPedidoTipoCliente === tipo ? '#111827' : '#d1d5db'),
+                                background: novoPedidoTipoCliente === tipo ? 'var(--btn-primary-bg)' : 'var(--surface-hover)',
+                                color: novoPedidoTipoCliente === tipo ? 'var(--btn-primary-text)' : 'var(--text-secondary, #374151)',
+                                border: '1px solid ' + (novoPedidoTipoCliente === tipo ? 'var(--btn-primary-bg)' : 'var(--border)'),
                               }}>
                               {tipo === 'medico' ? 'Médico' : 'Paciente'}
                             </button>
@@ -3372,16 +3384,16 @@ export default function AdminPage() {
                               <input value={buscaMedicoPedido} onChange={e => setBuscaMedicoPedido(e.target.value)}
                                 placeholder="Buscar médico aprovado por nome..." style={inputStyle} />
                               {buscaMedicoPedido.trim().length >= 2 && (
-                                <div style={{ marginTop: 6, border: '1px solid #e5e7eb', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
+                                <div style={{ marginTop: 6, border: '1px solid var(--border)', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
                                   {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoPedido.trim().toLowerCase())).slice(0, 8).map(c => (
                                     <div key={c.id} onClick={() => { setNovoPedidoMedicoId(c.id); setBuscaMedicoPedido(''); }}
-                                      style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #f3f4f6' }}>
-                                      <span style={{ fontWeight: 700, color: '#111827' }}>{c.nome} {c.sobrenome}</span>
-                                      {c.crm && <span style={{ color: '#6b7280' }}> · {c.crm}</span>}
+                                      style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--border)' }}>
+                                      <span style={{ fontWeight: 700, color: 'var(--text)' }}>{c.nome} {c.sobrenome}</span>
+                                      {c.crm && <span style={{ color: 'var(--text-muted, #6b7280)' }}> · {c.crm}</span>}
                                     </div>
                                   ))}
                                   {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoPedido.trim().toLowerCase())).length === 0 && (
-                                    <div style={{ padding: '9px 12px', fontSize: 12, color: '#6b7280' }}>Nenhum médico aprovado encontrado.</div>
+                                    <div style={{ padding: '9px 12px', fontSize: 12, color: 'var(--text-muted, #6b7280)' }}>Nenhum médico aprovado encontrado.</div>
                                   )}
                                 </div>
                               )}
@@ -3404,16 +3416,16 @@ export default function AdminPage() {
                               <input value={buscaPacientePedido} onChange={e => setBuscaPacientePedido(e.target.value)}
                                 placeholder="Buscar paciente por nome..." style={inputStyle} />
                               {buscaPacientePedido.trim().length >= 2 && (
-                                <div style={{ marginTop: 6, border: '1px solid #e5e7eb', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
+                                <div style={{ marginTop: 6, border: '1px solid var(--border)', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
                                   {indicacoes.filter(i => i.tipo !== 'medico' && `${i.nome} ${i.sobrenome || ''}`.toLowerCase().includes(buscaPacientePedido.trim().toLowerCase())).slice(0, 8).map(i => (
                                     <div key={i.id} onClick={() => { setNovoPedidoIndicacaoId(i.id); setBuscaPacientePedido(''); }}
-                                      style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #f3f4f6' }}>
-                                      <span style={{ fontWeight: 700, color: '#111827' }}>{i.nome} {i.sobrenome}</span>
-                                      <span style={{ color: '#6b7280' }}> · indicado por {i.medico_nome}</span>
+                                      style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--border)' }}>
+                                      <span style={{ fontWeight: 700, color: 'var(--text)' }}>{i.nome} {i.sobrenome}</span>
+                                      <span style={{ color: 'var(--text-muted, #6b7280)' }}> · indicado por {i.medico_nome}</span>
                                     </div>
                                   ))}
                                   {indicacoes.filter(i => i.tipo !== 'medico' && `${i.nome} ${i.sobrenome || ''}`.toLowerCase().includes(buscaPacientePedido.trim().toLowerCase())).length === 0 && (
-                                    <div style={{ padding: '9px 12px', fontSize: 12, color: '#6b7280' }}>Nenhum paciente encontrado.</div>
+                                    <div style={{ padding: '9px 12px', fontSize: 12, color: 'var(--text-muted, #6b7280)' }}>Nenhum paciente encontrado.</div>
                                   )}
                                 </div>
                               )}
@@ -3449,7 +3461,7 @@ export default function AdminPage() {
                           ))}
                         </div>
                         <button type="button" onClick={() => setNovoPedidoItens(prev => [...prev, { nome: '', preco: '', quantidade: '1' }])}
-                          style={{ marginTop: 8, background: '#f9fafb', color: '#374151', border: '1px dashed #d1d5db', padding: '7px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>
+                          style={{ marginTop: 8, background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px dashed var(--border)', padding: '7px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>
                           + Adicionar outro produto
                         </button>
                       </div>
@@ -3464,18 +3476,18 @@ export default function AdminPage() {
                         </select>
                       </div>
 
-                      <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
-                        <span style={{ color: '#374151' }}>Total</span>
+                      <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
+                        <span style={{ color: 'var(--text-secondary, #374151)' }}>Total</span>
                         <span style={{ color: '#16a34a' }}>
                           R$ {novoPedidoItens.reduce((s, it) => s + (parseFloat(it.preco) || 0) * (parseInt(it.quantidade, 10) || 1), 0).toFixed(2)}
                         </span>
                       </div>
 
                       <div style={{ display: 'flex', gap: 10 }}>
-                        <button type="button" onClick={fecharNovoPedido} style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                        <button type="button" onClick={fecharNovoPedido} style={{ background: 'var(--surface)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
                           Cancelar
                         </button>
-                        <button type="submit" disabled={salvandoPedido} style={{ flex: 1, background: '#111827', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoPedido ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoPedido ? 0.6 : 1 }}>
+                        <button type="submit" disabled={salvandoPedido} style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoPedido ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoPedido ? 0.6 : 1 }}>
                           {salvandoPedido ? 'Salvando...' : 'Criar Pedido'}
                         </button>
                       </div>
