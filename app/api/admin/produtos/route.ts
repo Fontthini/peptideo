@@ -9,7 +9,7 @@ function checkAdmin(req: NextRequest) {
 }
 
 function isSeeded(id: string) {
-  return !isNaN(parseInt(id)) && parseInt(id) <= 20;
+  return /^\d+$/.test(id) && parseInt(id, 10) <= 20;
 }
 
 export async function GET(req: NextRequest) {
