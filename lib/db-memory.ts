@@ -256,7 +256,7 @@ export function mem_criar(data: Omit<Cadastro, 'id' | 'status' | 'token' | 'crea
 }
 
 export function mem_listar(): Cadastro[] {
-  return [...getStore()].reverse();
+  return [...getStore()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
 
 export function mem_buscarEmail(email: string): Cadastro | null {
