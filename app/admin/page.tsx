@@ -740,7 +740,7 @@ export default function AdminPage() {
     if (a === 'equipe') carregarEquipe();
     if (a === 'indicacoes' || a === 'indicacoes-medicas') { carregarIndicacoes(); if (pedidos.length === 0) carregarPedidos(); }
     if (a === 'pedidos') { carregarPedidos(); if (produtos.length === 0) carregarProdutos(); if (cadastros.length === 0) carregarCadastros(); if (indicacoes.length === 0) carregarIndicacoes(); }
-    if (a === 'dashboard') { carregarCadastros(); carregarEquipe(); carregarPedidos(); carregarIndicacoes(); if (produtos.length === 0) carregarProdutos(); }
+    if (a === 'dashboard') { carregarCadastros(); carregarEquipe(); carregarPedidos(); carregarIndicacoes(); carregarDespesas(); if (produtos.length === 0) carregarProdutos(); }
     if (a === 'leads') {
       if (indicacoes.length === 0) carregarIndicacoes();
       if (equipe.length === 0) carregarEquipe();
@@ -2626,7 +2626,11 @@ export default function AdminPage() {
           {aba === 'dashboard' && (
             <DashboardOverview
               cadastros={cadastros} pedidos={pedidos} equipe={equipe} produtos={produtos} config={config}
+              despesas={despesas} indicacoes={indicacoes} mostrarVisaoNegocio
               onVerTodosLeads={() => mudarAba('leads')}
+              onIrParaRelatorios={() => mudarAba('relatorios')}
+              onIrParaEstoque={() => mudarAba('estoque')}
+              onIrParaFinanceiro={() => mudarAba('despesas')}
               totalPacientes={totalPacientes}
             />
           )}

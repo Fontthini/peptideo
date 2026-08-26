@@ -1,19 +1,22 @@
 'use client';
-import { estaOnline, HBarChart, LeadsChart30d } from './DashboardCharts';
+import { estaOnline, HBarChart, LeadsChart30d, FaturamentoChart30d } from './DashboardCharts';
 
 export type DashCadastro = {
   id: string; nome: string; sobrenome: string; status: string; onde_conheceu: string | null;
   crm?: string | null; created_at: string; updated_at?: string; vendedor_id?: string | null;
   last_seen_loja?: string | null; last_seen_blog?: string | null;
 };
-export type DashPedido = { id: string; cadastro_nome: string; cadastro_email: string; indicacao_id?: string | null; paciente_nome?: string; produto_nome: string; preco: number; status: string; created_at: string; };
+export type DashPedidoItem = { nome: string; preco: number; quantidade: number };
+export type DashPedido = { id: string; cadastro_id?: string; cadastro_nome: string; cadastro_email: string; indicacao_id?: string | null; paciente_nome?: string; produto_nome: string; preco: number; itens?: DashPedidoItem[]; status: string; created_at: string; };
 export type DashMembro = { id: string; nome: string; cargo: string; ativo: boolean; };
-export type DashProduto = { id: string; nome: string; views?: number; views_hoje?: number; cart_adds?: number; };
+export type DashProduto = { id: string; nome: string; views?: number; views_hoje?: number; cart_adds?: number; estoque_inicial?: number; estoque_minimo?: number; custo?: number; };
 export type DashConfig = {
   emails_enviados_hoje?: number; limite_emails_dia?: number;
   emails_enviados_mes?: number; limite_emails_mes?: number;
   cliques_cards?: Record<string, number>; cliques_cards_hoje?: Record<string, number>;
 };
+export type DashDespesa = { id: string; tipo: 'entrada' | 'saida'; categoria: string; valor: number; data: string; };
+export type DashIndicacao = { id: string; medico_id: string; medico_nome: string; status: string; tipo?: 'paciente' | 'medico'; comissao_valor?: number | null; comissao_paga?: boolean; };
 
 const PIPELINE_STATUS_LABEL: Record<string, string> = {
   em_atendimento: 'Em Atendimento', negociacao: 'Negociação', pago: 'Pago', cancelado: 'Cancelado',
@@ -36,9 +39,14 @@ const CARDS_INICIO: { key: string; label: string }[] = [
 
 export function DashboardOverview({
   cadastros, pedidos, equipe, produtos, config, onVerTodosLeads, totalPacientes = 0,
+  despesas = [], indicacoes = [], onIrParaRelatorios, onIrParaEstoque, onIrParaFinanceiro,
+  mostrarVisaoNegocio = false,
 }: {
   cadastros: DashCadastro[]; pedidos: DashPedido[]; equipe: DashMembro[]; produtos: DashProduto[]; config: DashConfig;
   onVerTodosLeads?: () => void; totalPacientes?: number;
+  despesas?: DashDespesa[]; indicacoes?: DashIndicacao[];
+  onIrParaRelatorios?: () => void; onIrParaEstoque?: () => void; onIrParaFinanceiro?: () => void;
+  mostrarVisaoNegocio?: boolean;
 }) {
   const total = cadastros.length;
   const aprovados = cadastros.filter(c => c.status === 'aprovado').length;
@@ -48,7 +56,53 @@ export function DashboardOverview({
   const totalPedidos = pedidos.length;
   const valorTotalPedidos = pedidos.reduce((s, p) => s + p.preco, 0);
   const pedidosVendidos = pedidos.filter(p => p.status === 'pago').length;
-  const valorVendido = pedidos.filter(p => p.status === 'pago').reduce((s, p) => s + p.preco, 0);
+  const pedidosPagos = pedidos.filter(p => p.status === 'pago');
+  const valorVendido = pedidosPagos.reduce((s, p) => s + p.preco, 0);
+
+  // ---- Visao do negocio: faturamento, financeiro, comissoes, estoque ----
+  const hoje30 = new Date();
+  const dias30: string[] = [];
+  for (let i = 29; i >= 0; i--) { const d = new Date(hoje30); d.setDate(d.getDate() - i); dias30.push(d.toISOString().slice(0, 10)); }
+  const inicio30 = dias30[0];
+  const pedidos30d = pedidosPagos.filter(p => p.created_at.slice(0, 10) >= inicio30);
+  const faturamento30d = pedidos30d.reduce((s, p) => s + p.preco, 0);
+  const historicoFaturamento: [string, number][] = dias30.map(dia => {
+    const totalDia = pedidosPagos.filter(p => p.created_at.slice(0, 10) === dia).reduce((s, p) => s + p.preco, 0);
+    return [new Date(dia + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }), Math.round(totalDia)];
+  });
+
+  const totalEntradas = despesas.filter(d => d.tipo === 'entrada').reduce((s, d) => s + d.valor, 0);
+  const totalSaidas = despesas.filter(d => d.tipo === 'saida').reduce((s, d) => s + d.valor, 0);
+  const saldo = totalEntradas - totalSaidas;
+
+  const comissoesPagas = indicacoes.filter(i => i.comissao_paga);
+  const totalComissoesPagas = comissoesPagas.reduce((s, i) => s + (i.comissao_valor || 0), 0);
+  const comissoesPendentes = indicacoes.filter(i => !i.comissao_paga && (i.status === 'pago' || i.status === 'convertido')).length;
+
+  const vendidoPorNome = new Map<string, number>();
+  pedidosPagos.forEach(p => {
+    if (p.itens && p.itens.length) p.itens.forEach(it => vendidoPorNome.set(it.nome, (vendidoPorNome.get(it.nome) || 0) + it.quantidade));
+    else vendidoPorNome.set(p.produto_nome, (vendidoPorNome.get(p.produto_nome) || 0) + 1);
+  });
+  const estoqueLinhas = produtos.map(p => {
+    const vendido = vendidoPorNome.get(p.nome) || 0;
+    const atual = (p.estoque_inicial ?? 0) - vendido;
+    const status: 'esgotado' | 'baixo' | 'ok' = atual <= 0 ? 'esgotado' : atual <= (p.estoque_minimo ?? 0) ? 'baixo' : 'ok';
+    return { atual, valorAtivo: Math.max(atual, 0) * (p.custo ?? 0), status };
+  });
+  const pecasEmEstoque = estoqueLinhas.reduce((s, l) => s + Math.max(l.atual, 0), 0);
+  const valorAtivoEstoque = estoqueLinhas.reduce((s, l) => s + l.valorAtivo, 0);
+  const estoqueBaixoCount = estoqueLinhas.filter(l => l.status === 'baixo').length;
+  const estoqueEsgotadoCount = estoqueLinhas.filter(l => l.status === 'esgotado').length;
+
+  const porMedico = new Map<string, { nome: string; total: number }>();
+  pedidosPagos.forEach(p => {
+    const key = p.cadastro_id || p.cadastro_nome;
+    const cur = porMedico.get(key) || { nome: p.cadastro_nome, total: 0 };
+    cur.total += p.preco;
+    porMedico.set(key, cur);
+  });
+  const topMedicos = [...porMedico.values()].sort((a, b) => b.total - a.total).slice(0, 5);
 
   const comData = cadastros.filter(c => c.status === 'aprovado' && c.updated_at);
   const tempoMedio = comData.length > 0
@@ -111,7 +165,84 @@ export function DashboardOverview({
         .admin-grid-auto { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
         .admin-table-scroll { overflow-x: auto; }
       `}</style>
-      <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>Dashboard Geral</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>Dashboard Geral</h2>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {onIrParaRelatorios && (
+            <button onClick={onIrParaRelatorios} style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>Relatórios →</button>
+          )}
+          {onIrParaEstoque && (
+            <button onClick={onIrParaEstoque} style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>Estoque →</button>
+          )}
+          {onIrParaFinanceiro && (
+            <button onClick={onIrParaFinanceiro} style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>Financeiro →</button>
+          )}
+        </div>
+      </div>
+
+      {/* ==== Visao do Negocio: faturamento, financeiro, comissoes, estoque ==== */}
+      {mostrarVisaoNegocio && (
+      <div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Visão do Negócio</div>
+        <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 20 }}>
+          <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 12, padding: '18px 20px', borderTop: '4px solid #16a34a' }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#16a34a' }}>R$ {valorVendido.toFixed(2)}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>Faturamento Total</div>
+          </div>
+          <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 12, padding: '18px 20px', borderTop: '4px solid #16a34a' }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#16a34a' }}>R$ {faturamento30d.toFixed(2)}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>Faturamento (30D)</div>
+          </div>
+          <div style={{ background: `${saldo >= 0 ? '#111827' : '#dc2626'}0d`, border: `1px solid ${saldo >= 0 ? '#111827' : '#dc2626'}33`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${saldo >= 0 ? '#111827' : '#dc2626'}` }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: saldo >= 0 ? '#111827' : '#dc2626' }}>R$ {saldo.toFixed(2)}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>Saldo Financeiro</div>
+          </div>
+          <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 12, padding: '18px 20px', borderTop: '4px solid #111827' }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#111827' }}>R$ {totalComissoesPagas.toFixed(2)}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>Comissões Pagas</div>
+          </div>
+          <div style={{ background: comissoesPendentes > 0 ? '#fffbeb' : '#1118270d', border: `1px solid ${comissoesPendentes > 0 ? '#fde68a' : '#11182733'}`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${comissoesPendentes > 0 ? '#d97706' : '#111827'}` }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: comissoesPendentes > 0 ? '#b45309' : '#111827' }}>{comissoesPendentes}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>Comissões Pendentes</div>
+          </div>
+          <div style={{ background: (estoqueBaixoCount + estoqueEsgotadoCount) > 0 ? '#fef2f2' : '#1118270d', border: `1px solid ${(estoqueBaixoCount + estoqueEsgotadoCount) > 0 ? '#fecaca' : '#11182733'}`, borderRadius: 12, padding: '18px 20px', borderTop: `4px solid ${(estoqueBaixoCount + estoqueEsgotadoCount) > 0 ? '#dc2626' : '#111827'}` }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: (estoqueBaixoCount + estoqueEsgotadoCount) > 0 ? '#dc2626' : '#111827' }}>{estoqueEsgotadoCount + estoqueBaixoCount}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginTop: 3 }}>Alertas de Estoque</div>
+            <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 1 }}>{estoqueEsgotadoCount} esgotado · {estoqueBaixoCount} baixo</div>
+          </div>
+        </div>
+
+        <div className="admin-grid-auto" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Faturamento Diário (30D)</div>
+            <FaturamentoChart30d data={historicoFaturamento} />
+          </div>
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Top Médicos por Faturamento</div>
+            {topMedicos.length === 0 ? (
+              <div style={{ color: '#6b7280', fontSize: 13, textAlign: 'center', padding: '30px 0' }}>Sem pedidos pagos ainda.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {topMedicos.map((m, i) => {
+                  const max = topMedicos[0].total || 1;
+                  return (
+                    <div key={m.nome + i}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
+                        <span style={{ color: '#374151', fontWeight: 600 }}>{m.nome}</span>
+                        <span style={{ color: '#16a34a', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>R$ {m.total.toFixed(2)}</span>
+                      </div>
+                      <div style={{ background: '#f1f5f9', borderRadius: 8, height: 8, overflow: 'hidden' }}>
+                        <div style={{ background: '#16a34a', borderRadius: 8, height: '100%', width: `${(m.total / max) * 100}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      )}
 
       {/* Total / Médicos / Pacientes */}
       <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
