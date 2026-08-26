@@ -210,17 +210,17 @@ function EstoqueRow({ produto, vendido, onSalvar }: {
   const status = atual <= 0 ? 'esgotado' : atual <= minimoNum ? 'baixo' : 'ok';
   const dirty = inicialNum !== (produto.estoque_inicial ?? 0) || minimoNum !== (produto.estoque_minimo ?? 0) || custoNum !== (produto.custo ?? 0);
 
-  const numInputStyle: React.CSSProperties = { width: 80, border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12.5, fontFamily: 'inherit', background: '#fff', color: '#111827' };
+  const numInputStyle: React.CSSProperties = { width: 80, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12.5, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' };
 
   return (
-    <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
-      <td style={{ padding: '10px 14px', color: '#111827', fontWeight: 600 }}>
-        {produto.nome} <span style={{ color: '#9ca3af', fontWeight: 400 }}>{produto.dose}</span>
+    <tr style={{ borderBottom: '1px solid var(--border)' }}>
+      <td style={{ padding: '10px 14px', color: 'var(--text)', fontWeight: 600 }}>
+        {produto.nome} <span style={{ color: 'var(--text-soft, #9ca3af)', fontWeight: 400 }}>{produto.dose}</span>
       </td>
       <td style={{ padding: '10px 14px' }}>
         <input type="number" min="0" step="1" value={inicial} onChange={e => setInicial(e.target.value)} style={numInputStyle} />
       </td>
-      <td style={{ padding: '10px 14px', color: '#6b7280' }}>{vendido}</td>
+      <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)' }}>{vendido}</td>
       <td style={{ padding: '10px 14px', fontWeight: 700, color: status === 'esgotado' ? '#dc2626' : status === 'baixo' ? '#b45309' : '#16a34a', fontVariantNumeric: 'tabular-nums' }}>{atual}</td>
       <td style={{ padding: '10px 14px' }}>
         <input type="number" min="0" step="1" value={minimo} onChange={e => setMinimo(e.target.value)} style={numInputStyle} />
@@ -228,7 +228,7 @@ function EstoqueRow({ produto, vendido, onSalvar }: {
       <td style={{ padding: '10px 14px' }}>
         <input type="number" min="0" step="0.01" value={custo} onChange={e => setCusto(e.target.value)} style={numInputStyle} />
       </td>
-      <td style={{ padding: '10px 14px', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>R$ {valorAtivo.toFixed(2)}</td>
+      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>R$ {valorAtivo.toFixed(2)}</td>
       <td style={{ padding: '10px 14px' }}>
         <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: status === 'esgotado' ? '#fef2f2' : status === 'baixo' ? '#fffbeb' : '#f0fdf4', color: status === 'esgotado' ? '#dc2626' : status === 'baixo' ? '#b45309' : '#16a34a' }}>
           {status === 'esgotado' ? 'Esgotado' : status === 'baixo' ? 'Estoque Baixo' : 'OK'}
@@ -239,7 +239,7 @@ function EstoqueRow({ produto, vendido, onSalvar }: {
           setSalvando(true);
           await onSalvar(produto.id, { estoque_inicial: inicialNum, estoque_minimo: minimoNum, custo: custoNum });
           setSalvando(false);
-        }} style={{ background: dirty ? '#111827' : '#f3f4f6', color: dirty ? '#fff' : '#9ca3af', border: 'none', padding: '6px 12px', borderRadius: 6, cursor: dirty ? 'pointer' : 'default', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>
+        }} style={{ background: dirty ? 'var(--btn-primary-bg)' : 'var(--surface-hover)', color: dirty ? 'var(--btn-primary-text)' : 'var(--text-soft, #9ca3af)', border: 'none', padding: '6px 12px', borderRadius: 6, cursor: dirty ? 'pointer' : 'default', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>
           {salvando ? '...' : 'Salvar'}
         </button>
       </td>
@@ -4291,8 +4291,8 @@ export default function AdminPage() {
                 `}</style>
 
                 <div>
-                  <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>Relatórios</h2>
-                  <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 6, marginTop: 0 }}>Relatórios</h2>
+                  <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, margin: 0 }}>
                     Faturamento, comissões e financeiro — filtre por período e médico, imprima ou baixe em CSV.
                   </p>
                 </div>
@@ -4302,8 +4302,8 @@ export default function AdminPage() {
                   {pills.map(p => (
                     <button key={p.key} onClick={() => setRelatorioTipo(p.key)}
                       style={{
-                        background: relatorioTipo === p.key ? '#111827' : '#fff', color: relatorioTipo === p.key ? '#fff' : '#374151',
-                        border: '1px solid ' + (relatorioTipo === p.key ? '#111827' : '#d1d5db'), padding: '8px 16px', borderRadius: 20,
+                        background: relatorioTipo === p.key ? 'var(--btn-primary-bg)' : 'var(--surface)', color: relatorioTipo === p.key ? 'var(--btn-primary-text)' : 'var(--text-secondary, #374151)',
+                        border: '1px solid ' + (relatorioTipo === p.key ? 'var(--btn-primary-bg)' : 'var(--border)'), padding: '8px 16px', borderRadius: 20,
                         fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                       }}>
                       {p.label}
@@ -4312,22 +4312,22 @@ export default function AdminPage() {
                 </div>
 
                 {/* Filtros */}
-                <div className="no-print" style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <div className="no-print" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4 }}>DE</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>DE</div>
                     <input type="date" value={relFiltroInicio} onChange={e => setRelFiltroInicio(e.target.value)}
-                      style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: '#fff', color: '#111827', colorScheme: 'light' }} />
+                      style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)', colorScheme: tema }} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4 }}>ATÉ</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>ATÉ</div>
                     <input type="date" value={relFiltroFim} onChange={e => setRelFiltroFim(e.target.value)}
-                      style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: '#fff', color: '#111827', colorScheme: 'light' }} />
+                      style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)', colorScheme: tema }} />
                   </div>
                   {(relatorioTipo === 'faturamento' || relatorioTipo === 'medicos' || relatorioTipo === 'comissoes') && (
                     <div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4 }}>MÉDICO</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>MÉDICO</div>
                       <select value={relFiltroMedico} onChange={e => setRelFiltroMedico(e.target.value)}
-                        style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', maxWidth: 220, background: '#fff', color: '#111827', colorScheme: 'light' }}>
+                        style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', maxWidth: 220, background: 'var(--surface)', color: 'var(--text)', colorScheme: tema }}>
                         <option value="">Todos os médicos</option>
                         {medicosOrdenados.map(c => <option key={c.id} value={c.id}>{c.nome} {c.sobrenome}</option>)}
                       </select>
@@ -4335,9 +4335,9 @@ export default function AdminPage() {
                   )}
                   {relatorioTipo === 'faturamento' && (
                     <div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4 }}>AGRUPAR POR</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>AGRUPAR POR</div>
                       <select value={relAgrupamento} onChange={e => setRelAgrupamento(e.target.value as 'dia' | 'mes')}
-                        style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: '#fff', color: '#111827', colorScheme: 'light' }}>
+                        style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)', colorScheme: tema }}>
                         <option value="dia">Dia</option>
                         <option value="mes">Mês</option>
                       </select>
@@ -4345,9 +4345,9 @@ export default function AdminPage() {
                   )}
                   {relatorioTipo === 'financeiro' && (
                     <div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4 }}>TIPO</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>TIPO</div>
                       <select value={relFiltroTipoFin} onChange={e => setRelFiltroTipoFin(e.target.value as 'todos' | 'entrada' | 'saida')}
-                        style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: '#fff', color: '#111827', colorScheme: 'light' }}>
+                        style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)', colorScheme: tema }}>
                         <option value="todos">Todos</option>
                         <option value="entrada">Entrada</option>
                         <option value="saida">Saída</option>
@@ -4355,12 +4355,12 @@ export default function AdminPage() {
                     </div>
                   )}
                   <button onClick={limparFiltros}
-                    style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
+                    style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
                     Limpar filtros
                   </button>
                   <div style={{ flex: 1 }} />
                   <button onClick={() => window.print()}
-                    style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit' }}>
+                    style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit' }}>
                     Imprimir
                   </button>
                   <button onClick={() => {
@@ -4388,34 +4388,34 @@ export default function AdminPage() {
                     <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
                       <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
                         <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalFaturamento.toFixed(2)}</div>
-                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Faturamento Total</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Faturamento Total</div>
                       </div>
                       <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
-                        <div style={{ fontSize: 26, fontWeight: 800, color: '#111827' }}>{pedidosPeriodo.length}</div>
-                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Pedidos Pagos</div>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{pedidosPeriodo.length}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Pedidos Pagos</div>
                       </div>
                       <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
-                        <div style={{ fontSize: 26, fontWeight: 800, color: '#111827' }}>R$ {ticketMedio.toFixed(2)}</div>
-                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Ticket Médio</div>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>R$ {ticketMedio.toFixed(2)}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Ticket Médio</div>
                       </div>
                     </div>
-                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                       <div className="admin-table-scroll">
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                           <thead>
-                            <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                            <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
                               {['Período', 'Nº Pedidos', 'Faturamento'].map(h => (
-                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
                             {agrupadoFaturamento.length === 0 ? (
-                              <tr><td colSpan={3} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Nenhum pedido pago no período.</td></tr>
+                              <tr><td colSpan={3} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum pedido pago no período.</td></tr>
                             ) : agrupadoFaturamento.map(([k, v], idx) => (
-                              <tr key={k} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                                <td style={{ padding: '11px 14px', color: '#374151', textTransform: 'capitalize' }}>{formatPeriodoKey(k)}</td>
-                                <td style={{ padding: '11px 14px', color: '#6b7280' }}>{v.qtd}</td>
+                              <tr key={k} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', textTransform: 'capitalize' }}>{formatPeriodoKey(k)}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{v.qtd}</td>
                                 <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>R$ {v.total.toFixed(2)}</td>
                               </tr>
                             ))}
@@ -4428,27 +4428,27 @@ export default function AdminPage() {
 
                 {/* ===== Por Médico ===== */}
                 {relatorioTipo === 'medicos' && (
-                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                     <div className="admin-table-scroll">
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                         <thead>
-                          <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                          <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
                             {['Médico', 'Pedidos Próprios', 'Faturamento Próprio', 'Pedidos de Indicados', 'Faturamento de Indicados', 'Comissões Pagas'].map(h => (
-                              <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                              <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
                           {agrupadoPorMedico.length === 0 ? (
-                            <tr><td colSpan={6} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Nenhum pedido pago no período.</td></tr>
+                            <tr><td colSpan={6} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum pedido pago no período.</td></tr>
                           ) : agrupadoPorMedico.map((m, idx) => (
-                            <tr key={m.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                              <td style={{ padding: '11px 14px', color: '#111827', fontWeight: 600 }}>{m.nome}</td>
-                              <td style={{ padding: '11px 14px', color: '#6b7280' }}>{m.qtdProprio || '-'}</td>
-                              <td style={{ padding: '11px 14px', fontWeight: 700, color: m.totalProprio > 0 ? '#16a34a' : '#d1d5db', fontVariantNumeric: 'tabular-nums' }}>{m.totalProprio > 0 ? `R$ ${m.totalProprio.toFixed(2)}` : '-'}</td>
-                              <td style={{ padding: '11px 14px', color: '#6b7280' }}>{m.qtdIndicado || '-'}</td>
-                              <td style={{ padding: '11px 14px', fontWeight: 700, color: m.totalIndicado > 0 ? '#16a34a' : '#d1d5db', fontVariantNumeric: 'tabular-nums' }}>{m.totalIndicado > 0 ? `R$ ${m.totalIndicado.toFixed(2)}` : '-'}</td>
-                              <td style={{ padding: '11px 14px', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>{m.comissao > 0 ? `R$ ${m.comissao.toFixed(2)}` : '-'}</td>
+                            <tr key={m.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                              <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600 }}>{m.nome}</td>
+                              <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{m.qtdProprio || '-'}</td>
+                              <td style={{ padding: '11px 14px', fontWeight: 700, color: m.totalProprio > 0 ? '#16a34a' : 'var(--text-soft, #9ca3af)', fontVariantNumeric: 'tabular-nums' }}>{m.totalProprio > 0 ? `R$ ${m.totalProprio.toFixed(2)}` : '-'}</td>
+                              <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{m.qtdIndicado || '-'}</td>
+                              <td style={{ padding: '11px 14px', fontWeight: 700, color: m.totalIndicado > 0 ? '#16a34a' : 'var(--text-soft, #9ca3af)', fontVariantNumeric: 'tabular-nums' }}>{m.totalIndicado > 0 ? `R$ ${m.totalIndicado.toFixed(2)}` : '-'}</td>
+                              <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>{m.comissao > 0 ? `R$ ${m.comissao.toFixed(2)}` : '-'}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -4463,33 +4463,33 @@ export default function AdminPage() {
                     <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
                       <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
                         <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalComissoes.toFixed(2)}</div>
-                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Total em Comissões</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total em Comissões</div>
                       </div>
                       <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
-                        <div style={{ fontSize: 26, fontWeight: 800, color: '#111827' }}>{comissoesPeriodo.length}</div>
-                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Comissões Lançadas</div>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{comissoesPeriodo.length}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Comissões Lançadas</div>
                       </div>
                     </div>
-                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                       <div className="admin-table-scroll">
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                           <thead>
-                            <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                            <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
                               {['Data', 'Médico Indicador', 'Indicado', 'Tipo', 'Valor'].map(h => (
-                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
                             {comissoesPeriodo.length === 0 ? (
-                              <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Nenhuma comissão lançada no período.</td></tr>
+                              <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhuma comissão lançada no período.</td></tr>
                             ) : comissoesPeriodo.map((i, idx) => (
-                              <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                                <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap' }}>{formatData(i._data)}</td>
-                                <td style={{ padding: '11px 14px', color: '#111827', fontWeight: 600 }}>{i.medico_nome}</td>
-                                <td style={{ padding: '11px 14px', color: '#374151' }}>{i.nome} {i.sobrenome || ''}</td>
+                              <tr key={i.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{formatData(i._data)}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600 }}>{i.medico_nome}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)' }}>{i.nome} {i.sobrenome || ''}</td>
                                 <td style={{ padding: '11px 14px' }}>
-                                  <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: i.tipo === 'medico' ? '#f0fdf4' : '#f3f4f6', color: i.tipo === 'medico' ? '#16a34a' : '#374151' }}>
+                                  <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: i.tipo === 'medico' ? '#f0fdf4' : 'var(--surface-hover)', color: i.tipo === 'medico' ? '#16a34a' : 'var(--text-secondary, #374151)' }}>
                                     {i.tipo === 'medico' ? 'Médico Indicado' : 'Paciente'}
                                   </span>
                                 </td>
@@ -4509,40 +4509,40 @@ export default function AdminPage() {
                     <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
                       <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
                         <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalEntradasFin.toFixed(2)}</div>
-                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Total Entradas</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total Entradas</div>
                       </div>
                       <div style={{ background: '#dc26260d', border: '1px solid #dc262633', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #dc2626' }}>
                         <div style={{ fontSize: 26, fontWeight: 800, color: '#dc2626' }}>R$ {totalSaidasFin.toFixed(2)}</div>
-                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Total Saídas</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total Saídas</div>
                       </div>
-                      <div style={{ background: `${totalEntradasFin - totalSaidasFin >= 0 ? '#111827' : '#dc2626'}0d`, border: `1px solid ${totalEntradasFin - totalSaidasFin >= 0 ? '#111827' : '#dc2626'}33`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${totalEntradasFin - totalSaidasFin >= 0 ? '#111827' : '#dc2626'}` }}>
-                        <div style={{ fontSize: 26, fontWeight: 800, color: totalEntradasFin - totalSaidasFin >= 0 ? '#111827' : '#dc2626' }}>R$ {(totalEntradasFin - totalSaidasFin).toFixed(2)}</div>
-                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Saldo</div>
+                      <div style={{ background: totalEntradasFin - totalSaidasFin >= 0 ? 'var(--surface-hover)' : '#dc26260d', border: `1px solid ${totalEntradasFin - totalSaidasFin >= 0 ? 'var(--border)' : '#dc262633'}`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${totalEntradasFin - totalSaidasFin >= 0 ? 'var(--text-soft, #9ca3af)' : '#dc2626'}` }}>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: totalEntradasFin - totalSaidasFin >= 0 ? 'var(--text)' : '#dc2626' }}>R$ {(totalEntradasFin - totalSaidasFin).toFixed(2)}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Saldo</div>
                       </div>
                     </div>
-                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                       <div className="admin-table-scroll">
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                           <thead>
-                            <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                            <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
                               {['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor'].map(h => (
-                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
                             {despesasPeriodo.length === 0 ? (
-                              <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Nenhum lançamento no período.</td></tr>
+                              <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum lançamento no período.</td></tr>
                             ) : despesasPeriodo.map((d, idx) => (
-                              <tr key={d.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                                <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap' }}>{formatData(d.data)}</td>
+                              <tr key={d.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{formatData(d.data)}</td>
                                 <td style={{ padding: '11px 14px' }}>
                                   <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: d.tipo === 'entrada' ? '#dcfce7' : '#fee2e2', color: d.tipo === 'entrada' ? '#15803d' : '#dc2626' }}>
                                     {d.tipo === 'entrada' ? 'Entrada' : 'Saída'}
                                   </span>
                                 </td>
-                                <td style={{ padding: '11px 14px', color: '#374151', whiteSpace: 'nowrap' }}>{d.categoria}</td>
-                                <td style={{ padding: '11px 14px', color: '#6b7280' }}>{d.descricao}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap' }}>{d.categoria}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{d.descricao}</td>
                                 <td style={{ padding: '11px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626', fontVariantNumeric: 'tabular-nums' }}>R$ {d.valor.toFixed(2)}</td>
                               </tr>
                             ))}
@@ -4611,57 +4611,57 @@ export default function AdminPage() {
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 <div>
-                  <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>Estoque</h2>
-                  <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 6, marginTop: 0 }}>Estoque</h2>
+                  <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, margin: 0 }}>
                     Estoque atual calculado a partir de todo o histórico de pedidos pagos.
                   </p>
                 </div>
 
                 {/* KPIs */}
                 <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
-                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #6b7280' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#111827' }}>{totalSkus}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Total de SKUs</div>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #6b7280' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{totalSkus}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total de SKUs</div>
                   </div>
-                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#111827' }}>{pecasEmEstoque}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Peças em Estoque</div>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{pecasEmEstoque}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Peças em Estoque</div>
                   </div>
                   <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
                     <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {valorAtivoTotal.toFixed(2)}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Valor Ativo (Custo)</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Valor Ativo (Custo)</div>
                   </div>
                   <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
                     <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {faturamento30d.toFixed(2)}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Faturamento (30D)</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Faturamento (30D)</div>
                   </div>
                   <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#111827' }}>R$ {lucroBruto30d.toFixed(2)}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Lucro Bruto (30D)</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>R$ {lucroBruto30d.toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Lucro Bruto (30D)</div>
                   </div>
                   <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#111827' }}>{margemMedia30d.toFixed(1)}%</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Margem Média (30D)</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{margemMedia30d.toFixed(1)}%</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Margem Média (30D)</div>
                   </div>
                   <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #d97706' }}>
                     <div style={{ fontSize: 26, fontWeight: 800, color: '#b45309' }}>{estoqueBaixoCount}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Estoque Baixo</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Estoque Baixo</div>
                   </div>
                   <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #dc2626' }}>
                     <div style={{ fontSize: 26, fontWeight: 800, color: '#dc2626' }}>{esgotadoCount}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Item Esgotado</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Item Esgotado</div>
                   </div>
                 </div>
 
                 <div className="admin-split-360" style={{ display: 'grid', gap: 20, alignItems: 'start' }}>
-                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Histórico de Faturamento Diário (R$)</div>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Histórico de Faturamento Diário (R$)</div>
                     <FaturamentoChart30d data={historicoDiario} />
                   </div>
-                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Alertas de Reposição</div>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Alertas de Reposição</div>
                     {alertas.length === 0 ? (
-                      <div style={{ color: '#6b7280', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>Nenhum alerta — estoque saudável.</div>
+                      <div style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>Nenhum alerta — estoque saudável.</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
                         {alertas.map(l => (
@@ -4670,12 +4670,12 @@ export default function AdminPage() {
                             background: l.status === 'esgotado' ? '#fef2f2' : '#fffbeb', border: `1px solid ${l.status === 'esgotado' ? '#fecaca' : '#fde68a'}`,
                           }}>
                             <div>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{l.produto.nome}</div>
-                              <div style={{ fontSize: 11, color: '#6b7280' }}>{l.produto.dose}</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{l.produto.nome}</div>
+                              <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>{l.produto.dose}</div>
                             </div>
                             <div style={{ textAlign: 'right' }}>
                               <div style={{ fontSize: 13, fontWeight: 800, color: l.status === 'esgotado' ? '#dc2626' : '#b45309' }}>{l.atual}</div>
-                              <div style={{ fontSize: 10, color: '#9ca3af' }}>mín: {l.produto.estoque_minimo ?? 0}</div>
+                              <div style={{ fontSize: 10, color: 'var(--text-soft, #9ca3af)' }}>mín: {l.produto.estoque_minimo ?? 0}</div>
                             </div>
                           </div>
                         ))}
@@ -4685,21 +4685,21 @@ export default function AdminPage() {
                 </div>
 
                 {/* Tabela de produtos com edicao de estoque/custo */}
-                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                   <div className="admin-table-scroll">
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
-                        <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                        <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
                           {['Produto', 'Estoque Inicial', 'Vendido (histórico)', 'Estoque Atual', 'Mínimo', 'Custo Unit.', 'Valor Ativo', 'Status', ''].map(h => (
-                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {loadingProd ? (
-                          <tr><td colSpan={9} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</td></tr>
+                          <tr><td colSpan={9} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</td></tr>
                         ) : produtos.length === 0 ? (
-                          <tr><td colSpan={9} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Nenhum produto cadastrado.</td></tr>
+                          <tr><td colSpan={9} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum produto cadastrado.</td></tr>
                         ) : produtos.map(p => (
                           <EstoqueRow key={p.id} produto={p} vendido={vendidoPorNome.get(p.nome) || 0} onSalvar={salvarEstoqueProduto} />
                         ))}
