@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminKeyValid, isSuperadminKey, adminAtorFromKey } from '@/lib/admin-auth';
-import { mem_listarPedidos, mem_atualizarPedido, mem_deletarPedido, mem_registrarLog, mem_criarDespesa, mem_buscarId, mem_atualizarFunil, mem_criarPedido, mem_listarIndicacoes } from '@/lib/db-memory';
+import { mem_listarPedidos, mem_atualizarPedido, mem_deletarPedido, mem_registrarLog, mem_criarDespesa, mem_deletarDespesa, mem_buscarId, mem_atualizarFunil, mem_criarPedido, mem_listarIndicacoes } from '@/lib/db-memory';
 import { reloadPedidos, ensurePedidos, ensureCadastros, ensureIndicacoes } from '@/lib/ensure-equipe';
 
 function checkAdmin(req: NextRequest) {
@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
       descricao: `Pedido pago — ${nomeCliente} (${p.produto_nome})`,
       valor: p.preco, data: new Date().toISOString().slice(0, 10),
     });
+    mem_atualizarPedido(p.id, { despesa_id: d.id });
     mem_registrarLog(ator, 'Lançou entrada automática (pedido pago)', `${d.categoria} — ${d.descricao} — R$ ${d.valor.toFixed(2)}`);
     if (cadastro.funil_status !== 'cliente') {
       mem_atualizarFunil(cadastro.id, 'cliente');
@@ -107,6 +108,7 @@ export async function PATCH(req: NextRequest) {
       descricao: `Pedido pago — ${p.cadastro_nome} (${p.produto_nome})`,
       valor: p.preco, data: new Date().toISOString().slice(0, 10),
     });
+    mem_atualizarPedido(p.id, { despesa_id: d.id });
     mem_registrarLog(ator, 'Lançou entrada automática (pedido pago)', `${d.categoria} — ${d.descricao} — R$ ${d.valor.toFixed(2)}`);
 
     // Avanca o lead no funil de vendas para "cliente" quando a compra e confirmada.
@@ -115,6 +117,15 @@ export async function PATCH(req: NextRequest) {
       mem_atualizarFunil(p.cadastro_id, 'cliente');
       mem_registrarLog(ator, 'Lead avançou automaticamente no funil', `${p.cadastro_nome} → cliente`);
     }
+  }
+
+  // Ao sair de "pago" (ex: cancelado depois de pago), remove a entrada
+  // automatica que tinha sido lancada — senao o Financeiro fica com receita
+  // de um pedido que nao esta mais confirmado.
+  if (statusAnterior === 'pago' && p.status !== 'pago' && p.despesa_id) {
+    mem_deletarDespesa(p.despesa_id);
+    mem_registrarLog(ator, 'Removeu entrada automática (pedido não é mais pago)', `${p.cadastro_nome} — ${p.produto_nome} — R$ ${p.preco.toFixed(2)}`);
+    mem_atualizarPedido(p.id, { despesa_id: null });
   }
 
   return NextResponse.json(p);
@@ -136,6 +147,11 @@ export async function DELETE(req: NextRequest) {
   }
   const ok = mem_deletarPedido(id);
   if (!ok) return NextResponse.json({ error: 'Pedido nao encontrado' }, { status: 404 });
-  mem_registrarLog(adminAtorFromKey(req.headers.get('x-admin-key')), 'Excluiu pedido', alvo ? `${alvo.cadastro_nome} — ${alvo.produto_nome}` : id);
+  const ator = adminAtorFromKey(req.headers.get('x-admin-key'));
+  mem_registrarLog(ator, 'Excluiu pedido', alvo ? `${alvo.cadastro_nome} — ${alvo.produto_nome}` : id);
+  if (alvo?.despesa_id) {
+    mem_deletarDespesa(alvo.despesa_id);
+    mem_registrarLog(ator, 'Removeu entrada automática (pedido excluído)', `${alvo.cadastro_nome} — ${alvo.produto_nome} — R$ ${alvo.preco.toFixed(2)}`);
+  }
   return NextResponse.json({ ok: true });
 }

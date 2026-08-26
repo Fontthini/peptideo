@@ -229,6 +229,9 @@ export type Pedido = {
   obs?: string;
   created_at: string;
   updated_at?: string;
+  // Despesa (entrada) criada automaticamente quando o pedido vira "pago" —
+  // usado para remover a entrada se o pedido for cancelado depois.
+  despesa_id?: string | null;
 };
 
 // ---- Cadastros ----
@@ -952,7 +955,7 @@ export function mem_criarPedido(data: Omit<Pedido, 'id' | 'created_at'>): Pedido
   return p;
 }
 
-export function mem_atualizarPedido(id: string, data: Partial<Pick<Pedido, 'status' | 'obs' | 'vendedor_id' | 'preco'>>): Pedido | null {
+export function mem_atualizarPedido(id: string, data: Partial<Pick<Pedido, 'status' | 'obs' | 'vendedor_id' | 'preco' | 'despesa_id'>>): Pedido | null {
   const p = getPedidosStore().find(p => p.id === id);
   if (!p) return null;
   // So aplica os campos realmente enviados — Object.assign copia ate chaves

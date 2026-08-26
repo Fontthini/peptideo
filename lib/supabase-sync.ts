@@ -280,7 +280,7 @@ export async function sbSavePedido(p: Pedido) {
     vendedor_id: p.vendedor_id || '',
     itens: p.itens || [{ nome: p.produto_nome, preco: p.preco, quantidade: 1 }],
     preco: p.preco, status: p.status, obs: p.obs || '',
-    created_at: p.created_at,
+    created_at: p.created_at, despesa_id: p.despesa_id || null,
   });
   if (error) throw new Error(`sbSavePedido: ${error.message} (${error.code})`);
 }
