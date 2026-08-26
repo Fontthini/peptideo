@@ -246,23 +246,24 @@ const ABA_NAV: { key: string; icon: string; label: string; color: string; gerent
 function SideNav({ aba, handlers, gerenteOnly }: { aba: string; handlers: Record<string, () => void>; gerenteOnly?: boolean }) {
   const itens = ABA_NAV.filter(i => !i.gerenteOnly || gerenteOnly);
   return (
-    <aside className="portal-sidenav" style={{ flexShrink: 0, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 10, alignSelf: 'flex-start', display: 'flex' }}>
+    <aside className="portal-sidenav" style={{ flexShrink: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 10, alignSelf: 'flex-start', display: 'flex' }}>
       {itens.map(item => {
         const ativo = aba === item.key;
         return (
           <button key={item.key} className="portal-navitem" onClick={handlers[item.key]}
             style={{
               display: 'flex', alignItems: 'center', gap: 10,
-              padding: '9px 12px', border: 'none', borderRadius: 8, marginBottom: 2,
-              background: ativo ? `${item.color}14` : 'transparent',
-              color: ativo ? item.color : '#374151',
-              fontWeight: ativo ? 700 : 500, fontSize: 14, fontFamily: 'inherit',
-              cursor: 'pointer', textAlign: 'left',
+              padding: '9px 12px 9px 10px', border: 'none', borderRadius: 8, marginBottom: 2,
+              borderLeft: `3px solid ${ativo ? 'var(--accent)' : 'transparent'}`,
+              background: ativo ? 'var(--accent-soft)' : 'transparent',
+              color: ativo ? 'var(--accent-text)' : 'var(--text-muted)',
+              fontWeight: ativo ? 700 : 500, fontSize: 13.5, fontFamily: 'inherit',
+              cursor: 'pointer', textAlign: 'left', transition: 'background .15s, color .15s',
             }}>
             <span style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 26, height: 26, borderRadius: 7, fontSize: 12, fontWeight: 800, flexShrink: 0,
-              background: ativo ? item.color : `${item.color}1a`, color: ativo ? '#fff' : item.color,
+              width: 24, height: 24, borderRadius: 6, fontSize: 12, fontWeight: 800, flexShrink: 0,
+              background: ativo ? 'var(--accent)' : 'var(--surface-hover)', color: ativo ? '#fff' : 'var(--text-soft)',
             }}>{item.icon}</span>
             {item.label}
           </button>
@@ -844,7 +845,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
   const [selectedLead, setSelectedLead] = useState<Cadastro | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [indicacoes, setIndicacoes] = useState<Indicacao[]>([]);
-  const [aba, setAba] = useState<'dashboard' | 'leads' | 'pedidos' | 'indicacoes' | 'indicacoes-medicas' | 'financeiro' | 'mentoria' | 'blog' | 'rastreio'>('leads');
+  const [aba, setAba] = useState<'dashboard' | 'leads' | 'pedidos' | 'indicacoes' | 'indicacoes-medicas' | 'financeiro' | 'mentoria' | 'blog' | 'rastreio'>('dashboard');
   const [buscaMedico, setBuscaMedico] = useState('');
   const [verLeadsKanban, setVerLeadsKanban] = useState(true);
   const [editandoProdutoCardId, setEditandoProdutoCardId] = useState<string | null>(null);
@@ -873,12 +874,9 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
   const [produtosCatalogo, setProdutosCatalogo] = useState<Produto[]>([]);
 
   useEffect(() => {
-    if (indicacoes.length === 0) {
-      fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } })
-        .then(r => r.ok ? r.json() : null).then(d => { if (d) setIndicacoes(d); });
-    }
     fetch('/api/portal/produtos', { headers: { 'x-member-token': token } })
       .then(r => r.ok ? r.json() : null).then(d => { if (d) setProdutosCatalogo(d); });
+    carregarDashboard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1161,18 +1159,20 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
     setAba('dashboard');
     setLoadingDashboard(true);
     try {
-      const [rp, ri, rprod, rcfg, rl] = await Promise.all([
+      const [rp, ri, rprod, rcfg, rl, rd] = await Promise.all([
         pedidos.length === 0 ? fetch('/api/portal/pedidos', { headers: { 'x-member-token': token } }) : null,
         indicacoes.length === 0 ? fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } }) : null,
         fetch('/api/portal/produtos', { headers: { 'x-member-token': token } }),
         fetch('/api/portal/config-summary', { headers: { 'x-member-token': token } }),
         fetch('/api/portal/leads', { headers: { 'x-member-token': token } }),
+        despesas.length === 0 ? fetch('/api/portal/despesas', { headers: { 'x-member-token': token } }) : null,
       ]);
       if (rp?.ok) setPedidos(await rp.json());
       if (ri?.ok) setIndicacoes(await ri.json());
       if (rprod.ok) setProdutosDash(await rprod.json());
       if (rcfg.ok) setConfigDash(await rcfg.json());
       if (rl.ok) setLista(await rl.json());
+      if (rd?.ok) setDespesas(await rd.json());
     } finally { setLoadingDashboard(false); }
   }
   async function carregarPedidosSilencioso() {
@@ -1334,6 +1334,9 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
         ) : (
           <DashboardOverview
             cadastros={lista} pedidos={pedidos} equipe={equipe} produtos={produtosDash} config={configDash}
+            despesas={despesas} indicacoes={indicacoes} mostrarVisaoNegocio
+            onVerTodosLeads={() => setAba('leads')}
+            onIrParaFinanceiro={carregarFinanceiro}
             totalPacientes={totalPacientes}
           />
         )
@@ -2896,6 +2899,17 @@ export default function PortalClient({ membro, leads, equipe, token, logo }: Pro
   const cargo = membro.cargo;
   const cc = CARGO_COLOR[cargo] || { bg: '#f3f4f6', text: '#374151' };
 
+  const [tema, setTema] = useState<'light' | 'dark'>('light');
+  useEffect(() => {
+    const salvo = typeof window !== 'undefined' ? localStorage.getItem('portal_tema') : null;
+    if (salvo === 'dark' || salvo === 'light') setTema(salvo);
+  }, []);
+  const alternarTema = () => {
+    const novo = tema === 'light' ? 'dark' : 'light';
+    setTema(novo);
+    localStorage.setItem('portal_tema', novo);
+  };
+
   useEffect(() => {
     const enviar = () => fetch('/api/portal/heartbeat', { method: 'POST', headers: { 'x-member-token': token } }).catch(() => {});
     enviar();
@@ -2904,8 +2918,21 @@ export default function PortalClient({ membro, leads, equipe, token, logo }: Pro
   }, [token]);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
+    <div className="admin-root" data-theme={tema} style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <style>{`
+        .admin-root {
+          --bg: #f8fafc; --surface: #ffffff; --surface-hover: #f3f4f6;
+          --border: #e5e7eb; --text: #111827; --text-secondary: #374151; --text-muted: #6b7280; --text-soft: #9ca3af;
+          --accent: #16a34a; --accent-text: #15803d; --accent-soft: #f0fdf4; --accent-border: #86efac;
+          --shadow-header: 0 1px 0 rgba(0,0,0,0.03);
+          color: var(--text);
+        }
+        .admin-root[data-theme="dark"] {
+          --bg: #0d0f12; --surface: #16181d; --surface-hover: #1f2229;
+          --border: #272b33; --text: #f3f4f6; --text-secondary: #d1d5db; --text-muted: #9ca3af; --text-soft: #6b7280;
+          --accent: #22c55e; --accent-text: #4ade80; --accent-soft: rgba(34,197,94,0.14); --accent-border: rgba(34,197,94,0.35);
+          --shadow-header: 0 1px 0 rgba(0,0,0,0.4);
+        }
         .portal-header { padding: 14px 28px; }
         @media (max-width: 480px) { .portal-header { padding: 10px 14px; } }
 
@@ -2919,14 +2946,16 @@ export default function PortalClient({ membro, leads, equipe, token, logo }: Pro
           .portal-sidenav { width: 100%; flex-direction: row; flex-wrap: wrap; position: static; gap: 6px; }
         }
         .portal-navitem { width: 100%; }
+        .portal-navitem:hover { background: var(--surface-hover) !important; }
         @media (max-width: 760px) { .portal-navitem { width: auto; white-space: nowrap; } }
 
         .portal-grid-auto { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
         .portal-table-scroll { overflow-x: auto; }
         .portal-split-380 { grid-template-columns: 1fr 380px; }
         @media (max-width: 900px) { .portal-split-380 { grid-template-columns: 1fr; } }
+        .admin-theme-toggle:hover { background: var(--surface-hover) !important; }
       `}</style>
-      <header className="portal-header" style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+      <header className="portal-header" style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, boxShadow: 'var(--shadow-header)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <img src={logo || 'https://peptideos.drfamily.com.br/wp-content/uploads/2026/06/cropped-pep.jpg'}
             alt="PeptideZ" style={{ height: 40, maxWidth: 160, objectFit: 'contain' }} />
@@ -2934,21 +2963,23 @@ export default function PortalClient({ membro, leads, equipe, token, logo }: Pro
             {CARGO_LABEL[cargo] || cargo}
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={{ fontSize: 13, color: '#6b7280' }}>Ola, <strong style={{ color: '#111827' }}>{membro.nome.split(' ')[0]}</strong></span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Ola, <strong style={{ color: 'var(--text)' }}>{membro.nome.split(' ')[0]}</strong></span>
+          <button onClick={alternarTema} className="admin-theme-toggle" title={tema === 'light' ? 'Modo escuro' : 'Modo claro'}
+            style={{ background: 'var(--surface-hover)', color: 'var(--text-muted)', border: '1px solid var(--border)', width: 32, height: 32, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {tema === 'light' ? '🌙' : '☀️'}
+          </button>
           <button onClick={() => router.push('/equipe/login')}
-            style={{ background: '#f9fafb', color: '#374151', border: '1px solid #e5e7eb', padding: '7px 14px', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>
+            style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary)', border: '1px solid var(--border)', padding: '7px 14px', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>
             Sair
           </button>
         </div>
       </header>
 
       <main className="portal-main" style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: '#111827', margin: '0 0 24px' }}>
-          {cargo === 'vendedor' && 'Meus Leads & Pedidos'}
-          {cargo === 'gerente' && 'Dashboard — Gerente'}
-          {cargo === 'superadmin' && 'Painel Completo'}
-        </h1>
+        {cargo === 'vendedor' && (
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', margin: '0 0 24px' }}>Meus Leads &amp; Pedidos</h1>
+        )}
 
         {cargo === 'vendedor' && <VendedorView membro={membro} leads={leads} equipe={equipe} token={token} />}
         {cargo === 'gerente' && <GerenteView membro={membro} leads={leads} equipe={equipe} token={token} logo={logo} />}

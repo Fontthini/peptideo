@@ -286,7 +286,7 @@ export default function AdminPage() {
   const [logado, setLogado] = useState(false);
   const [adminNome, setAdminNome] = useState('');
   const [isSuperadmin, setIsSuperadmin] = useState(false);
-  const [aba, setAba] = useState<'leads' | 'clientes' | 'produtos' | 'banners' | 'blog' | 'despesas' | 'equipe' | 'indicacoes' | 'indicacoes-medicas' | 'pedidos' | 'config' | 'dashboard' | 'logs' | 'mentoria' | 'carrinho' | 'rastreio' | 'relatorios' | 'estoque'>('leads');
+  const [aba, setAba] = useState<'leads' | 'clientes' | 'produtos' | 'banners' | 'blog' | 'despesas' | 'equipe' | 'indicacoes' | 'indicacoes-medicas' | 'pedidos' | 'config' | 'dashboard' | 'logs' | 'mentoria' | 'carrinho' | 'rastreio' | 'relatorios' | 'estoque'>('dashboard');
   const [msg, setMsg] = useState('');
   const [logs, setLogs] = useState<AdminLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -520,7 +520,7 @@ export default function AdminPage() {
       const flagSalva = localStorage.getItem(ADMIN_SUPERADMIN_LOCAL);
       setAdminNome(localStorage.getItem(ADMIN_NOME_LOCAL) || 'Superadmin');
       setIsSuperadmin(flagSalva === null ? true : flagSalva === '1');
-      carregarCadastros(k); carregarConfig(); carregarIndicacoes(); carregarEquipe(); carregarProdutos();
+      carregarCadastros(k); carregarConfig(); carregarIndicacoes(); carregarEquipe(); carregarProdutos(); carregarPedidos(); carregarDespesas();
     }
   }, []);
 
