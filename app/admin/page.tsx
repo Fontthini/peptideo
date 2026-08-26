@@ -1172,6 +1172,7 @@ export default function AdminPage() {
           --bg: #f8fafc; --surface: #ffffff; --surface-hover: #f3f4f6;
           --border: #e5e7eb; --text: #111827; --text-secondary: #374151; --text-muted: #6b7280; --text-soft: #9ca3af;
           --accent: #16a34a; --accent-text: #15803d; --accent-soft: #f0fdf4; --accent-border: #86efac;
+          --btn-primary-bg: #111827; --btn-primary-text: #ffffff;
           --shadow-header: 0 1px 0 rgba(0,0,0,0.03);
           color: var(--text);
         }
@@ -1179,6 +1180,7 @@ export default function AdminPage() {
           --bg: #0d0f12; --surface: #16181d; --surface-hover: #1f2229;
           --border: #272b33; --text: #f3f4f6; --text-secondary: #d1d5db; --text-muted: #9ca3af; --text-soft: #6b7280;
           --accent: #22c55e; --accent-text: #4ade80; --accent-soft: rgba(34,197,94,0.14); --accent-border: rgba(34,197,94,0.35);
+          --btn-primary-bg: #e5e7eb; --btn-primary-text: #111827;
           --shadow-header: 0 1px 0 rgba(0,0,0,0.4);
         }
         .admin-shell { display: flex; flex-direction: row; }
@@ -1276,9 +1278,9 @@ export default function AdminPage() {
           {aba === 'leads' && (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>Leads</h2>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: 0 }}>Leads</h2>
                 <button onClick={() => setNovoCadastroTipo('escolher')}
-                  style={{ background: '#111827', color: '#fff', border: 'none', padding: '9px 16px', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
+                  style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 16px', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
                   + Cadastro Novo
                 </button>
               </div>
@@ -1286,13 +1288,13 @@ export default function AdminPage() {
               {/* Total / Médicos / Pacientes */}
               <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 14 }}>
                 {[
-                  { label: 'Total', val: counts.todos + totalPacientes, cor: '#111827', bg: '#f9fafb' },
-                  { label: 'Médicos', val: counts.todos, cor: '#374151', bg: '#f3f4f6' },
-                  { label: 'Pacientes', val: totalPacientes, cor: '#111827', bg: '#f3f4f6' },
+                  { label: 'Total', val: counts.todos + totalPacientes },
+                  { label: 'Médicos', val: counts.todos },
+                  { label: 'Pacientes', val: totalPacientes },
                 ].map(s => (
-                  <div key={s.label} style={{ background: s.bg, border: `1px solid ${s.cor}33`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${s.cor}` }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: s.cor }}>{s.val}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>{s.label}</div>
+                  <div key={s.label} style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid var(--text-soft, #9ca3af)' }}>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--text)' }}>{s.val}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>{s.label}</div>
                   </div>
                 ))}
               </div>
@@ -1300,22 +1302,22 @@ export default function AdminPage() {
               {/* Stats médicos */}
               <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 24 }}>
                 {[
-                  { label: 'Pendentes', val: counts.pendente, cor: '#374151', bg: '#f9fafb' },
+                  { label: 'Pendentes', val: counts.pendente, cor: null },
                   { label: 'Aprovados', val: counts.aprovado, cor: '#15803d', bg: '#f0fdf4' },
                   { label: 'Rejeitados', val: counts.rejeitado, cor: '#dc2626', bg: '#fef2f2' },
                 ].map(s => (
-                  <div key={s.label} style={{ background: s.bg, border: `1px solid ${s.cor}33`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${s.cor}` }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: s.cor }}>{s.val}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>{s.label}</div>
+                  <div key={s.label} style={{ background: s.cor ? s.bg : 'var(--surface-hover)', border: `1px solid ${s.cor ? s.cor + '33' : 'var(--border)'}`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${s.cor || 'var(--text-soft, #9ca3af)'}` }}>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: s.cor || 'var(--text)' }}>{s.val}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>{s.label}</div>
                   </div>
                 ))}
               </div>
 
               {/* Filtros */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                {[['todos', 'Todos', '#111827'], ['pendente', 'Pendentes', '#374151'], ['aprovado', 'Aprovados', '#15803d'], ['rejeitado', 'Rejeitados', '#dc2626']].map(([val, label, cor]) => (
+                {[['todos', 'Todos', ''], ['pendente', 'Pendentes', ''], ['aprovado', 'Aprovados', '#15803d'], ['rejeitado', 'Rejeitados', '#dc2626']].map(([val, label, cor]) => (
                   <button key={val} onClick={() => setFiltro(val)}
-                    style={{ background: filtro === val ? cor : '#fff', color: filtro === val ? '#fff' : '#374151', border: `1px solid ${filtro === val ? cor : '#d1d5db'}`, padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: filtro === val ? 700 : 400, fontFamily: 'inherit', fontSize: 13 }}>
+                    style={{ background: filtro === val ? (cor || 'var(--text)') : 'var(--surface)', color: filtro === val ? '#fff' : 'var(--text-secondary, #374151)', border: `1px solid ${filtro === val ? (cor || 'var(--text)') : 'var(--border)'}`, padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: filtro === val ? 700 : 400, fontFamily: 'inherit', fontSize: 13 }}>
                     {label} ({counts[val as keyof typeof counts]})
                   </button>
                 ))}
@@ -1324,9 +1326,9 @@ export default function AdminPage() {
               {/* Filtro por etiqueta */}
               {todasEtiquetas.length > 0 && (
                 <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 2 }}>Etiqueta:</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-soft, #9ca3af)', textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 2 }}>Etiqueta:</span>
                   <button onClick={() => setFiltroEtiqueta('todas')}
-                    style={{ background: filtroEtiqueta === 'todas' ? '#111827' : '#fff', color: filtroEtiqueta === 'todas' ? '#fff' : '#374151', border: `1px solid ${filtroEtiqueta === 'todas' ? '#111827' : '#d1d5db'}`, padding: '3px 12px', borderRadius: 20, cursor: 'pointer', fontWeight: filtroEtiqueta === 'todas' ? 700 : 500, fontFamily: 'inherit', fontSize: 12 }}>
+                    style={{ background: filtroEtiqueta === 'todas' ? 'var(--btn-primary-bg)' : 'var(--surface)', color: filtroEtiqueta === 'todas' ? 'var(--btn-primary-text)' : 'var(--text-secondary, #374151)', border: `1px solid ${filtroEtiqueta === 'todas' ? 'var(--btn-primary-bg)' : '#d1d5db'}`, padding: '3px 12px', borderRadius: 20, cursor: 'pointer', fontWeight: filtroEtiqueta === 'todas' ? 700 : 500, fontFamily: 'inherit', fontSize: 12 }}>
                     Todas
                   </button>
                   {todasEtiquetas.map(tag => {
@@ -1362,14 +1364,14 @@ export default function AdminPage() {
                       <KanbanColuna key={etapa} titulo={FUNIL_LABEL[etapa]} cor={FUNIL_COLOR[etapa]} total={itens.length}>
                         {itens.map(c => (
                           <KanbanCard key={c.id} onClick={() => { setEditandoLead(c); setNovoProdutoInteresseInput(''); }}>
-                            <div style={{ fontWeight: 700, fontSize: 13, color: '#111827' }}>{c.nome} {c.sobrenome}</div>
+                            <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>{c.nome} {c.sobrenome}</div>
                             <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none' }}>{c.whatsapp}</a>
                             <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 5, alignItems: 'center' }}>
                               {(c.produtos_interesse || []).map(p => (
-                                <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 700, background: '#f3f4f6', color: '#374151', padding: '1px 6px', borderRadius: 10 }}>
+                                <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 700, background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', padding: '1px 6px', borderRadius: 10 }}>
                                   {p}
                                   <button onClick={() => atualizarProdutosInteresseLead(c.id, (c.produtos_interesse || []).filter(x => x !== p))}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#374151', fontSize: 11, lineHeight: 1, padding: 0, fontWeight: 900 }}>×</button>
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary, #374151)', fontSize: 11, lineHeight: 1, padding: 0, fontWeight: 900 }}>×</button>
                                 </span>
                               ))}
                               {editandoProdutoCardId === c.id ? (
@@ -1383,10 +1385,10 @@ export default function AdminPage() {
                                       setNovoProdutoCardInput(''); setEditandoProdutoCardId(null);
                                     } else if (e.key === 'Escape') { setNovoProdutoCardInput(''); setEditandoProdutoCardId(null); }
                                   }}
-                                  placeholder="produto..." style={{ width: 70, border: '1px solid #d1d5db', borderRadius: 10, padding: '1px 6px', fontSize: 9.5, fontFamily: 'inherit' }} />
+                                  placeholder="produto..." style={{ width: 70, border: '1px solid var(--border)', borderRadius: 10, padding: '1px 6px', fontSize: 9.5, fontFamily: 'inherit' }} />
                               ) : (
                                 <button onClick={() => setEditandoProdutoCardId(c.id)}
-                                  style={{ background: '#f3f4f6', color: '#6b7280', border: '1px dashed #d1d5db', padding: '1px 6px', borderRadius: 10, fontSize: 9.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                                  style={{ background: 'var(--surface-hover)', color: 'var(--text-muted, #6b7280)', border: '1px dashed var(--border)', padding: '1px 6px', borderRadius: 10, fontSize: 9.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                                   + produto
                                 </button>
                               )}
@@ -1399,20 +1401,20 @@ export default function AdminPage() {
                                 })}
                               </div>
                             )}
-                            <div style={{ fontSize: 10.5, color: '#9ca3af', marginTop: 5 }}>{equipe.find(m => m.id === c.vendedor_id)?.nome || 'Sem consultor'}</div>
+                            <div style={{ fontSize: 10.5, color: 'var(--text-soft, #9ca3af)', marginTop: 5 }}>{equipe.find(m => m.id === c.vendedor_id)?.nome || 'Sem consultor'}</div>
                             <div onClick={e => e.stopPropagation()}>
                               <select value={etapa} onChange={e => {
                                   const v = e.target.value;
                                   if (v === 'perdido') { setPerdaPromptId(c.id); setMotivoPerdaInput(''); }
                                   else atualizarFunilLead(c.id, v);
                                 }}
-                                style={{ width: '100%', marginTop: 7, border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                style={{ width: '100%', marginTop: 7, border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
                                 {FUNIL_ETAPAS.map(e => <option key={e} value={e}>{FUNIL_LABEL[e]}</option>)}
                               </select>
                               {perdaPromptId === c.id && (
                                 <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
                                   <select autoFocus value={motivoPerdaInput} onChange={e => setMotivoPerdaInput(e.target.value)}
-                                    style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: 6, padding: '3px 4px', fontSize: 10.5, fontFamily: 'inherit' }}>
+                                    style={{ flex: 1, border: '1px solid var(--border)', borderRadius: 6, padding: '3px 4px', fontSize: 10.5, fontFamily: 'inherit' }}>
                                     <option value="">Motivo...</option>
                                     {MOTIVOS_PERDA.map(m => <option key={m} value={m}>{m}</option>)}
                                   </select>
@@ -1429,18 +1431,18 @@ export default function AdminPage() {
                 </KanbanBoard>
                 </>
               ) : (
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                 {loadingLeads ? (
-                  <div style={{ padding: 60, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+                  <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
                 ) : filtrados.length === 0 ? (
-                  <div style={{ padding: 60, textAlign: 'center', color: '#6b7280' }}>Nenhum cadastro encontrado</div>
+                  <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum cadastro encontrado</div>
                 ) : (
                   <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 360px)' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
-                        <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                        <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
                           {['Nome','Sobrenome','E-mail','WhatsApp','CRM','Onde Conheceu','Etiquetas','Endereço','Status','Funil','Consultor','Data','Ações'].map(h => (
-                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', position: 'sticky', top: 0, background: '#f9fafb', zIndex: 1 }}>{h}</th>
+                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'var(--surface-hover)', zIndex: 1 }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
@@ -1448,23 +1450,23 @@ export default function AdminPage() {
                         {filtrados.map((c, i) => {
                           const whatsDup = whatsappCounts[(c.whatsapp || '').replace(/\D/g, '')] > 1;
                           return (
-                          <tr key={c.id} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                            <td style={{ padding: '11px 14px', color: '#111827', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                          <tr key={c.id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                            <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>
                               {c.nome}
                               {whatsDup && (
                                 <span title="Este WhatsApp aparece em mais de um cadastro — pode ser a mesma pessoa cadastrada duas vezes."
-                                  style={{ marginLeft: 6, background: '#f3f4f6', color: '#374151', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, cursor: 'help' }}>
+                                  style={{ marginLeft: 6, background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, cursor: 'help' }}>
                                   ⚠ possível duplicado
                                 </span>
                               )}
                             </td>
-                            <td style={{ padding: '11px 14px', color: '#374151', whiteSpace: 'nowrap' }}>{c.sobrenome || '-'}</td>
-                            <td style={{ padding: '11px 14px', color: '#6b7280' }}>{c.email}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap' }}>{c.sobrenome || '-'}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{c.email}</td>
                             <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                              <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: whatsDup ? '#374151' : '#16a34a', textDecoration: 'none', fontWeight: whatsDup ? 700 : 400 }}>{c.whatsapp}</a>
+                              <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: whatsDup ? 'var(--text-secondary, #374151)' : '#16a34a', textDecoration: 'none', fontWeight: whatsDup ? 700 : 400 }}>{c.whatsapp}</a>
                             </td>
-                            <td style={{ padding: '11px 14px', color: '#6b7280' }}>{c.crm || '-'}</td>
-                            <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap' }}>{c.onde_conheceu || '-'}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{c.crm || '-'}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{c.onde_conheceu || '-'}</td>
                             <td style={{ padding: '11px 14px', minWidth: 160 }} onClick={e => e.stopPropagation()}>
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
                                 {(c.tags || []).map(tag => {
@@ -1490,35 +1492,35 @@ export default function AdminPage() {
                                       } else if (e.key === 'Escape') { setNovaTagInput(''); setEditandoTagsId(null); }
                                     }}
                                     placeholder="nova..."
-                                    style={{ width: 76, border: '1px solid #d1d5db', borderRadius: 20, padding: '2px 8px', fontSize: 11, fontFamily: 'inherit' }} />
+                                    style={{ width: 76, border: '1px solid var(--border)', borderRadius: 20, padding: '2px 8px', fontSize: 11, fontFamily: 'inherit' }} />
                                 ) : (
                                   <button onClick={() => setEditandoTagsId(c.id)}
-                                    style={{ background: '#f3f4f6', color: '#6b7280', border: '1px dashed #d1d5db', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                                    style={{ background: 'var(--surface-hover)', color: 'var(--text-muted, #6b7280)', border: '1px dashed var(--border)', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                                     + tag
                                   </button>
                                 )}
                               </div>
                             </td>
-                            <td style={{ padding: '11px 14px', color: '#6b7280', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.endereco}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.endereco}</td>
                             <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                               <span style={{
                                 padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                                background: c.status === 'aprovado' ? '#dcfce7' : c.status === 'pendente' ? '#f3f4f6' : '#fee2e2',
-                                color: c.status === 'aprovado' ? '#15803d' : c.status === 'pendente' ? '#374151' : '#dc2626',
+                                background: c.status === 'aprovado' ? '#dcfce7' : c.status === 'pendente' ? 'var(--surface-hover)' : '#fee2e2',
+                                color: c.status === 'aprovado' ? '#15803d' : c.status === 'pendente' ? 'var(--text-secondary, #374151)' : '#dc2626',
                               }}>{c.status}</span>
                             </td>
                             <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
                               {perdaPromptId === c.id ? (
                                 <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                                   <select autoFocus value={motivoPerdaInput} onChange={e => setMotivoPerdaInput(e.target.value)}
-                                    style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '3px 6px', fontSize: 11, fontFamily: 'inherit' }}>
+                                    style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '3px 6px', fontSize: 11, fontFamily: 'inherit' }}>
                                     <option value="">Motivo...</option>
                                     {MOTIVOS_PERDA.map(m => <option key={m} value={m}>{m}</option>)}
                                   </select>
                                   <button onClick={() => { atualizarFunilLead(c.id, 'perdido', motivoPerdaInput); setPerdaPromptId(null); setMotivoPerdaInput(''); }}
                                     style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
                                   <button onClick={() => { setPerdaPromptId(null); setMotivoPerdaInput(''); }}
-                                    style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 13 }}>×</button>
+                                    style={{ background: 'none', border: 'none', color: 'var(--text-muted, #6b7280)', cursor: 'pointer', fontSize: 13 }}>×</button>
                                 </div>
                               ) : (
                                 <select value={c.funil_status || 'novo'}
@@ -1535,21 +1537,21 @@ export default function AdminPage() {
                             </td>
                             <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
                               <select value={c.vendedor_id || ''} onChange={e => e.target.value && transferirConsultor(c.id, e.target.value)}
-                                style={{ border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 8px', fontSize: 11.5, fontFamily: 'inherit', color: '#374151', cursor: 'pointer', maxWidth: 130 }}>
+                                style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontSize: 11.5, fontFamily: 'inherit', color: 'var(--text-secondary, #374151)', cursor: 'pointer', maxWidth: 130 }}>
                                 <option value="">Sem consultor</option>
                                 {equipe.filter(m => m.cargo === 'vendedor' && m.ativo).map(m => (
                                   <option key={m.id} value={m.id}>{m.nome}</option>
                                 ))}
                               </select>
                             </td>
-                            <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
                               {new Date(c.created_at).toLocaleDateString('pt-BR')}
                             </td>
                             <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                               <div style={{ display: 'flex', gap: 6 }}>
                                 {c.status === 'pendente' && (
                                   <>
-                                    <button onClick={() => aprovar(c.id)} style={{ background: '#111827', color: '#fff', border: 'none', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontWeight: 700, fontSize: 12, fontFamily: 'inherit' }}>
+                                    <button onClick={() => aprovar(c.id)} style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontWeight: 700, fontSize: 12, fontFamily: 'inherit' }}>
                                       Aprovar
                                     </button>
                                     <button onClick={() => rejeitar(c.id)} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
@@ -1564,18 +1566,18 @@ export default function AdminPage() {
                                       Copiar Link
                                     </button>
                                     <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/indicar/${c.token}`); showMsg('Link de indicação copiado!'); }}
-                                      style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                                      style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
                                       Link Indicação
                                     </button>
                                     <button onClick={() => reenviarEmail(c.id, c.nome)} disabled={reenviandoId === c.id}
-                                      style={{ background: '#f9fafb', color: '#374151', border: '1px solid #d1d5db', padding: '5px 11px', borderRadius: 5, cursor: reenviandoId === c.id ? 'default' : 'pointer', fontSize: 12, fontFamily: 'inherit', opacity: reenviandoId === c.id ? 0.6 : 1 }}
+                                      style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: reenviandoId === c.id ? 'default' : 'pointer', fontSize: 12, fontFamily: 'inherit', opacity: reenviandoId === c.id ? 0.6 : 1 }}
                                       title="Reenviar o e-mail de acesso para este médico">
                                       {reenviandoId === c.id ? 'Enviando...' : 'Reenviar E-mail'}
                                     </button>
                                   </>
                                 )}
                                 <button onClick={() => { setEditandoLead(c); setNovoProdutoInteresseInput(''); }}
-                                  style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}
+                                  style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}
                                   title="Editar dados do cadastro">
                                   Editar
                                 </button>
@@ -1608,16 +1610,16 @@ export default function AdminPage() {
               {editandoLead && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 700, overflowY: 'auto', padding: '24px 16px' }}>
                   <div onClick={() => setEditandoLead(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
-                  <div style={{ position: 'relative', maxWidth: 520, margin: '0 auto', background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
-                    <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontWeight: 800, fontSize: 17, color: '#111827' }}>{editandoLead.nome} {editandoLead.sobrenome}</div>
-                      <button onClick={() => setEditandoLead(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#6b7280' }}>×</button>
+                  <div style={{ position: 'relative', maxWidth: 520, margin: '0 auto', background: 'var(--surface)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
+                    <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text)' }}>{editandoLead.nome} {editandoLead.sobrenome}</div>
+                      <button onClick={() => setEditandoLead(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--text-muted, #6b7280)' }}>×</button>
                     </div>
-                    <div style={{ padding: '14px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <div style={{ padding: '14px 24px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {editandoLead.status === 'pendente' && (
                         <>
                           <button onClick={() => { aprovar(editandoLead.id); setEditandoLead(null); }}
-                            style={{ background: '#111827', color: '#fff', border: 'none', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: 12.5, fontFamily: 'inherit' }}>
+                            style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: 12.5, fontFamily: 'inherit' }}>
                             Aprovar
                           </button>
                           <button onClick={() => { rejeitar(editandoLead.id); setEditandoLead(null); }}
@@ -1633,11 +1635,11 @@ export default function AdminPage() {
                             Copiar Link
                           </button>
                           <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/indicar/${editandoLead.token}`); showMsg('Link de indicação copiado!'); }}
-                            style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontFamily: 'inherit' }}>
+                            style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontFamily: 'inherit' }}>
                             Link Indicação
                           </button>
                           <button onClick={() => reenviarEmail(editandoLead.id, editandoLead.nome)} disabled={reenviandoId === editandoLead.id}
-                            style={{ background: '#f9fafb', color: '#374151', border: '1px solid #d1d5db', padding: '7px 14px', borderRadius: 6, cursor: reenviandoId === editandoLead.id ? 'default' : 'pointer', fontSize: 12.5, fontFamily: 'inherit', opacity: reenviandoId === editandoLead.id ? 0.6 : 1 }}>
+                            style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '7px 14px', borderRadius: 6, cursor: reenviandoId === editandoLead.id ? 'default' : 'pointer', fontSize: 12.5, fontFamily: 'inherit', opacity: reenviandoId === editandoLead.id ? 0.6 : 1 }}>
                             {reenviandoId === editandoLead.id ? 'Enviando...' : 'Reenviar E-mail'}
                           </button>
                         </>
@@ -1712,10 +1714,10 @@ export default function AdminPage() {
                         <label style={labelStyle}>Produtos de Interesse</label>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                           {(editandoLead.produtos_interesse || []).map(p => (
-                            <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+                            <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
                               {p}
                               <button type="button" onClick={() => setEditandoLead(l => l && { ...l, produtos_interesse: (l.produtos_interesse || []).filter(x => x !== p) })}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#374151', fontSize: 13, lineHeight: 1, padding: 0, fontWeight: 900 }}>×</button>
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary, #374151)', fontSize: 13, lineHeight: 1, padding: 0, fontWeight: 900 }}>×</button>
                             </span>
                           ))}
                           <input value={novoProdutoInteresseInput} onChange={e => setNovoProdutoInteresseInput(e.target.value)}
@@ -1730,18 +1732,18 @@ export default function AdminPage() {
                                 setNovoProdutoInteresseInput('');
                               }
                             }}
-                            placeholder="+ produto..." style={{ width: 130, border: '1px solid #d1d5db', borderRadius: 20, padding: '4px 10px', fontSize: 12, fontFamily: 'inherit' }} />
+                            placeholder="+ produto..." style={{ width: 130, border: '1px solid var(--border)', borderRadius: 20, padding: '4px 10px', fontSize: 12, fontFamily: 'inherit' }} />
                           <datalist id="produtos-catalogo">
                             {produtos.map(p => <option key={p.id} value={p.nome} />)}
                           </datalist>
                         </div>
                       </div>
                     </div>
-                    <div style={{ padding: '16px 24px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                      <button onClick={() => setEditandoLead(null)} style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                    <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                      <button onClick={() => setEditandoLead(null)} style={{ background: 'var(--surface)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
                         Cancelar
                       </button>
-                      <button onClick={salvarEdicaoLead} disabled={salvandoLead} style={{ background: '#111827', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoLead ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoLead ? 0.6 : 1 }}>
+                      <button onClick={salvarEdicaoLead} disabled={salvandoLead} style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoLead ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoLead ? 0.6 : 1 }}>
                         {salvandoLead ? 'Salvando...' : 'Salvar'}
                       </button>
                     </div>
@@ -1753,30 +1755,30 @@ export default function AdminPage() {
               {novoCadastroTipo && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 700, overflowY: 'auto', padding: '24px 16px' }}>
                   <div onClick={fecharNovoCadastro} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
-                  <div style={{ position: 'relative', maxWidth: 520, margin: '0 auto', background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
-                    <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontWeight: 800, fontSize: 17, color: '#111827' }}>
+                  <div style={{ position: 'relative', maxWidth: 520, margin: '0 auto', background: 'var(--surface)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
+                    <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text)' }}>
                         {novoCadastroTipo === 'escolher' ? 'Cadastro Novo' : novoCadastroTipo === 'medico' ? 'Cadastrar Médico' : 'Cadastrar Paciente'}
                       </div>
-                      <button onClick={fecharNovoCadastro} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#6b7280' }}>×</button>
+                      <button onClick={fecharNovoCadastro} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--text-muted, #6b7280)' }}>×</button>
                     </div>
 
                     {novoCadastroTipo === 'escolher' && (
                       <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
                         <button onClick={() => setNovoCadastroTipo('medico')}
-                          style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
                           <span style={{ fontSize: 24 }}>🩺</span>
                           <span>
-                            <div style={{ fontWeight: 800, color: '#374151', fontSize: 14 }}>Cadastrar Médico</div>
-                            <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>Registrar um novo profissional diretamente</div>
+                            <div style={{ fontWeight: 800, color: 'var(--text-secondary, #374151)', fontSize: 14 }}>Cadastrar Médico</div>
+                            <div style={{ color: 'var(--text-muted, #6b7280)', fontSize: 12, marginTop: 2 }}>Registrar um novo profissional diretamente</div>
                           </span>
                         </button>
                         <button onClick={() => setNovoCadastroTipo('paciente')}
-                          style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
                           <span style={{ fontSize: 24 }}>🧑</span>
                           <span>
-                            <div style={{ fontWeight: 800, color: '#374151', fontSize: 14 }}>Cadastrar Paciente</div>
-                            <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>Registrar um paciente indicado por um médico</div>
+                            <div style={{ fontWeight: 800, color: 'var(--text-secondary, #374151)', fontSize: 14 }}>Cadastrar Paciente</div>
+                            <div style={{ color: 'var(--text-muted, #6b7280)', fontSize: 12, marginTop: 2 }}>Registrar um paciente indicado por um médico</div>
                           </span>
                         </button>
                       </div>
@@ -1822,10 +1824,10 @@ export default function AdminPage() {
                           </select>
                         </div>
                         <div style={{ display: 'flex', gap: 10 }}>
-                          <button type="button" onClick={() => setNovoCadastroTipo('escolher')} style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                          <button type="button" onClick={() => setNovoCadastroTipo('escolher')} style={{ background: 'var(--surface)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
                             Voltar
                           </button>
-                          <button type="submit" disabled={salvandoNovoCadastro} style={{ flex: 1, background: '#111827', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoNovoCadastro ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoNovoCadastro ? 0.6 : 1 }}>
+                          <button type="submit" disabled={salvandoNovoCadastro} style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoNovoCadastro ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoNovoCadastro ? 0.6 : 1 }}>
                             {salvandoNovoCadastro ? 'Salvando...' : 'Cadastrar Médico'}
                           </button>
                         </div>
@@ -1847,18 +1849,18 @@ export default function AdminPage() {
                             <>
                               <input value={buscaMedicoIndicador} onChange={e => setBuscaMedicoIndicador(e.target.value)}
                                 placeholder="Buscar médico aprovado por nome..." style={inputStyle} />
-                              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Clique no nome do médico na lista para selecionar.</div>
+                              <div style={{ fontSize: 11, color: 'var(--text-soft, #9ca3af)', marginTop: 4 }}>Clique no nome do médico na lista para selecionar.</div>
                               {buscaMedicoIndicador.trim().length >= 2 && (
-                                <div style={{ marginTop: 6, border: '1px solid #e5e7eb', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
+                                <div style={{ marginTop: 6, border: '1px solid var(--border)', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
                                   {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoIndicador.trim().toLowerCase())).slice(0, 8).map(c => (
                                     <div key={c.id} onClick={() => { setNovoPaciente(p => ({ ...p, medico_id: c.id })); setBuscaMedicoIndicador(''); }}
-                                      style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #f3f4f6' }}>
-                                      <span style={{ fontWeight: 700, color: '#111827' }}>{c.nome} {c.sobrenome}</span>
-                                      {c.crm && <span style={{ color: '#6b7280' }}> · {c.crm}</span>}
+                                      style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--border)' }}>
+                                      <span style={{ fontWeight: 700, color: 'var(--text)' }}>{c.nome} {c.sobrenome}</span>
+                                      {c.crm && <span style={{ color: 'var(--text-muted, #6b7280)' }}> · {c.crm}</span>}
                                     </div>
                                   ))}
                                   {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoIndicador.trim().toLowerCase())).length === 0 && (
-                                    <div style={{ padding: '9px 12px', fontSize: 12, color: '#6b7280' }}>Nenhum médico aprovado encontrado.</div>
+                                    <div style={{ padding: '9px 12px', fontSize: 12, color: 'var(--text-muted, #6b7280)' }}>Nenhum médico aprovado encontrado.</div>
                                   )}
                                 </div>
                               )}
@@ -1890,10 +1892,10 @@ export default function AdminPage() {
                           <input value={novoPaciente.endereco} onChange={e => setNovoPaciente(p => ({ ...p, endereco: e.target.value }))} style={inputStyle} />
                         </div>
                         <div style={{ display: 'flex', gap: 10 }}>
-                          <button type="button" onClick={() => setNovoCadastroTipo('escolher')} style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                          <button type="button" onClick={() => setNovoCadastroTipo('escolher')} style={{ background: 'var(--surface)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
                             Voltar
                           </button>
-                          <button type="submit" disabled={salvandoNovoCadastro} style={{ flex: 1, background: '#111827', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoNovoCadastro ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: (salvandoNovoCadastro || !novoPaciente.medico_id) ? 0.6 : 1 }}>
+                          <button type="submit" disabled={salvandoNovoCadastro} style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoNovoCadastro ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: (salvandoNovoCadastro || !novoPaciente.medico_id) ? 0.6 : 1 }}>
                             {salvandoNovoCadastro ? 'Salvando...' : 'Cadastrar Paciente'}
                           </button>
                         </div>
