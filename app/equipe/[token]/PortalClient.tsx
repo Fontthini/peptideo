@@ -460,7 +460,7 @@ function LeadDetail({
               <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary, #374151)' }}>🔗 Link de indicação para pacientes deste médico:</div>
                 <button onClick={copiarIndicacao}
-                  style={{ background: linkCopiado ? '#f0fdf4' : '#fff', color: linkCopiado ? '#15803d' : '#374151', border: `1px solid ${linkCopiado ? '#86efac' : '#d1d5db'}`, borderRadius: 8, padding: '10px 0', cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
+                  style={{ background: linkCopiado ? '#f0fdf4' : 'var(--surface)', color: linkCopiado ? '#15803d' : 'var(--text-secondary, #374151)', border: `1px solid ${linkCopiado ? '#86efac' : 'var(--border)'}`, borderRadius: 8, padding: '10px 0', cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
                   {linkCopiado ? '✓ Link copiado!' : 'Copiar Link de Indicação'}
                 </button>
                 <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)', wordBreak: 'break-all' }}>{indicarUrl}</div>
@@ -773,7 +773,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {[['meus', `Meus (${meusLeads.length})`], ['livres', `Livres (${semVendedor.length})`], ['analise', `Em Analise (${emAnalise.length})`], ['aprovados', 'Aprovados']].map(([v, l]) => (
               <button key={v} onClick={() => setFiltro(v)}
-                style={{ padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: filtro === v ? 700 : 500, background: filtro === v ? '#111827' : '#f3f4f6', color: filtro === v ? '#fff' : '#374151', fontFamily: 'inherit' }}>
+                style={{ padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: filtro === v ? 700 : 500, background: filtro === v ? 'var(--btn-primary-bg)' : 'var(--surface-hover)', color: filtro === v ? 'var(--btn-primary-text)' : 'var(--text-secondary, #374151)', fontFamily: 'inherit' }}>
                 {l}
               </button>
             ))}
@@ -1458,9 +1458,9 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                       onClick={() => { setNovoPedidoTipoCliente(tipo); setNovoPedidoMedicoId(''); setBuscaMedicoPedido(''); setNovoPedidoIndicacaoId(''); setBuscaPacientePedido(''); }}
                       style={{
                         flex: 1, padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit',
-                        background: novoPedidoTipoCliente === tipo ? '#111827' : '#f3f4f6',
-                        color: novoPedidoTipoCliente === tipo ? '#fff' : '#374151',
-                        border: '1px solid ' + (novoPedidoTipoCliente === tipo ? '#111827' : '#d1d5db'),
+                        background: novoPedidoTipoCliente === tipo ? 'var(--btn-primary-bg)' : 'var(--surface-hover)',
+                        color: novoPedidoTipoCliente === tipo ? 'var(--btn-primary-text)' : 'var(--text-secondary, #374151)',
+                        border: '1px solid ' + (novoPedidoTipoCliente === tipo ? 'var(--btn-primary-bg)' : 'var(--border)'),
                       }}>
                       {tipo === 'medico' ? 'Médico' : 'Paciente'}
                     </button>
@@ -1612,12 +1612,18 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {(['todos', 'em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(val => {
-              const cor = val === 'todos' ? '#111827' : (PIPELINE_STATUS_COLOR[val]?.text || '#374151');
+              const corSemantica = val === 'pago' ? '#15803d' : val === 'cancelado' ? '#dc2626' : null;
               const label = val === 'todos' ? 'Todos' : PIPELINE_STATUS_LABEL[val];
               const n = val === 'todos' ? indicacoesPacientes.length : indicacoesPacientes.filter(i => i.status === val).length;
+              const ativo = filtroIndicacao === val;
               return (
                 <button key={val} onClick={() => setFiltroIndicacao(val)}
-                  style={{ background: filtroIndicacao === val ? cor : '#fff', color: filtroIndicacao === val ? '#fff' : '#374151', border: `1px solid ${filtroIndicacao === val ? cor : '#d1d5db'}`, padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: filtroIndicacao === val ? 700 : 400, fontFamily: 'inherit', fontSize: 13 }}>
+                  style={{
+                    background: ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--surface)',
+                    color: ativo ? (corSemantica ? '#fff' : 'var(--btn-primary-text)') : 'var(--text-secondary, #374151)',
+                    border: `1px solid ${ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--border)'}`,
+                    padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: ativo ? 700 : 400, fontFamily: 'inherit', fontSize: 13,
+                  }}>
                   {label} ({n})
                 </button>
               );
@@ -2050,7 +2056,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                       return (
                         <button key={t} type="button"
                           onClick={() => editandoDespesa ? setEditandoDespesa(v => v && ({ ...v, tipo: t })) : setNovaDespesa(v => ({ ...v, tipo: t }))}
-                          style={{ flex: 1, background: atual === t ? cor : '#fff', color: atual === t ? '#fff' : cor, border: `1px solid ${cor}`, padding: '9px 0', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>
+                          style={{ flex: 1, background: atual === t ? cor : 'var(--surface)', color: atual === t ? '#fff' : cor, border: `1px solid ${cor}`, padding: '9px 0', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>
                           {t === 'entrada' ? 'Entrada' : 'Saída'}
                         </button>
                       );
@@ -2187,7 +2193,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                     <div style={{ flex: 1, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>{a.titulo}</div>
-                        <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: a.publicado ? '#dcfce7' : '#f3f4f6', color: a.publicado ? '#15803d' : '#6b7280' }}>
+                        <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: a.publicado ? '#dcfce7' : 'var(--surface-hover)', color: a.publicado ? '#15803d' : 'var(--text-muted, #6b7280)' }}>
                           {a.publicado ? 'Publicado' : 'Rascunho'}
                         </span>
                       </div>
@@ -2237,7 +2243,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                     onChange={e => editandoArtigo ? setEditandoArtigo(a => a && ({ ...a, imagem: e.target.value })) : setNovoArtigo(a => ({ ...a, imagem: e.target.value }))}
                     placeholder="URL da imagem"
                     style={{ flex: 1, minWidth: 0, border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', color: 'var(--text)', background: 'var(--surface)', boxSizing: 'border-box' }} />
-                  <label style={{ background: uploadandoArtigo ? '#e5e7eb' : '#f9fafb', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
+                  <label style={{ background: uploadandoArtigo ? 'var(--border)' : 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
                     {uploadandoArtigo ? '...' : 'Enviar'}
                     <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async e => {
                       const f = e.target.files?.[0]; if (!f) return;
@@ -2318,7 +2324,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                         </div>
                         <span style={{
                           padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                          background: r.tipo === 'medico' ? '#f3f4f6' : '#f0fdf4', color: r.tipo === 'medico' ? '#374151' : '#15803d',
+                          background: r.tipo === 'medico' ? 'var(--surface-hover)' : '#f0fdf4', color: r.tipo === 'medico' ? 'var(--text-secondary, #374151)' : '#15803d',
                         }}>
                           {r.tipo === 'medico' ? 'Médico' : 'Paciente'}
                         </span>
@@ -2462,7 +2468,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {[['todos', `Todos (${lista.length})`], ['analise', `Analise (${emAnalise.length})`], ['pendente', `Pendentes (${pendentes.length})`], ['aprovado', 'Aprovados'], ['rejeitado', 'Rejeitados']].map(([v, l]) => (
                 <button key={v} onClick={() => setFiltro(v)}
-                  style={{ padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: filtro === v ? 700 : 500, background: filtro === v ? '#111827' : '#f3f4f6', color: filtro === v ? '#fff' : '#374151', fontFamily: 'inherit' }}>
+                  style={{ padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: filtro === v ? 700 : 500, background: filtro === v ? 'var(--btn-primary-bg)' : 'var(--surface-hover)', color: filtro === v ? 'var(--btn-primary-text)' : 'var(--text-secondary, #374151)', fontFamily: 'inherit' }}>
                   {l}
                 </button>
               ))}
@@ -2478,7 +2484,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-soft, #9ca3af)', textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 2 }}>Etiqueta:</span>
                   <button onClick={() => setFiltroEtiqueta('todas')}
-                    style={{ background: filtroEtiqueta === 'todas' ? '#111827' : '#fff', color: filtroEtiqueta === 'todas' ? '#fff' : '#374151', border: `1px solid ${filtroEtiqueta === 'todas' ? '#111827' : '#d1d5db'}`, padding: '3px 12px', borderRadius: 20, cursor: 'pointer', fontWeight: filtroEtiqueta === 'todas' ? 700 : 500, fontFamily: 'inherit', fontSize: 12 }}>
+                    style={{ background: filtroEtiqueta === 'todas' ? 'var(--btn-primary-bg)' : 'var(--surface)', color: filtroEtiqueta === 'todas' ? 'var(--btn-primary-text)' : 'var(--text-secondary, #374151)', border: `1px solid ${filtroEtiqueta === 'todas' ? 'var(--btn-primary-bg)' : 'var(--border)'}`, padding: '3px 12px', borderRadius: 20, cursor: 'pointer', fontWeight: filtroEtiqueta === 'todas' ? 700 : 500, fontFamily: 'inherit', fontSize: 12 }}>
                     Todas
                   </button>
                   {todasEtiquetas.map(tag => {
@@ -2595,7 +2601,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                   const vendNome = equipe.find(e => e.id === l.vendedor_id)?.nome;
                   return (
                     <tr key={l.id} onClick={() => setSelectedLead(l)}
-                      style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', background: l.solicitacao ? '#f9fafb' : '#fff' }}>
+                      style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', background: l.solicitacao ? 'var(--surface-hover)' : 'var(--surface)' }}>
                       <td style={{ padding: '11px 14px' }}>
                         <div style={{ fontWeight: 700, color: 'var(--text)' }}>{l.nome} {l.sobrenome}</div>
                         <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>{l.email}</div>
@@ -2801,7 +2807,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
               <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text)' }}>{i.nome} {i.sobrenome}</div>
-                  <div style={{ fontSize: 12, color: ehMedico ? '#374151' : '#111827', fontWeight: 700, marginTop: 2 }}>Indicado por {i.medico_nome}</div>
+                  <div style={{ fontSize: 12, color: ehMedico ? 'var(--text-secondary, #374151)' : 'var(--text)', fontWeight: 700, marginTop: 2 }}>Indicado por {i.medico_nome}</div>
                 </div>
                 <button onClick={() => setEditandoIndicacao(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--text-muted, #6b7280)' }}>×</button>
               </div>

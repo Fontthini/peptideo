@@ -1308,10 +1308,10 @@ export default function AdminPage() {
               <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 24 }}>
                 {[
                   { label: 'Pendentes', val: counts.pendente, cor: null },
-                  { label: 'Aprovados', val: counts.aprovado, cor: '#15803d', bg: '#f0fdf4' },
-                  { label: 'Rejeitados', val: counts.rejeitado, cor: '#dc2626', bg: '#fef2f2' },
+                  { label: 'Aprovados', val: counts.aprovado, cor: '#15803d' },
+                  { label: 'Rejeitados', val: counts.rejeitado, cor: '#dc2626' },
                 ].map(s => (
-                  <div key={s.label} style={{ background: s.cor ? s.bg : 'var(--surface-hover)', border: `1px solid ${s.cor ? s.cor + '33' : 'var(--border)'}`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${s.cor || 'var(--text-soft, #9ca3af)'}` }}>
+                  <div key={s.label} style={{ background: s.cor ? `${s.cor}0d` : 'var(--surface-hover)', border: `1px solid ${s.cor ? s.cor + '33' : 'var(--border)'}`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${s.cor || 'var(--text-soft, #9ca3af)'}` }}>
                     <div style={{ fontSize: 32, fontWeight: 900, color: s.cor || 'var(--text)' }}>{s.val}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>{s.label}</div>
                   </div>
@@ -4629,11 +4629,11 @@ export default function AdminPage() {
 
                 {/* KPIs */}
                 <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
-                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #6b7280' }}>
+                  <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid var(--text-soft, #9ca3af)' }}>
                     <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{totalSkus}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total de SKUs</div>
                   </div>
-                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
+                  <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid var(--text-soft, #9ca3af)' }}>
                     <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{pecasEmEstoque}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Peças em Estoque</div>
                   </div>
@@ -4645,20 +4645,20 @@ export default function AdminPage() {
                     <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {faturamento30d.toFixed(2)}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Faturamento (30D)</div>
                   </div>
-                  <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
+                  <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid var(--text-soft, #9ca3af)' }}>
                     <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>R$ {lucroBruto30d.toFixed(2)}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Lucro Bruto (30D)</div>
                   </div>
-                  <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
+                  <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid var(--text-soft, #9ca3af)' }}>
                     <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{margemMedia30d.toFixed(1)}%</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Margem Média (30D)</div>
                   </div>
-                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #d97706' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#b45309' }}>{estoqueBaixoCount}</div>
+                  <div style={{ background: estoqueBaixoCount > 0 ? '#d977060d' : 'var(--surface-hover)', border: `1px solid ${estoqueBaixoCount > 0 ? '#d9770633' : 'var(--border)'}`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${estoqueBaixoCount > 0 ? '#d97706' : 'var(--text-soft, #9ca3af)'}` }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: estoqueBaixoCount > 0 ? '#d97706' : 'var(--text)' }}>{estoqueBaixoCount}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Estoque Baixo</div>
                   </div>
-                  <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #dc2626' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#dc2626' }}>{esgotadoCount}</div>
+                  <div style={{ background: esgotadoCount > 0 ? '#dc26260d' : 'var(--surface-hover)', border: `1px solid ${esgotadoCount > 0 ? '#dc262633' : 'var(--border)'}`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${esgotadoCount > 0 ? '#dc2626' : 'var(--text-soft, #9ca3af)'}` }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: esgotadoCount > 0 ? '#dc2626' : 'var(--text)' }}>{esgotadoCount}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Item Esgotado</div>
                   </div>
                 </div>
@@ -4729,16 +4729,16 @@ export default function AdminPage() {
             return (
               <div style={{ position: 'fixed', inset: 0, zIndex: 700, overflowY: 'auto', padding: '24px 16px' }}>
                 <div onClick={() => setEditandoIndicacao(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
-                <div style={{ position: 'relative', maxWidth: 520, margin: '0 auto', background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
-                  <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ position: 'relative', maxWidth: 520, margin: '0 auto', background: 'var(--surface)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
+                  <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <div style={{ fontWeight: 800, fontSize: 17, color: '#111827' }}>{i.nome} {i.sobrenome}</div>
-                      <div style={{ fontSize: 12, color: ehMedico ? '#374151' : '#111827', fontWeight: 700, marginTop: 2 }}>Indicado por {i.medico_nome}</div>
+                      <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text)' }}>{i.nome} {i.sobrenome}</div>
+                      <div style={{ fontSize: 12, color: ehMedico ? 'var(--text-secondary, #374151)' : 'var(--text)', fontWeight: 700, marginTop: 2 }}>Indicado por {i.medico_nome}</div>
                     </div>
-                    <button onClick={() => setEditandoIndicacao(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#6b7280' }}>×</button>
+                    <button onClick={() => setEditandoIndicacao(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--text-muted, #6b7280)' }}>×</button>
                   </div>
 
-                  <div style={{ padding: '14px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ padding: '14px 24px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {i.whatsapp && (
                       <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
                         style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '7px 14px', borderRadius: 6, fontSize: 12.5, fontFamily: 'inherit', textDecoration: 'none' }}>
@@ -4809,11 +4809,11 @@ export default function AdminPage() {
                       mostrar={i.status === etapaSucesso} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
                       input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
                   </div>
-                  <div style={{ padding: '16px 24px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                    <button onClick={() => setEditandoIndicacao(null)} style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                  <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                    <button onClick={() => setEditandoIndicacao(null)} style={{ background: 'var(--surface)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
                       Cancelar
                     </button>
-                    <button onClick={salvarEdicaoIndicacao} disabled={salvandoIndicacao} style={{ background: '#111827', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoIndicacao ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoIndicacao ? 0.6 : 1 }}>
+                    <button onClick={salvarEdicaoIndicacao} disabled={salvandoIndicacao} style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoIndicacao ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoIndicacao ? 0.6 : 1 }}>
                       {salvandoIndicacao ? 'Salvando...' : 'Salvar'}
                     </button>
                   </div>
