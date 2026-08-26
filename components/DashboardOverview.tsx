@@ -215,11 +215,11 @@ export function DashboardOverview({
       <div>
         <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Visão do Negócio</div>
         <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 20 }}>
-          <KpiCard size={22} label="Faturamento Total" value={`R$ ${valorVendido.toFixed(2)}`} color="#16a34a" />
-          <KpiCard size={22} label="Faturamento (30D)" value={`R$ ${faturamento30d.toFixed(2)}`} color="#16a34a" />
+          <KpiCard size={22} label="Faturamento Total" value={`R$ ${valorVendido.toFixed(2)}`} />
+          <KpiCard size={22} label="Faturamento (30D)" value={`R$ ${faturamento30d.toFixed(2)}`} />
           <KpiCard size={22} label="Saldo Financeiro" value={`R$ ${saldo.toFixed(2)}`} color={saldo >= 0 ? undefined : '#dc2626'} />
           <KpiCard size={22} label="Comissões Pagas" value={`R$ ${totalComissoesPagas.toFixed(2)}`} />
-          <KpiCard size={22} label="Comissões Pendentes" value={comissoesPendentes} color={comissoesPendentes > 0 ? '#d97706' : undefined} />
+          <KpiCard size={22} label="Comissões Pendentes" value={comissoesPendentes} />
           <KpiCard size={22} label="Alertas de Estoque" value={estoqueEsgotadoCount + estoqueBaixoCount}
             color={(estoqueBaixoCount + estoqueEsgotadoCount) > 0 ? '#dc2626' : undefined}
             sub={`${estoqueEsgotadoCount} esgotado · ${estoqueBaixoCount} baixo`} />

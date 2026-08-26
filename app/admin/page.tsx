@@ -58,7 +58,7 @@ const INDICACAO_MEDICA_STATUS_LABEL: Record<string, string> = {
   novo: 'Novo', contatado: 'Contatado', convertido: 'Convertido', reprovado: 'Reprovado',
 };
 const INDICACAO_MEDICA_STATUS_COLOR: Record<string, { bg: string; text: string }> = {
-  novo: { bg: '#f3f4f6', text: '#374151' }, contatado: { bg: '#f3f4f6', text: '#111827' },
+  novo: { bg: 'var(--surface-hover)', text: 'var(--text-secondary, #374151)' }, contatado: { bg: 'var(--surface-hover)', text: 'var(--text)' },
   convertido: { bg: '#f0fdf4', text: '#15803d' }, reprovado: { bg: '#fef2f2', text: '#dc2626' },
 };
 
@@ -73,13 +73,13 @@ function getKey() {
 }
 
 const inputStyle: React.CSSProperties = {
-  width: '100%', background: '#fff', border: '1px solid #d1d5db', borderRadius: 8,
-  padding: '10px 13px', color: '#111827', fontSize: 14, fontFamily: 'inherit',
+  width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8,
+  padding: '10px 13px', color: 'var(--text)', fontSize: 14, fontFamily: 'inherit',
   outline: 'none', boxSizing: 'border-box',
 };
 const labelStyle: React.CSSProperties = {
   display: 'block', marginBottom: 5, fontSize: 11, fontWeight: 700,
-  color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px',
+  color: 'var(--text-secondary, #374151)', textTransform: 'uppercase', letterSpacing: '0.5px',
 };
 
 const FUNIL_ETAPAS = ['novo', 'primeiro_contato', 'aguardando_resposta', 'interessado', 'link_pix_enviado', 'cliente', 'perdido'] as const;
@@ -88,6 +88,11 @@ const FUNIL_LABEL: Record<string, string> = {
   interessado: 'Interessado', link_pix_enviado: 'Link/Pix Enviado', cliente: 'Cliente', perdido: 'Perdido',
 };
 const FUNIL_COLOR: Record<string, string> = {
+  novo: 'var(--text-soft, #9ca3af)', primeiro_contato: 'var(--text-muted, #6b7280)', aguardando_resposta: 'var(--text-secondary, #374151)',
+  interessado: 'var(--text-secondary, #374151)', link_pix_enviado: 'var(--text)', cliente: '#16a34a', perdido: '#dc2626',
+};
+// Cores fixas (nao seguem o tema) para o select do funil, que tem fundo sempre claro (#f1f5f9)
+const FUNIL_COLOR_FIXO: Record<string, string> = {
   novo: '#9ca3af', primeiro_contato: '#6b7280', aguardando_resposta: '#4b5563',
   interessado: '#374151', link_pix_enviado: '#111827', cliente: '#16a34a', perdido: '#dc2626',
 };
@@ -1317,7 +1322,12 @@ export default function AdminPage() {
               <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                 {[['todos', 'Todos', ''], ['pendente', 'Pendentes', ''], ['aprovado', 'Aprovados', '#15803d'], ['rejeitado', 'Rejeitados', '#dc2626']].map(([val, label, cor]) => (
                   <button key={val} onClick={() => setFiltro(val)}
-                    style={{ background: filtro === val ? (cor || 'var(--text)') : 'var(--surface)', color: filtro === val ? '#fff' : 'var(--text-secondary, #374151)', border: `1px solid ${filtro === val ? (cor || 'var(--text)') : 'var(--border)'}`, padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: filtro === val ? 700 : 400, fontFamily: 'inherit', fontSize: 13 }}>
+                    style={{
+                      background: filtro === val ? (cor || 'var(--btn-primary-bg)') : 'var(--surface)',
+                      color: filtro === val ? (cor ? '#fff' : 'var(--btn-primary-text)') : 'var(--text-secondary, #374151)',
+                      border: `1px solid ${filtro === val ? (cor || 'var(--btn-primary-bg)') : 'var(--border)'}`,
+                      padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: filtro === val ? 700 : 400, fontFamily: 'inherit', fontSize: 13,
+                    }}>
                     {label} ({counts[val as keyof typeof counts]})
                   </button>
                 ))}
@@ -1529,7 +1539,7 @@ export default function AdminPage() {
                                     if (v === 'perdido') { setPerdaPromptId(c.id); setMotivoPerdaInput(''); }
                                     else atualizarFunilLead(c.id, v);
                                   }}
-                                  style={{ background: `${FUNIL_COLOR[c.funil_status || 'novo']}1a`, color: FUNIL_COLOR[c.funil_status || 'novo'], border: `1px solid ${FUNIL_COLOR[c.funil_status || 'novo']}55`, borderRadius: 6, padding: '4px 8px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}
+                                  style={{ background: '#f1f5f9', color: FUNIL_COLOR_FIXO[c.funil_status || 'novo'], border: `1px solid ${FUNIL_COLOR_FIXO[c.funil_status || 'novo']}55`, borderRadius: 6, padding: '4px 8px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}
                                   title={c.funil_status === 'perdido' && c.motivo_perda ? `Motivo: ${c.motivo_perda}` : undefined}>
                                   {FUNIL_ETAPAS.map(e => <option key={e} value={e}>{FUNIL_LABEL[e]}</option>)}
                                 </select>
@@ -1915,24 +1925,24 @@ export default function AdminPage() {
               `${c.nome} ${c.sobrenome} ${c.email} ${c.whatsapp}`.toLowerCase().includes(q));
             return (
               <>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 20, marginTop: 0 }}>
-                  Clientes <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({clientes.length})</span>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 20, marginTop: 0 }}>
+                  Clientes <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({clientes.length})</span>
                 </h2>
                 <input value={buscaLead} onChange={e => setBuscaLead(e.target.value)}
                   placeholder="Buscar cliente por nome, e-mail ou WhatsApp..."
                   style={{ ...inputStyle, marginBottom: 16, maxWidth: 420 }} />
-                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                   {clientesFiltrados.length === 0 ? (
-                    <div style={{ padding: 60, textAlign: 'center', color: '#6b7280' }}>
+                    <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>
                       {clientes.length === 0 ? 'Nenhum cliente ainda. Leads viram cliente automaticamente quando um pedido é marcado como pago.' : 'Nenhum cliente encontrado para essa busca.'}
                     </div>
                   ) : (
                     <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 300px)' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                         <thead>
-                          <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                          <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
                             {['Nome', 'WhatsApp', 'E-mail', 'Cidade/UF', 'Total Gasto', 'Produtos Comprados', 'Último Pedido', 'Consultor'].map(h => (
-                              <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>{h}</th>
+                              <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
@@ -1947,21 +1957,21 @@ export default function AdminPage() {
                               : null;
                             const consultor = equipe.find(m => m.id === c.vendedor_id)?.nome;
                             return (
-                              <tr key={c.id} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                                <td style={{ padding: '11px 14px', color: '#111827', fontWeight: 600, whiteSpace: 'nowrap' }}>{c.nome} {c.sobrenome}</td>
+                              <tr key={c.id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                                <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>{c.nome} {c.sobrenome}</td>
                                 <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                                   <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#16a34a', textDecoration: 'none' }}>{c.whatsapp}</a>
                                 </td>
-                                <td style={{ padding: '11px 14px', color: '#6b7280' }}>{c.email}</td>
-                                <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap' }}>{c.cidade ? `${c.cidade}/${c.estado || ''}` : '-'}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{c.email}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{c.cidade ? `${c.cidade}/${c.estado || ''}` : '-'}</td>
                                 <td style={{ padding: '11px 14px', color: '#16a34a', fontWeight: 800 }}>R$ {totalGasto.toFixed(2)}</td>
-                                <td style={{ padding: '11px 14px', color: '#374151', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={produtosComprados.join(', ')}>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={produtosComprados.join(', ')}>
                                   {produtosComprados.length > 0 ? produtosComprados.join(', ') : '-'}
                                 </td>
-                                <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
                                   {ultimoPedido ? new Date(ultimoPedido.created_at).toLocaleDateString('pt-BR') : '-'}
                                 </td>
-                                <td style={{ padding: '11px 14px', color: '#374151' }}>{consultor || <span style={{ color: '#9ca3af' }}>-</span>}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)' }}>{consultor || <span style={{ color: 'var(--text-soft, #9ca3af)' }}>-</span>}</td>
                               </tr>
                             );
                           })}
@@ -1980,16 +1990,16 @@ export default function AdminPage() {
 
               {/* Lista de produtos */}
               <div>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 20, marginTop: 0 }}>
-                  Catalogo <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({produtos.length})</span>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 20, marginTop: 0 }}>
+                  Catalogo <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({produtos.length})</span>
                 </h2>
                 {loadingProd ? (
-                  <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+                  <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
                 ) : (
                   <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
                     {produtos.map(p => (
-                      <div key={p.id} style={{ background: '#fff', border: `1px solid ${p.custom ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                        <div style={{ background: '#f9fafb', height: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                      <div key={p.id} style={{ background: 'var(--surface)', border: `1px solid ${p.custom ? '#bbf7d0' : 'var(--border)'}`, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                        <div style={{ background: 'var(--surface-hover)', height: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                           {p.imagem && (p.imagem.startsWith('http') || p.imagem.startsWith('/')) ? (
                             <img src={p.imagem} alt={p.nome} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8 }} />
                           ) : (
@@ -2000,12 +2010,12 @@ export default function AdminPage() {
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 3 }}>
                             <span style={{ fontSize: 9, fontWeight: 700, color: '#16a34a', letterSpacing: 0.5, textTransform: 'uppercase' }}>{p.categoria}</span>
                             {p.categoria2 && (
-                              <span style={{ fontSize: 9, fontWeight: 700, color: '#111827', letterSpacing: 0.5, textTransform: 'uppercase' }}>+ {p.categoria2}</span>
+                              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text)', letterSpacing: 0.5, textTransform: 'uppercase' }}>+ {p.categoria2}</span>
                             )}
                           </div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', lineHeight: 1.3 }}>{p.nome}</div>
-                          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{p.dose}</div>
-                          <div style={{ fontSize: 15, fontWeight: 900, color: '#111827', marginTop: 6 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', lineHeight: 1.3 }}>{p.nome}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)', marginTop: 2 }}>{p.dose}</div>
+                          <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--text)', marginTop: 6 }}>
                             R$ {p.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </div>
                           <div style={{ display: 'flex', gap: 5, marginTop: 8 }}>
@@ -2015,7 +2025,7 @@ export default function AdminPage() {
                               Editar
                             </button>
                             <button onClick={() => duplicarProduto(p.id)}
-                              style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}
+                              style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}
                               title="Duplicar produto">
                               Dup
                             </button>
@@ -2037,25 +2047,25 @@ export default function AdminPage() {
               <div style={{ position: 'sticky', top: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
                 {/* Categorias */}
-                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                   <button type="button" onClick={() => { setMostrarCats(p => !p); if (!mostrarCats) carregarCategorias(); }}
-                    style={{ width: '100%', padding: '13px 18px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: '#374151' }}>
+                    style={{ width: '100%', padding: '13px 18px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: 'var(--text-secondary, #374151)' }}>
                     <span>Gerenciar Categorias</span>
-                    <span style={{ color: '#6b7280' }}>{mostrarCats ? '-' : '-'}</span>
+                    <span style={{ color: 'var(--text-muted, #6b7280)' }}>{mostrarCats ? '-' : '-'}</span>
                   </button>
                   {mostrarCats && (
-                    <div style={{ padding: '0 16px 16px', borderTop: '1px solid #f3f4f6' }}>
+                    <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--border)' }}>
                       <div style={{ paddingTop: 12, marginBottom: 10 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', letterSpacing: 1, marginBottom: 6 }}>PADRAO (nao editavel)</div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted, #6b7280)', letterSpacing: 1, marginBottom: 6 }}>PADRAO (nao editavel)</div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                           {CATEGORIAS.map(c => (
-                            <span key={c} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', color: '#6b7280', padding: '3px 10px', borderRadius: 12, fontSize: 11 }}>{c}</span>
+                            <span key={c} style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', color: 'var(--text-muted, #6b7280)', padding: '3px 10px', borderRadius: 12, fontSize: 11 }}>{c}</span>
                           ))}
                         </div>
                       </div>
                       <div style={{ marginBottom: 10 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', letterSpacing: 1, marginBottom: 6 }}>PERSONALIZADAS</div>
-                        {categoriasCustom.length === 0 && <div style={{ fontSize: 12, color: '#6b7280', fontStyle: 'italic' }}>Nenhuma ainda.</div>}
+                        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted, #6b7280)', letterSpacing: 1, marginBottom: 6 }}>PERSONALIZADAS</div>
+                        {categoriasCustom.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', fontStyle: 'italic' }}>Nenhuma ainda.</div>}
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                           {categoriasCustom.map(c => (
                             <span key={c} style={{ background: '#f0fdf4', border: '1px solid #86efac', color: '#15803d', padding: '3px 10px', borderRadius: 12, fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -2069,17 +2079,17 @@ export default function AdminPage() {
                         </div>
                       <form onSubmit={adicionarCategoria} style={{ display: 'flex', gap: 6, marginTop: 8 }}>
                         <input value={novaCategoria} onChange={e => setNovaCategoria(e.target.value)} placeholder="Nova categoria..." style={{ ...inputStyle, flex: 1, padding: '8px 12px', fontSize: 12 }} />
-                        <button type="submit" style={{ background: '#111827', color: '#fff', border: 'none', borderRadius: 7, padding: '8px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 12, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>+ Add</button>
+                        <button type="submit" style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 7, padding: '8px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 12, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>+ Add</button>
                       </form>
                     </div>
                   )}
                 </div>
 
                 {editando ? (
-                  <div style={{ background: '#fff', border: '1px solid #bbf7d0', borderRadius: 12, padding: 24 }}>
+                  <div style={{ background: 'var(--surface)', border: '1px solid #bbf7d0', borderRadius: 12, padding: 24 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-                      <h3 style={{ fontSize: 16, fontWeight: 800, color: '#111827', margin: 0 }}>Editar Produto</h3>
-                      <button onClick={() => setEditando(null)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 20 }}>-</button>
+                      <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', margin: 0 }}>Editar Produto</h3>
+                      <button onClick={() => setEditando(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted, #6b7280)', cursor: 'pointer', fontSize: 20 }}>-</button>
                     </div>
                     <form onSubmit={salvarEdicao} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
                       <div>
@@ -2095,7 +2105,7 @@ export default function AdminPage() {
                           </select>
                         </div>
                         <div>
-                          <label style={labelStyle}>2ª Categoria <span style={{ color: '#6b7280', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
+                          <label style={labelStyle}>2ª Categoria <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
                           <select value={editando.categoria2 || ''} onChange={e => setEditando(p => p && ({ ...p, categoria2: e.target.value || null }))}
                             style={{ ...inputStyle, cursor: 'pointer' }}>
                             <option value="">Nenhuma</option>
@@ -2117,13 +2127,13 @@ export default function AdminPage() {
                         <label style={labelStyle}>Imagem do produto</label>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <input value={editando.imagem} onChange={e => setEditando(p => p && ({ ...p, imagem: e.target.value }))} placeholder="URL da imagem ou escolha um arquivo" style={{ ...inputStyle, flex: 1 }} />
-                          <label style={{ background: uploadando === 'edit' ? '#e5e7eb' : '#f9fafb', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <label style={{ background: uploadando === 'edit' ? 'var(--border)' : 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
                             {uploadando === 'edit' ? '...' : 'Enviar'}
                             <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadImagem('edit', f, url => { setEditando(p => p && ({ ...p, imagem: url })); setGaleriaUrls([]); }); e.target.value = ''; }} />
                           </label>
                         </div>
                         {editando.imagem && (
-                          <div style={{ marginTop: 8, background: '#f9fafb', borderRadius: 6, height: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                          <div style={{ marginTop: 8, background: 'var(--surface-hover)', borderRadius: 6, height: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                             <img src={editando.imagem} alt="preview" style={{ maxHeight: 66, maxWidth: '100%', objectFit: 'contain' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                           </div>
                         )}
@@ -2132,15 +2142,15 @@ export default function AdminPage() {
                           x-️ Escolher da Galeria de Uploads ({galeriaUrls.length || '?'})
                         </button>
                         {mostrarGaleria && galeriaAlvo === 'imagem' && (
-                          <div style={{ marginTop: 8, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, maxHeight: 200, overflowY: 'auto' }}>
+                          <div style={{ marginTop: 8, background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, padding: 10, maxHeight: 200, overflowY: 'auto' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                              <span style={{ fontSize: 11, fontWeight: 700, color: '#374151' }}>SEUS UPLOADS ({galeriaUrls.length})</span>
-                              <button type="button" onClick={() => setMostrarGaleria(false)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 16 }}>-</button>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary, #374151)' }}>SEUS UPLOADS ({galeriaUrls.length})</span>
+                              <button type="button" onClick={() => setMostrarGaleria(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted, #6b7280)', cursor: 'pointer', fontSize: 16 }}>-</button>
                             </div>
                             <div className="admin-grid-thumbs" style={{ display: 'grid', gap: 6 }}>
                               {galeriaUrls.map(url => (
                                 <div key={url} onClick={() => { setEditando(p => p && ({ ...p, imagem: url })); setMostrarGaleria(false); }}
-                                  style={{ cursor: 'pointer', background: editando.imagem === url ? '#dcfce7' : '#fff', border: `2px solid ${editando.imagem === url ? '#16a34a' : '#e5e7eb'}`, borderRadius: 6, overflow: 'hidden', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  style={{ cursor: 'pointer', background: editando.imagem === url ? '#dcfce7' : 'var(--surface)', border: `2px solid ${editando.imagem === url ? '#16a34a' : 'var(--border)'}`, borderRadius: 6, overflow: 'hidden', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                   <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                                 </div>
                               ))}
@@ -2150,11 +2160,11 @@ export default function AdminPage() {
                       </div>
                       {/* Galeria de Fotos */}
                       <div>
-                        <label style={labelStyle}>Galeria de Fotos <span style={{ color: '#6b7280', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(fotos extras)</span></label>
+                        <label style={labelStyle}>Galeria de Fotos <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(fotos extras)</span></label>
                         {(editando.galeria || []).length > 0 && (
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                             {(editando.galeria || []).map((url, i) => (
-                              <div key={i} style={{ position: 'relative', width: 52, height: 52, background: '#f9fafb', borderRadius: 6, overflow: 'hidden', border: '1px solid #e5e7eb', flexShrink: 0 }}>
+                              <div key={i} style={{ position: 'relative', width: 52, height: 52, background: 'var(--surface-hover)', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)', flexShrink: 0 }}>
                                 <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                                 <button type="button" onClick={() => setEditando(p => p && ({ ...p, galeria: (p.galeria || []).filter((_, j) => j !== i) }))}
                                   style={{ position: 'absolute', top: 1, right: 1, background: 'rgba(220,38,38,0.9)', color: '#fff', border: 'none', borderRadius: '50%', width: 16, height: 16, fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>-</button>
@@ -2167,16 +2177,16 @@ export default function AdminPage() {
                             style={{ flex: 1, background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '8px 0', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>
                             x-️ Adicionar da Galeria
                           </button>
-                          <label style={{ background: uploadando === 'galeria' ? '#e5e7eb' : '#f9fafb', border: '1px solid #d1d5db', borderRadius: 7, padding: '8px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
+                          <label style={{ background: uploadando === 'galeria' ? 'var(--border)' : 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 7, padding: '8px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
                             {uploadando === 'galeria' ? '...' : 'Enviar'}
                             <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadImagem('galeria', f, url => { setEditando(p => p && ({ ...p, galeria: [...(p.galeria || []), url] })); setGaleriaUrls([]); }); e.target.value = ''; }} />
                           </label>
                         </div>
                         {mostrarGaleria && galeriaAlvo === 'galeria' && (
-                          <div style={{ marginTop: 8, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: 10 }}>
+                          <div style={{ marginTop: 8, background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, padding: 10 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                              <span style={{ fontSize: 11, fontWeight: 700, color: '#374151' }}>CLIQUE PARA ADICIONAR / REMOVER</span>
-                              <button type="button" onClick={() => setMostrarGaleria(false)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 16 }}>-</button>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary, #374151)' }}>CLIQUE PARA ADICIONAR / REMOVER</span>
+                              <button type="button" onClick={() => setMostrarGaleria(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted, #6b7280)', cursor: 'pointer', fontSize: 16 }}>-</button>
                             </div>
                             <div className="admin-grid-thumbs" style={{ display: 'grid', gap: 6, maxHeight: 160, overflowY: 'auto' }}>
                               {galeriaUrls.map(url => {
@@ -2184,7 +2194,7 @@ export default function AdminPage() {
                                 return (
                                   <div key={url}
                                     onClick={() => setEditando(p => p && ({ ...p, galeria: sel ? (p.galeria || []).filter(u => u !== url) : [...(p.galeria || []), url] }))}
-                                    style={{ cursor: 'pointer', background: sel ? '#dcfce7' : '#fff', border: `2px solid ${sel ? '#16a34a' : '#e5e7eb'}`, borderRadius: 6, overflow: 'hidden', height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                                    style={{ cursor: 'pointer', background: sel ? '#dcfce7' : 'var(--surface)', border: `2px solid ${sel ? '#16a34a' : 'var(--border)'}`, borderRadius: 6, overflow: 'hidden', height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                                     <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                                     {sel && <div style={{ position: 'absolute', top: 1, right: 2, fontSize: 10, color: '#16a34a', fontWeight: 900 }}>S"</div>}
                                   </div>
@@ -2197,7 +2207,7 @@ export default function AdminPage() {
 
                       {/* Vídeo YouTube */}
                       <div>
-                        <label style={labelStyle}>Vídeo YouTube <span style={{ color: '#6b7280', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
+                        <label style={labelStyle}>Vídeo YouTube <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
                         <input value={editando.video || ''} onChange={e => setEditando(p => p && ({ ...p, video: e.target.value }))} placeholder="https://youtube.com/watch?v=..." style={inputStyle} />
                         {editando.video && (() => {
                           const m = (editando.video || '').match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
@@ -2214,29 +2224,29 @@ export default function AdminPage() {
                       <div>
                         {!mostrarProtocoloEdit && !editando.protocolo ? (
                           <button type="button" onClick={() => setMostrarProtocoloEdit(true)}
-                            style={{ background: '#f9fafb', color: '#374151', border: '1px dashed #d1d5db', padding: '10px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', width: '100%' }}>
+                            style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px dashed var(--border)', padding: '10px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', width: '100%' }}>
                             + Protocolo Básico
                           </button>
                         ) : (
                           <>
-                            <label style={labelStyle}>Protocolo Básico <span style={{ color: '#6b7280', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
+                            <label style={labelStyle}>Protocolo Básico <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
                             <textarea value={editando.protocolo || ''} onChange={e => setEditando(p => p && ({ ...p, protocolo: e.target.value }))} placeholder="Escreva aqui o protocolo básico de uso..." rows={5} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.55 }} />
                           </>
                         )}
                       </div>
                       <div style={{ display: 'flex', gap: 10 }}>
-                        <button type="submit" style={{ flex: 1, background: '#111827', color: '#fff', fontWeight: 700, padding: '11px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
+                        <button type="submit" style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', fontWeight: 700, padding: '11px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
                           Salvar Alterações
                         </button>
-                        <button type="button" onClick={() => setEditando(null)} style={{ background: '#f9fafb', color: '#374151', fontWeight: 600, padding: '11px 16px', borderRadius: 8, border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
+                        <button type="button" onClick={() => setEditando(null)} style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', fontWeight: 600, padding: '11px 16px', borderRadius: 8, border: '1px solid var(--border)', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
                           Cancelar
                         </button>
                       </div>
                     </form>
                   </div>
                 ) : (
-                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
-                    <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 18, color: '#111827', margin: '0 0 18px' }}>Adicionar Produto</h3>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24 }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 18, color: 'var(--text)', margin: '0 0 18px' }}>Adicionar Produto</h3>
                     <form onSubmit={adicionarProduto} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
                       <div>
                         <label style={labelStyle}>Nome do produto *</label>
@@ -2251,7 +2261,7 @@ export default function AdminPage() {
                           </select>
                         </div>
                         <div>
-                          <label style={labelStyle}>2ª Categoria <span style={{ color: '#6b7280', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
+                          <label style={labelStyle}>2ª Categoria <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
                           <select value={novoProd.categoria2} onChange={e => setNovoProd(p => ({ ...p, categoria2: e.target.value }))}
                             style={{ ...inputStyle, cursor: 'pointer' }}>
                             <option value="">Nenhuma</option>
@@ -2273,13 +2283,13 @@ export default function AdminPage() {
                         <label style={labelStyle}>Imagem do produto</label>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <input value={novoProd.imagem} onChange={e => setNovoProd(p => ({ ...p, imagem: e.target.value }))} placeholder="URL da imagem ou escolha um arquivo" style={{ ...inputStyle, flex: 1 }} />
-                          <label style={{ background: uploadando === 'novo' ? '#e5e7eb' : '#f9fafb', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <label style={{ background: uploadando === 'novo' ? 'var(--border)' : 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
                             {uploadando === 'novo' ? '...' : 'Enviar'}
                             <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadImagem('novo', f, url => setNovoProd(p => ({ ...p, imagem: url }))); e.target.value = ''; }} />
                           </label>
                         </div>
                         {novoProd.imagem && (
-                          <div style={{ marginTop: 8, background: '#f9fafb', borderRadius: 6, height: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                          <div style={{ marginTop: 8, background: 'var(--surface-hover)', borderRadius: 6, height: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                             <img src={novoProd.imagem} alt="preview" style={{ maxHeight: 66, maxWidth: '100%', objectFit: 'contain' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                           </div>
                         )}
@@ -2291,21 +2301,21 @@ export default function AdminPage() {
                       <div>
                         {!mostrarProtocoloNovo && !novoProd.protocolo ? (
                           <button type="button" onClick={() => setMostrarProtocoloNovo(true)}
-                            style={{ background: '#f9fafb', color: '#374151', border: '1px dashed #d1d5db', padding: '10px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', width: '100%' }}>
+                            style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px dashed var(--border)', padding: '10px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', width: '100%' }}>
                             + Protocolo Básico
                           </button>
                         ) : (
                           <>
-                            <label style={labelStyle}>Protocolo Básico <span style={{ color: '#6b7280', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
+                            <label style={labelStyle}>Protocolo Básico <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
                             <textarea value={novoProd.protocolo} onChange={e => setNovoProd(p => ({ ...p, protocolo: e.target.value }))} placeholder="Escreva aqui o protocolo básico de uso..." rows={5} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.55 }} />
                           </>
                         )}
                       </div>
                       <div>
-                        <label style={labelStyle}>Vídeo YouTube <span style={{ color: '#6b7280', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
+                        <label style={labelStyle}>Vídeo YouTube <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
                         <input value={novoProd.video} onChange={e => setNovoProd(p => ({ ...p, video: e.target.value }))} placeholder="https://youtube.com/watch?v=..." style={inputStyle} />
                       </div>
-                      <button type="submit" style={{ background: '#111827', color: '#fff', fontWeight: 700, padding: '12px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
+                      <button type="submit" style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', fontWeight: 700, padding: '12px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
                         Salvar Produto
                       </button>
                     </form>
@@ -2321,36 +2331,36 @@ export default function AdminPage() {
 
               {/* Lista de banners */}
               <div>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 20, marginTop: 0 }}>
-                  x-️ Banners do Carrossel <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({banners.filter(b => b.ativo).length} ativos)</span>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 20, marginTop: 0 }}>
+                  x-️ Banners do Carrossel <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({banners.filter(b => b.ativo).length} ativos)</span>
                 </h2>
                 {loadingBanners ? (
-                  <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+                  <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
                 ) : banners.length === 0 ? (
-                  <div style={{ padding: 40, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                  <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
                     Nenhum banner. Adicione um ao lado.
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     {banners.map(b => (
-                      <div key={b.id} style={{ background: '#fff', border: `1px solid ${b.ativo ? '#e5e7eb' : '#f3f4f6'}`, borderRadius: 12, overflow: 'hidden', opacity: b.ativo ? 1 : 0.5, display: 'flex', gap: 0 }}>
-                        <div style={{ width: 200, flexShrink: 0, background: '#f9fafb', overflow: 'hidden', maxHeight: 80 }}>
+                      <div key={b.id} style={{ background: 'var(--surface)', border: `1px solid ${b.ativo ? 'var(--border)' : 'var(--border)'}`, borderRadius: 12, overflow: 'hidden', opacity: b.ativo ? 1 : 0.5, display: 'flex', gap: 0 }}>
+                        <div style={{ width: 200, flexShrink: 0, background: 'var(--surface-hover)', overflow: 'hidden', maxHeight: 80 }}>
                           <img src={b.imagem} alt={b.titulo} style={{ width: '100%', height: 80, objectFit: 'cover', display: 'block' }}
                             onError={e => { (e.target as HTMLImageElement).src = '/produtos/frasco.svg'; }} />
                         </div>
                         <div style={{ flex: 1, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                           <div>
-                            <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>{b.titulo || '(sem título)'}</div>
-                            {b.subtitulo && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{b.subtitulo}</div>}
+                            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{b.titulo || '(sem título)'}</div>
+                            {b.subtitulo && <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 2 }}>{b.subtitulo}</div>}
                             <div style={{ marginTop: 6 }}>
-                              <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: b.ativo ? '#dcfce7' : '#f3f4f6', color: b.ativo ? '#15803d' : '#6b7280' }}>
+                              <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: b.ativo ? '#dcfce7' : 'var(--surface-hover)', color: b.ativo ? '#15803d' : 'var(--text-muted, #6b7280)' }}>
                                 {b.ativo ? 'Ativo' : 'Inativo'}
                               </span>
                             </div>
                           </div>
                           <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                             <button onClick={() => toggleBanner(b.id)}
-                              style={{ background: '#f9fafb', color: '#374151', border: '1px solid #e5e7eb', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', fontWeight: 600 }}>
+                              style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', fontWeight: 600 }}>
                               {b.ativo ? '⏸ Pausar' : '- Ativar'}
                             </button>
                             {isSuperadmin && (
@@ -2368,21 +2378,21 @@ export default function AdminPage() {
               </div>
 
               {/* Painel: Adicionar Banner */}
-              <div style={{ position: 'sticky', top: 24, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 18px', color: '#111827' }}>Novo Banner</h3>
+              <div style={{ position: 'sticky', top: 24, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 18px', color: 'var(--text)' }}>Novo Banner</h3>
                 <form onSubmit={adicionarBanner} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div>
                     <label style={labelStyle}>Imagem *</label>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <input value={novoBanner.imagem} onChange={e => setNovoBanner(b => ({ ...b, imagem: e.target.value }))}
                         placeholder="URL ou escolha um arquivo" style={{ ...inputStyle, flex: 1 }} />
-                      <label style={{ background: uploadando === 'nb' ? '#e5e7eb' : '#f9fafb', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <label style={{ background: uploadando === 'nb' ? 'var(--border)' : 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
                         {uploadando === 'nb' ? '...' : 'Enviar'}
                         <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadImagem('nb', f, url => setNovoBanner(b => ({ ...b, imagem: url }))); e.target.value = ''; }} />
                       </label>
                     </div>
                     {novoBanner.imagem && (
-                      <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', height: 80, background: '#f9fafb' }}>
+                      <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', height: 80, background: 'var(--surface-hover)' }}>
                         <img src={novoBanner.imagem} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                       </div>
                     )}
@@ -2395,11 +2405,11 @@ export default function AdminPage() {
                     <label style={labelStyle}>Subtítulo (opcional)</label>
                     <input value={novoBanner.subtitulo} onChange={e => setNovoBanner(b => ({ ...b, subtitulo: e.target.value }))} placeholder="Ex: Peptídeos para Prescrição Médica" style={inputStyle} />
                   </div>
-                  <button type="submit" style={{ background: '#111827', color: '#fff', fontWeight: 700, padding: '12px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
+                  <button type="submit" style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', fontWeight: 700, padding: '12px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
                     Adicionar ao Carrossel
                   </button>
                 </form>
-                <p style={{ color: '#6b7280', fontSize: 11, marginTop: 12, lineHeight: 1.6 }}>
+                <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 11, marginTop: 12, lineHeight: 1.6 }}>
                   Banners ativos aparecem no carrossel da loja em ordem de cadastro. Use o botão ⏸ para pausar sem excluir.
                 </p>
               </div>
@@ -2411,27 +2421,27 @@ export default function AdminPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
             {/* ---- Banners do Blog ---- */}
-            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
               <button type="button" onClick={() => { setMostrarBannersBlog(p => !p); if (!mostrarBannersBlog) carregarBannersBlog(); }}
-                style={{ width: '100%', padding: '15px 20px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, color: '#111827' }}>
-                <span>x-️ Banners do Blog <span style={{ color: '#6b7280', fontWeight: 400, fontSize: 12 }}>({bannersBlog.filter(b => b.ativo).length} ativos)</span></span>
-                <span style={{ color: '#6b7280' }}>{mostrarBannersBlog ? '-' : '-'}</span>
+                style={{ width: '100%', padding: '15px 20px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
+                <span>x-️ Banners do Blog <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400, fontSize: 12 }}>({bannersBlog.filter(b => b.ativo).length} ativos)</span></span>
+                <span style={{ color: 'var(--text-muted, #6b7280)' }}>{mostrarBannersBlog ? '-' : '-'}</span>
               </button>
               {mostrarBannersBlog && (
-                <div style={{ padding: '0 20px 20px', borderTop: '1px solid #f3f4f6' }}>
+                <div style={{ padding: '0 20px 20px', borderTop: '1px solid var(--border)' }}>
                   {/* Lista de banners */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 16 }}>
                     {bannersBlog.map(b => (
-                      <div key={b.id} style={{ display: 'flex', gap: 12, alignItems: 'center', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: '10px 14px', opacity: b.ativo ? 1 : 0.5 }}>
-                        <div style={{ width: 80, height: 44, background: '#e5e7eb', borderRadius: 6, overflow: 'hidden', flexShrink: 0 }}>
+                      <div key={b.id} style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', opacity: b.ativo ? 1 : 0.5 }}>
+                        <div style={{ width: 80, height: 44, background: 'var(--surface-hover)', borderRadius: 6, overflow: 'hidden', flexShrink: 0 }}>
                           <img src={b.imagem} alt={b.titulo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.titulo || '(sem título)'}</div>
-                          <div style={{ fontSize: 11, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.imagem}</div>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.titulo || '(sem título)'}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.imagem}</div>
                         </div>
                         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                          <button onClick={() => toggleBannerBlog(b.id)} style={{ background: b.ativo ? '#f0fdf4' : '#f3f4f6', color: b.ativo ? '#15803d' : '#6b7280', border: `1px solid ${b.ativo ? '#86efac' : '#e5e7eb'}`, padding: '5px 11px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, fontFamily: 'inherit' }}>
+                          <button onClick={() => toggleBannerBlog(b.id)} style={{ background: b.ativo ? '#f0fdf4' : 'var(--surface-hover)', color: b.ativo ? '#15803d' : 'var(--text-muted, #6b7280)', border: `1px solid ${b.ativo ? '#86efac' : 'var(--border)'}`, padding: '5px 11px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, fontFamily: 'inherit' }}>
                             {b.ativo ? 'Ativo' : 'Inativo'}
                           </button>
                           {isSuperadmin && (
@@ -2440,20 +2450,20 @@ export default function AdminPage() {
                         </div>
                       </div>
                     ))}
-                    {bannersBlog.length === 0 && <div style={{ color: '#6b7280', fontSize: 13, fontStyle: 'italic', paddingTop: 4 }}>Nenhum banner cadastrado.</div>}
+                    {bannersBlog.length === 0 && <div style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, fontStyle: 'italic', paddingTop: 4 }}>Nenhum banner cadastrado.</div>}
                   </div>
                   {/* Formulário novo banner */}
-                  <form onSubmit={adicionarBannerBlog} className="admin-grid-auto" style={{ display: 'grid', gap: 8, marginTop: 16, paddingTop: 16, borderTop: '1px solid #f3f4f6' }}>
+                  <form onSubmit={adicionarBannerBlog} className="admin-grid-auto" style={{ display: 'grid', gap: 8, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
                     <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8 }}>
                       <input value={novoBannerBlog.imagem} onChange={e => setNovoBannerBlog(b => ({ ...b, imagem: e.target.value }))} placeholder="URL da imagem *" required style={{ ...inputStyle, flex: 1, fontSize: 13 }} />
-                      <label style={{ background: uploadando === 'banner-blog' ? '#e5e7eb' : '#f9fafb', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
+                      <label style={{ background: uploadando === 'banner-blog' ? 'var(--border)' : 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
                         {uploadando === 'banner-blog' ? '...' : 'Enviar'}
                         <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadImagem('banner-blog', f, url => setNovoBannerBlog(b => ({ ...b, imagem: url }))); e.target.value = ''; }} />
                       </label>
                     </div>
                     <input value={novoBannerBlog.titulo} onChange={e => setNovoBannerBlog(b => ({ ...b, titulo: e.target.value }))} placeholder="Título (opcional)" style={{ ...inputStyle, fontSize: 13 }} />
                     <input value={novoBannerBlog.subtitulo} onChange={e => setNovoBannerBlog(b => ({ ...b, subtitulo: e.target.value }))} placeholder="Subtítulo (opcional)" style={{ ...inputStyle, fontSize: 13 }} />
-                    <button type="submit" style={{ gridColumn: '1 / -1', background: '#111827', color: '#fff', fontWeight: 700, padding: '10px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
+                    <button type="submit" style={{ gridColumn: '1 / -1', background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', fontWeight: 700, padding: '10px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
                       + Adicionar Banner
                     </button>
                   </form>
@@ -2465,21 +2475,21 @@ export default function AdminPage() {
             <div className="admin-split-380" style={{ display: 'grid', gap: 28, alignItems: 'start' }}>
               {/* Lista de artigos */}
               <div>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 20, marginTop: 0 }}>
-                  Blog & Materiais <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({artigos.filter(a => a.publicado).length}/{artigos.length} publicados)</span>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 20, marginTop: 0 }}>
+                  Blog & Materiais <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({artigos.filter(a => a.publicado).length}/{artigos.length} publicados)</span>
                 </h2>
                 {loadingArtigos ? (
-                  <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+                  <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
                 ) : artigos.length === 0 ? (
-                  <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                  <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
                     Nenhum artigo. Crie um ao lado.
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {artigos.map(a => (
-                      <div key={a.id} style={{ background: '#fff', border: `1px solid ${a.publicado ? '#e5e7eb' : '#f3f4f6'}`, borderRadius: 12, overflow: 'hidden', display: 'flex', gap: 0, opacity: a.publicado ? 1 : 0.7 }}>
+                      <div key={a.id} style={{ background: 'var(--surface)', border: `1px solid ${a.publicado ? 'var(--border)' : 'var(--border)'}`, borderRadius: 12, overflow: 'hidden', display: 'flex', gap: 0, opacity: a.publicado ? 1 : 0.7 }}>
                         {a.imagem ? (
-                          <div style={{ width: 100, flexShrink: 0, background: '#f9fafb', overflow: 'hidden' }}>
+                          <div style={{ width: 100, flexShrink: 0, background: 'var(--surface-hover)', overflow: 'hidden' }}>
                             <img src={a.imagem} alt={a.titulo} style={{ width: '100%', height: 80, objectFit: 'cover', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                           </div>
                         ) : (
@@ -2487,18 +2497,18 @@ export default function AdminPage() {
                         )}
                         <div style={{ flex: 1, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 4 }}>{a.titulo}</div>
+                            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)', marginBottom: 4 }}>{a.titulo}</div>
                             <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                              <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: a.publicado ? '#dcfce7' : '#f3f4f6', color: a.publicado ? '#15803d' : '#6b7280' }}>
+                              <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: a.publicado ? '#dcfce7' : 'var(--surface-hover)', color: a.publicado ? '#15803d' : 'var(--text-muted, #6b7280)' }}>
                                 {a.publicado ? 'Publicado' : 'Rascunho'}
                               </span>
                               {a.video && <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: '#fef2f2', color: '#dc2626' }}>- Vídeo</span>}
-                              {a.materiais.length > 0 && <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: '#f3f4f6', color: '#374151' }}>{a.materiais.length} mat.</span>}
+                              {a.materiais.length > 0 && <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)' }}>{a.materiais.length} mat.</span>}
                             </div>
                           </div>
                           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                             <button onClick={() => togglePublicar(a)}
-                              style={{ background: '#f9fafb', color: '#374151', border: '1px solid #e5e7eb', padding: '5px 11px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}>
+                              style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}>
                               {a.publicado ? '⏸' : '-'}
                             </button>
                             <button onClick={() => setEditandoArtigo({ ...a })}
@@ -2520,10 +2530,10 @@ export default function AdminPage() {
               </div>
 
               {/* Painel: Formulário Artigo */}
-              <div style={{ position: 'sticky', top: 24, background: '#fff', border: `1px solid ${editandoArtigo ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 12, padding: 24 }}>
+              <div style={{ position: 'sticky', top: 24, background: 'var(--surface)', border: `1px solid ${editandoArtigo ? '#bbf7d0' : 'var(--border)'}`, borderRadius: 12, padding: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-                  <h3 style={{ fontSize: 16, fontWeight: 800, color: '#111827', margin: 0 }}>{editandoArtigo ? 'Editar Artigo' : 'Novo Artigo'}</h3>
-                  {editandoArtigo && <button onClick={() => setEditandoArtigo(null)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 20 }}>-</button>}
+                  <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', margin: 0 }}>{editandoArtigo ? 'Editar Artigo' : 'Novo Artigo'}</h3>
+                  {editandoArtigo && <button onClick={() => setEditandoArtigo(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted, #6b7280)', cursor: 'pointer', fontSize: 20 }}>-</button>}
                 </div>
                 <form onSubmit={salvarArtigo} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   {/* Título */}
@@ -2534,15 +2544,15 @@ export default function AdminPage() {
                       required placeholder="Título do artigo" style={inputStyle} />
                   </div>
                   {/* Gerenciar categorias do blog */}
-                  <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' }}>
+                  <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
                     <button type="button" onClick={() => { setMostrarCatsBlog(p => !p); if (!mostrarCatsBlog) carregarCategoriasBlog(); }}
-                      style={{ width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: '#374151' }}>
+                      style={{ width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--text-secondary, #374151)' }}>
                       <span>Gerenciar Categorias do Blog</span>
-                      <span style={{ color: '#6b7280' }}>{mostrarCatsBlog ? '-' : '-'}</span>
+                      <span style={{ color: 'var(--text-muted, #6b7280)' }}>{mostrarCatsBlog ? '-' : '-'}</span>
                     </button>
                     {mostrarCatsBlog && (
-                      <div style={{ padding: '0 14px 14px', borderTop: '1px solid #f3f4f6' }}>
-                        {categoriasBlog.length === 0 && <div style={{ fontSize: 12, color: '#6b7280', fontStyle: 'italic', paddingTop: 10 }}>Nenhuma categoria criada ainda.</div>}
+                      <div style={{ padding: '0 14px 14px', borderTop: '1px solid var(--border)' }}>
+                        {categoriasBlog.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', fontStyle: 'italic', paddingTop: 10 }}>Nenhuma categoria criada ainda.</div>}
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, paddingTop: 10 }}>
                           {categoriasBlog.map(c => (
                             <span key={c} style={{ background: '#f0fdf4', border: '1px solid #86efac', color: '#15803d', padding: '3px 10px', borderRadius: 12, fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -2555,7 +2565,7 @@ export default function AdminPage() {
                         </div>
                         <form onSubmit={adicionarCategoriaBlog} style={{ display: 'flex', gap: 6, marginTop: 10 }}>
                           <input value={novaCategoriaBlog} onChange={e => setNovaCategoriaBlog(e.target.value)} placeholder="Nova categoria..." style={{ ...inputStyle, flex: 1, padding: '7px 10px', fontSize: 12 }} />
-                          <button type="submit" style={{ background: '#111827', color: '#fff', border: 'none', borderRadius: 7, padding: '7px 12px', cursor: 'pointer', fontWeight: 700, fontSize: 12, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>+ Add</button>
+                          <button type="submit" style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', borderRadius: 7, padding: '7px 12px', cursor: 'pointer', fontWeight: 700, fontSize: 12, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>+ Add</button>
                         </form>
                       </div>
                     )}
@@ -2577,7 +2587,7 @@ export default function AdminPage() {
                       <input value={editandoArtigo ? (editandoArtigo.imagem || '') : novoArtigo.imagem}
                         onChange={e => editandoArtigo ? setEditandoArtigo(a => a && ({ ...a, imagem: e.target.value })) : setNovoArtigo(a => ({ ...a, imagem: e.target.value }))}
                         placeholder="URL da imagem" style={{ ...inputStyle, flex: 1 }} />
-                      <label style={{ background: uploadando === 'artigo' ? '#e5e7eb' : '#f9fafb', border: '1px solid #d1d5db', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
+                      <label style={{ background: uploadando === 'artigo' ? 'var(--border)' : 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
                         {uploadando === 'artigo' ? '...' : 'Enviar'}
                         <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadImagem('artigo', f, url => editandoArtigo ? setEditandoArtigo(a => a && ({ ...a, imagem: url })) : setNovoArtigo(a => ({ ...a, imagem: url }))); e.target.value = ''; }} />
                       </label>
@@ -2592,17 +2602,17 @@ export default function AdminPage() {
                   </div>
                   {/* Vídeo */}
                   <div>
-                    <label style={labelStyle}>Vídeo YouTube <span style={{ color: '#6b7280', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
+                    <label style={labelStyle}>Vídeo YouTube <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(opcional)</span></label>
                     <input value={editandoArtigo ? (editandoArtigo.video || '') : novoArtigo.video}
                       onChange={e => editandoArtigo ? setEditandoArtigo(a => a && ({ ...a, video: e.target.value })) : setNovoArtigo(a => ({ ...a, video: e.target.value }))}
                       placeholder="https://youtube.com/watch?v=..." style={inputStyle} />
                   </div>
                   {/* Materiais */}
                   <div>
-                    <label style={labelStyle}>Materiais para Download <span style={{ color: '#6b7280', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(PDFs, links)</span></label>
+                    <label style={labelStyle}>Materiais para Download <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>(PDFs, links)</span></label>
                     {(editandoArtigo ? editandoArtigo.materiais : novoArtigo.materiais).map((m, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-                        <span style={{ flex: 1, fontSize: 12, color: '#374151', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 6, padding: '6px 10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.nome}</span>
+                        <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary, #374151)', background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.nome}</span>
                         <button type="button" onClick={() => {
                           if (editandoArtigo) setEditandoArtigo(a => a && ({ ...a, materiais: a.materiais.filter((_, j) => j !== i) }));
                           else setNovoArtigo(a => ({ ...a, materiais: a.materiais.filter((_, j) => j !== i) }));
@@ -2612,7 +2622,7 @@ export default function AdminPage() {
                     <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                       <input value={novoMaterial.nome} onChange={e => setNovoMaterial(m => ({ ...m, nome: e.target.value }))} placeholder="Nome do arquivo" style={{ ...inputStyle, flex: '1 1 120px', padding: '8px 10px', fontSize: 12 }} />
                       <input value={novoMaterial.url} onChange={e => setNovoMaterial(m => ({ ...m, url: e.target.value }))} placeholder="URL ou cole link" style={{ ...inputStyle, flex: '2 1 140px', padding: '8px 10px', fontSize: 12 }} />
-                      <label style={{ background: uploadando === 'material' ? '#e5e7eb' : '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: '#374151', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                      <label style={{ background: uploadando === 'material' ? 'var(--border)' : 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--text-secondary, #374151)', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, whiteSpace: 'nowrap' }}>
                         {uploadando === 'material' ? '...' : 'Enviar'}
                         <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,image/*" style={{ display: 'none' }} onChange={async e => {
                           const f = e.target.files?.[0]; if (!f) return;
@@ -2631,7 +2641,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                   {/* Publicado */}
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#374151' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, fontWeight: 600, color: 'var(--text-secondary, #374151)' }}>
                     <input type="checkbox"
                       checked={editandoArtigo ? editandoArtigo.publicado : novoArtigo.publicado}
                       onChange={e => editandoArtigo ? setEditandoArtigo(a => a && ({ ...a, publicado: e.target.checked })) : setNovoArtigo(a => ({ ...a, publicado: e.target.checked }))}
@@ -2639,11 +2649,11 @@ export default function AdminPage() {
                     Publicar (visível para membros)
                   </label>
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button type="submit" style={{ flex: 1, background: '#111827', color: '#fff', fontWeight: 700, padding: '11px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
+                    <button type="submit" style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', fontWeight: 700, padding: '11px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
                       {editandoArtigo ? 'Salvar Alterações' : 'Criar Artigo'}
                     </button>
                     {editandoArtigo && (
-                      <button type="button" onClick={() => setEditandoArtigo(null)} style={{ background: '#f9fafb', color: '#374151', fontWeight: 600, padding: '11px 14px', borderRadius: 8, border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
+                      <button type="button" onClick={() => setEditandoArtigo(null)} style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', fontWeight: 600, padding: '11px 14px', borderRadius: 8, border: '1px solid var(--border)', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
                         Cancelar
                       </button>
                     )}
@@ -2672,42 +2682,42 @@ export default function AdminPage() {
             <div className={isSuperadmin ? 'admin-split-340' : undefined} style={isSuperadmin ? { display: 'grid', gap: 28, alignItems: 'start' } : undefined}>
               {/* Lista */}
               <div>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 20, marginTop: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  Equipe <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({equipe.filter(m => m.ativo).length} ativos)</span>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 20, marginTop: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  Equipe <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({equipe.filter(m => m.ativo).length} ativos)</span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
                     <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
                     {equipe.filter(m => estaOnline(m.last_seen)).length} online agora
                   </span>
                 </h2>
                 {loadingEquipe ? (
-                  <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+                  <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
                 ) : equipe.length === 0 ? (
-                  <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                  <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
                     Nenhum membro. Adicione ao lado.
                   </div>
                 ) : (
-                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                     <div className="admin-table-scroll">
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
-                        <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                        <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
                           {(isSuperadmin ? ['Nome', 'Cargo', 'E-mail', 'Status', 'Online', 'Ações'] : ['Nome', 'Cargo', 'E-mail', 'Status', 'Online']).map(h => (
-                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {equipe.map((m, i) => (
-                          <tr key={m.id} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                            <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{m.nome}</td>
+                          <tr key={m.id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                            <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--text)' }}>{m.nome}</td>
                             <td style={{ padding: '11px 14px' }}>
-                              <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: m.cargo === 'superadmin' ? '#111827' : m.cargo === 'vendedor' ? '#f0fdf4' : '#f3f4f6', color: m.cargo === 'superadmin' ? '#fff' : m.cargo === 'vendedor' ? '#15803d' : '#374151' }}>
+                              <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: m.cargo === 'superadmin' ? 'var(--btn-primary-bg)' : m.cargo === 'vendedor' ? '#f0fdf4' : 'var(--surface-hover)', color: m.cargo === 'superadmin' ? 'var(--btn-primary-text)' : m.cargo === 'vendedor' ? '#15803d' : 'var(--text-secondary, #374151)' }}>
                                 {m.cargo}
                               </span>
                             </td>
-                            <td style={{ padding: '11px 14px', color: '#6b7280' }}>{m.email || '—'}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{m.email || '—'}</td>
                             <td style={{ padding: '11px 14px' }}>
-                              <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: m.ativo ? '#dcfce7' : '#f3f4f6', color: m.ativo ? '#15803d' : '#6b7280' }}>
+                              <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: m.ativo ? '#dcfce7' : 'var(--surface-hover)', color: m.ativo ? '#15803d' : 'var(--text-muted, #6b7280)' }}>
                                 {m.ativo ? 'Ativo' : 'Inativo'}
                               </span>
                             </td>
@@ -2718,8 +2728,8 @@ export default function AdminPage() {
                                   Online
                                 </span>
                               ) : (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#9ca3af' }}>
-                                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#d1d5db', display: 'inline-block' }} />
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text-soft, #9ca3af)' }}>
+                                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--border)', display: 'inline-block' }} />
                                   {m.last_seen ? `Visto ${new Date(m.last_seen).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : 'Nunca acessou'}
                                 </span>
                               )}
@@ -2741,17 +2751,17 @@ export default function AdminPage() {
                     </div>
                   </div>
                 )}
-                <div style={{ marginTop: 20, background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: 10, padding: '14px 18px', fontSize: 13, color: '#374151' }}>
+                <div style={{ marginTop: 20, background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 18px', fontSize: 13, color: 'var(--text-secondary, #374151)' }}>
                   Portal da equipe disponível em <strong>/equipe/login</strong> para vendedores e gerentes.
                 </div>
               </div>
 
               {/* Painel: Form Membro */}
               {isSuperadmin && (
-              <div style={{ position: 'sticky', top: 24, background: '#fff', border: `1px solid ${editandoMembro ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 12, padding: 24 }}>
+              <div style={{ position: 'sticky', top: 24, background: 'var(--surface)', border: `1px solid ${editandoMembro ? '#bbf7d0' : 'var(--border)'}`, borderRadius: 12, padding: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-                  <h3 style={{ fontSize: 16, fontWeight: 800, color: '#111827', margin: 0 }}>{editandoMembro ? 'Editar Membro' : 'Novo Membro'}</h3>
-                  {editandoMembro && <button onClick={() => setEditandoMembro(null)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 20 }}>-</button>}
+                  <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', margin: 0 }}>{editandoMembro ? 'Editar Membro' : 'Novo Membro'}</h3>
+                  {editandoMembro && <button onClick={() => setEditandoMembro(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted, #6b7280)', cursor: 'pointer', fontSize: 20 }}>-</button>}
                 </div>
                 <form onSubmit={salvarMembro} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div>
@@ -2784,13 +2794,13 @@ export default function AdminPage() {
                       onChange={e => editandoMembro ? setEditandoMembro(m => m && ({ ...m, senha: e.target.value })) : setNovoMembro(m => ({ ...m, senha: e.target.value }))}
                       placeholder={editandoMembro ? '(deixe em branco para manter)' : 'mínimo 6 caracteres'}
                       style={inputStyle} />
-                    <p style={{ color: '#6b7280', fontSize: 11, margin: '4px 0 0' }}>
+                    <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 11, margin: '4px 0 0' }}>
                       {(editandoMembro ? editandoMembro.cargo : novoMembro.cargo) === 'admin'
                         ? <>Usada no acesso em <strong>/admin</strong>, junto com o e-mail</>
                         : <>Usada no acesso em <strong>/equipe/login</strong></>}
                     </p>
                   </div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#374151' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, fontWeight: 600, color: 'var(--text-secondary, #374151)' }}>
                     <input type="checkbox"
                       checked={editandoMembro ? editandoMembro.ativo : novoMembro.ativo}
                       onChange={e => editandoMembro ? setEditandoMembro(m => m && ({ ...m, ativo: e.target.checked })) : setNovoMembro(m => ({ ...m, ativo: e.target.checked }))}
@@ -2801,7 +2811,7 @@ export default function AdminPage() {
                     <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '10px 12px', fontSize: 12 }}>
                       <div style={{ color: '#15803d', fontWeight: 700, marginBottom: 4 }}>Link do Portal</div>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        <code style={{ fontSize: 10, color: '#374151', wordBreak: 'break-all', flex: 1 }}>/equipe/{editandoMembro.token_acesso}</code>
+                        <code style={{ fontSize: 10, color: 'var(--text-secondary, #374151)', wordBreak: 'break-all', flex: 1 }}>/equipe/{editandoMembro.token_acesso}</code>
                         <button type="button" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/equipe/${editandoMembro!.token_acesso}`); showMsg('OK: Link copiado!'); }}
                           style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 700, whiteSpace: 'nowrap' }}>
                           Copiar
@@ -2810,11 +2820,11 @@ export default function AdminPage() {
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button type="submit" style={{ flex: 1, background: '#111827', color: '#fff', fontWeight: 700, padding: '11px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
+                    <button type="submit" style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', fontWeight: 700, padding: '11px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
                       {editandoMembro ? 'Salvar' : 'Adicionar'}
                     </button>
                     {editandoMembro && (
-                      <button type="button" onClick={() => setEditandoMembro(null)} style={{ background: '#f9fafb', color: '#374151', fontWeight: 600, padding: '11px 14px', borderRadius: 8, border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
+                      <button type="button" onClick={() => setEditandoMembro(null)} style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', fontWeight: 600, padding: '11px 14px', borderRadius: 8, border: '1px solid var(--border)', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
                         Cancelar
                       </button>
                     )}
@@ -2830,10 +2840,10 @@ export default function AdminPage() {
             const indicacoesPacientes = indicacoes.filter(i => i.tipo !== 'medico');
             return (
             <div>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>
-                Indicações <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({indicacoesPacientes.length})</span>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 6, marginTop: 0 }}>
+                Indicações <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({indicacoesPacientes.length})</span>
               </h2>
-              <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>
+              <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, marginBottom: 20 }}>
                 Pacientes cadastrados pelo link de indicação de um médico aprovado, com vínculo automático.
               </p>
 
@@ -2882,17 +2892,17 @@ export default function AdminPage() {
                 return (
                   <>
                     {ranking.length > 0 && (
-                      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Indicações por Médico</div>
+                      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Indicações por Médico</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                           {ranking.map(([medico, n]) => (
                             <div key={medico}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                                <span style={{ color: '#374151', fontWeight: 600 }}>{medico}</span>
-                                <span style={{ color: '#111827', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
+                                <span style={{ color: 'var(--text-secondary, #374151)', fontWeight: 600 }}>{medico}</span>
+                                <span style={{ color: 'var(--text)', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
                               </div>
-                              <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
-                                <div style={{ background: '#111827', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
+                              <div style={{ background: 'var(--surface-hover)', borderRadius: 4, height: 6 }}>
+                                <div style={{ background: 'var(--btn-primary-bg)', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
                               </div>
                             </div>
                           ))}
@@ -2900,19 +2910,19 @@ export default function AdminPage() {
                       </div>
                     )}
 
-                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24, marginBottom: 24 }}>
+                    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: comComissao.length > 0 ? 16 : 0 }}>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Comissões Pagas</div>
-                          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Lançada quando uma indicação chega em &quot;Pago&quot; e você informa o valor no botão + Comissão</div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Comissões Pagas</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-soft, #9ca3af)', marginTop: 2 }}>Lançada quando uma indicação chega em &quot;Pago&quot; e você informa o valor no botão + Comissão</div>
                         </div>
                         <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {totalComissoes.toFixed(2)}</div>
                       </div>
                       {comComissao.length > 0 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 16 }}>
                           {comComissao.map(i => (
-                            <div key={i.id} onClick={() => setEditandoIndicacao(i)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '8px 0', borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}>
-                              <span style={{ color: '#374151' }}>{i.medico_nome} <span style={{ color: '#9ca3af' }}>· indicou {i.nome} {i.sobrenome}</span></span>
+                            <div key={i.id} onClick={() => setEditandoIndicacao(i)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '8px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
+                              <span style={{ color: 'var(--text-secondary, #374151)' }}>{i.medico_nome} <span style={{ color: 'var(--text-soft, #9ca3af)' }}>· indicou {i.nome} {i.sobrenome}</span></span>
                               <span style={{ color: '#16a34a', fontWeight: 700 }}>R$ {(i.comissao_valor || 0).toFixed(2)}</span>
                             </div>
                           ))}
@@ -2921,9 +2931,9 @@ export default function AdminPage() {
                     </div>
 
                     {loadingIndicacoes ? (
-                      <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+                      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
                     ) : indicacoesFiltradas.length === 0 ? (
-                      <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                      <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
                         {indicacoesPacientes.length === 0
                           ? <>Nenhuma indicação ainda. O botão &quot;Copiar Link de Indicação&quot; aparece na aba Leads para médicos aprovados.</>
                           : <>Nenhuma indicação encontrada para essa busca.</>}
@@ -2937,14 +2947,14 @@ export default function AdminPage() {
                             <KanbanColuna key={etapa} titulo={PIPELINE_STATUS_LABEL[etapa]} cor={cor} total={itens.length}>
                               {itens.map(i => (
                                 <KanbanCard key={i.id} onClick={() => setEditandoIndicacao(i)}>
-                                  <div style={{ fontSize: 10.5, fontWeight: 700, color: '#111827', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
-                                  <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
+                                  <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
+                                  <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
                                   {i.whatsapp && (
                                     <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
                                   )}
                                   <div onClick={e => e.stopPropagation()}>
                                     <select value={etapa} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                                      style={{ width: '100%', marginTop: 7, border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                      style={{ width: '100%', marginTop: 7, border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
                                       <option value="em_atendimento">Em Atendimento</option>
                                       <option value="negociacao">Negociação</option>
                                       <option value="pago">Pago</option>
@@ -2961,29 +2971,29 @@ export default function AdminPage() {
                         })}
                       </KanbanBoard>
                     ) : (
-                      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                         <div className="admin-table-scroll">
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                           <thead>
-                            <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                            <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
                               {['Paciente', 'WhatsApp', 'E-mail', 'Endereço', 'Médico Indicador', 'Status', 'Data', 'Ações'].map(h => (
-                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
                             {indicacoesFiltradas.map((i, idx) => (
-                              <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                                <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{i.nome} {i.sobrenome}</td>
+                              <tr key={i.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                                <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--text)' }}>{i.nome} {i.sobrenome}</td>
                                 <td style={{ padding: '11px 14px' }}>
                                   {i.whatsapp && (
                                     <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
                                       style={{ color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>{i.whatsapp}</a>
                                   )}
                                 </td>
-                                <td style={{ padding: '11px 14px', color: '#6b7280' }}>{i.email || '—'}</td>
-                                <td style={{ padding: '11px 14px', color: '#6b7280', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.endereco}</td>
-                                <td style={{ padding: '11px 14px', color: '#111827', fontWeight: 700 }}>{i.medico_nome}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{i.email || '—'}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.endereco}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 700 }}>{i.medico_nome}</td>
                                 <td style={{ padding: '11px 14px' }}>
                                   <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
                                     style={{ background: (PIPELINE_STATUS_COLOR[i.status] || { bg: 'var(--surface)' }).bg, color: (PIPELINE_STATUS_COLOR[i.status] || { text: 'var(--text)' }).text, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
@@ -2996,7 +3006,7 @@ export default function AdminPage() {
                                     mostrar={i.status === 'pago'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
                                     input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
                                 </td>
-                                <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
                                   {new Date(i.created_at).toLocaleDateString('pt-BR')}
                                 </td>
                                 <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
@@ -3043,10 +3053,10 @@ export default function AdminPage() {
 
             return (
               <div>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>
-                  Indicações Médicas <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({indicacoesMedicas.length})</span>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 6, marginTop: 0 }}>
+                  Indicações Médicas <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({indicacoesMedicas.length})</span>
                 </h2>
-                <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>
+                <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, marginBottom: 20 }}>
                   Médicos indicados por outros médicos já aprovados, pelo card &quot;Indicar Médico&quot; na tela inicial.
                 </p>
 
@@ -3058,17 +3068,17 @@ export default function AdminPage() {
                 </div>
 
                 {ranking.length > 0 && (
-                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Indicações Médicas por Médico</div>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Indicações Médicas por Médico</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {ranking.map(([medico, n]) => (
                         <div key={medico}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                            <span style={{ color: '#374151', fontWeight: 600 }}>{medico}</span>
-                            <span style={{ color: '#374151', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
+                            <span style={{ color: 'var(--text-secondary, #374151)', fontWeight: 600 }}>{medico}</span>
+                            <span style={{ color: 'var(--text-secondary, #374151)', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
                           </div>
-                          <div style={{ background: '#f3f4f6', borderRadius: 4, height: 6 }}>
-                            <div style={{ background: '#374151', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
+                          <div style={{ background: 'var(--surface-hover)', borderRadius: 4, height: 6 }}>
+                            <div style={{ background: 'var(--btn-primary-bg)', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
                           </div>
                         </div>
                       ))}
@@ -3080,19 +3090,19 @@ export default function AdminPage() {
                   const comComissao = indicacoesMedicas.filter(i => i.comissao_paga);
                   const totalComissoes = comComissao.reduce((s, i) => s + (i.comissao_valor || 0), 0);
                   return (
-                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24, marginBottom: 24 }}>
+                    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: comComissao.length > 0 ? 16 : 0 }}>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Comissões Pagas</div>
-                          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Lançada quando uma indicação chega em &quot;Convertido&quot; e você informa o valor no botão + Comissão</div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Comissões Pagas</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-soft, #9ca3af)', marginTop: 2 }}>Lançada quando uma indicação chega em &quot;Convertido&quot; e você informa o valor no botão + Comissão</div>
                         </div>
                         <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {totalComissoes.toFixed(2)}</div>
                       </div>
                       {comComissao.length > 0 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 16 }}>
                           {comComissao.map(i => (
-                            <div key={i.id} onClick={() => setEditandoIndicacao(i)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '8px 0', borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}>
-                              <span style={{ color: '#374151' }}>{i.medico_nome} <span style={{ color: '#9ca3af' }}>· indicou {i.nome} {i.sobrenome}</span></span>
+                            <div key={i.id} onClick={() => setEditandoIndicacao(i)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '8px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
+                              <span style={{ color: 'var(--text-secondary, #374151)' }}>{i.medico_nome} <span style={{ color: 'var(--text-soft, #9ca3af)' }}>· indicou {i.nome} {i.sobrenome}</span></span>
                               <span style={{ color: '#16a34a', fontWeight: 700 }}>R$ {(i.comissao_valor || 0).toFixed(2)}</span>
                             </div>
                           ))}
@@ -3103,9 +3113,9 @@ export default function AdminPage() {
                 })()}
 
                 {loadingIndicacoes ? (
-                  <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+                  <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
                 ) : filtradas.length === 0 ? (
-                  <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                  <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
                     {indicacoesMedicas.length === 0
                       ? <>Nenhuma indicação médica ainda. O card &quot;Indicar Médico&quot; aparece na tela inicial para médicos aprovados.</>
                       : <>Nenhuma indicação encontrada para essa busca.</>}
@@ -3114,20 +3124,20 @@ export default function AdminPage() {
                   <KanbanBoard>
                     {(['novo', 'contatado', 'convertido', 'reprovado'] as const).map(etapa => {
                       const itens = filtradas.filter(i => i.status === etapa);
-                      const cor = INDICACAO_MEDICA_STATUS_COLOR[etapa]?.text || '#374151';
+                      const cor = INDICACAO_MEDICA_STATUS_COLOR[etapa]?.text || 'var(--text-secondary, #374151)';
                       return (
                         <KanbanColuna key={etapa} titulo={INDICACAO_MEDICA_STATUS_LABEL[etapa]} cor={cor} total={itens.length}>
                           {itens.map(i => (
                             <KanbanCard key={i.id} onClick={() => setEditandoIndicacao(i)}>
-                              <div style={{ fontSize: 10.5, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
-                              <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
-                              {i.crm && <div style={{ fontSize: 11, color: '#6b7280' }}>CRM {i.crm}</div>}
+                              <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-secondary, #374151)', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
+                              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
+                              {i.crm && <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>CRM {i.crm}</div>}
                               {i.whatsapp && (
                                 <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
                               )}
                               <div onClick={e => e.stopPropagation()}>
                                 <select value={etapa} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                                  style={{ width: '100%', marginTop: 7, border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                  style={{ width: '100%', marginTop: 7, border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
                                   <option value="novo">Novo</option>
                                   <option value="contatado">Contatado</option>
                                   <option value="convertido">Convertido</option>
@@ -3144,33 +3154,33 @@ export default function AdminPage() {
                     })}
                   </KanbanBoard>
                 ) : (
-                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                     <div className="admin-table-scroll">
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
-                        <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                        <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
                           {['Médico Indicador', 'Médico Indicado', 'CRM', 'WhatsApp', 'E-mail', 'Endereço', 'Status', 'Data', 'Ações'].map(h => (
-                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {filtradas.map((i, idx) => (
-                          <tr key={i.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                            <td style={{ padding: '11px 14px', color: '#374151', fontWeight: 700 }}>{i.medico_nome}</td>
-                            <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{i.nome} {i.sobrenome}</td>
-                            <td style={{ padding: '11px 14px', color: '#6b7280' }}>{i.crm || '—'}</td>
+                          <tr key={i.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', fontWeight: 700 }}>{i.medico_nome}</td>
+                            <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--text)' }}>{i.nome} {i.sobrenome}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{i.crm || '—'}</td>
                             <td style={{ padding: '11px 14px' }}>
                               {i.whatsapp && (
                                 <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
                                   style={{ color: '#25D366', textDecoration: 'none', fontWeight: 600 }}>{i.whatsapp}</a>
                               )}
                             </td>
-                            <td style={{ padding: '11px 14px', color: '#6b7280' }}>{i.email || '—'}</td>
-                            <td style={{ padding: '11px 14px', color: '#6b7280', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.endereco}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{i.email || '—'}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.endereco}</td>
                             <td style={{ padding: '11px 14px' }}>
                               <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                                style={{ background: (INDICACAO_MEDICA_STATUS_COLOR[i.status] || { bg: '#fff' }).bg, color: (INDICACAO_MEDICA_STATUS_COLOR[i.status] || { text: '#111827' }).text, border: '1px solid #d1d5db', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                style={{ background: (INDICACAO_MEDICA_STATUS_COLOR[i.status] || { bg: 'var(--surface)', text: 'var(--text)' }).bg, color: (INDICACAO_MEDICA_STATUS_COLOR[i.status] || { bg: 'var(--surface)', text: 'var(--text)' }).text, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
                                 <option value="novo">Novo</option>
                                 <option value="contatado">Contatado</option>
                                 <option value="convertido">Convertido</option>
@@ -3180,7 +3190,7 @@ export default function AdminPage() {
                                 mostrar={i.status === 'convertido'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
                                 input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
                             </td>
-                            <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
                               {new Date(i.created_at).toLocaleDateString('pt-BR')}
                             </td>
                             <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
@@ -3502,19 +3512,19 @@ export default function AdminPage() {
           {/* ======== ABA CONFIGURA!"ES ======== */}
           {aba === 'config' && (
             <div style={{ maxWidth: 700 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 24, marginTop: 0 }}>Configurações da Plataforma</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 24, marginTop: 0 }}>Configurações da Plataforma</h2>
               <form onSubmit={salvarConfig} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
                 {/* Identidade Visual */}
-                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 28 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#111827', marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid #f3f4f6' }}>Identidade Visual</div>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 28 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>Identidade Visual</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                     <div>
                       <label style={labelStyle}>Logotipo (URL ou upload)</label>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <input value={config.logo || ''} onChange={e => setConfig(c => ({ ...c, logo: e.target.value }))}
                           placeholder="https://... ou use o botão para subir" style={{ ...inputStyle, flex: 1 }} />
-                        <label style={{ background: '#f3f4f6', border: '1px solid #d1d5db', padding: '10px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 12, color: '#374151', fontWeight: 600, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
+                        <label style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', padding: '10px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 12, color: 'var(--text-secondary, #374151)', fontWeight: 600, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
                           Enviar
                           <input type="file" accept="image/*" style={{ display: 'none' }}
                             onChange={async e => {
@@ -3528,7 +3538,7 @@ export default function AdminPage() {
                         </label>
                       </div>
                       {config.logo && (
-                        <div style={{ marginTop: 10, padding: 12, background: '#f9fafb', borderRadius: 8, display: 'inline-block' }}>
+                        <div style={{ marginTop: 10, padding: 12, background: 'var(--surface-hover)', borderRadius: 8, display: 'inline-block' }}>
                           <img src={config.logo} alt="Logo" style={{ maxHeight: 60, maxWidth: 200, objectFit: 'contain' }} />
                         </div>
                       )}
@@ -3540,7 +3550,7 @@ export default function AdminPage() {
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                           <input type="color" value={config.corPrimaria || '#111827'}
                             onChange={e => setConfig(c => ({ ...c, corPrimaria: e.target.value }))}
-                            style={{ width: 44, height: 40, border: '1px solid #d1d5db', borderRadius: 6, cursor: 'pointer', padding: 2 }} />
+                            style={{ width: 44, height: 40, border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', padding: 2 }} />
                           <input value={config.corPrimaria || '#111827'}
                             onChange={e => setConfig(c => ({ ...c, corPrimaria: e.target.value }))}
                             placeholder="#111827" style={{ ...inputStyle, flex: 1, fontFamily: 'monospace' }} />
@@ -3554,7 +3564,7 @@ export default function AdminPage() {
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                           <input type="color" value={config.corAcento || '#16a34a'}
                             onChange={e => setConfig(c => ({ ...c, corAcento: e.target.value }))}
-                            style={{ width: 44, height: 40, border: '1px solid #d1d5db', borderRadius: 6, cursor: 'pointer', padding: 2 }} />
+                            style={{ width: 44, height: 40, border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', padding: 2 }} />
                           <input value={config.corAcento || '#16a34a'}
                             onChange={e => setConfig(c => ({ ...c, corAcento: e.target.value }))}
                             placeholder="#16a34a" style={{ ...inputStyle, flex: 1, fontFamily: 'monospace' }} />
@@ -3568,20 +3578,20 @@ export default function AdminPage() {
                 </div>
 
                 {/* Integrações */}
-                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 28 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#111827', marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid #f3f4f6' }}>Integracoes</div>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 28 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>Integracoes</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                     <div>
                       <label style={labelStyle}>Mercado Pago Access Token</label>
                       <input value={config.mercadopago_token} onChange={e => setConfig(c => ({ ...c, mercadopago_token: e.target.value }))}
                         placeholder="APP_USR-..." style={inputStyle} />
-                      <p style={{ color: '#6b7280', fontSize: 11, margin: '5px 0 0' }}>mercadopago.com.br &gt; Credenciais &gt; Access Token</p>
+                      <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 11, margin: '5px 0 0' }}>mercadopago.com.br &gt; Credenciais &gt; Access Token</p>
                     </div>
                     <div>
                       <label style={labelStyle}>Resend API Key</label>
                       <input value={config.resend_api_key} onChange={e => setConfig(c => ({ ...c, resend_api_key: e.target.value }))}
                         placeholder="re_..." style={inputStyle} />
-                      <p style={{ color: '#6b7280', fontSize: 11, margin: '5px 0 0' }}>resend.com &gt; API Keys</p>
+                      <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 11, margin: '5px 0 0' }}>resend.com &gt; API Keys</p>
                     </div>
                     <div className="admin-grid-auto" style={{ display: 'grid', gap: 16 }}>
                       <div>
@@ -3597,7 +3607,7 @@ export default function AdminPage() {
                           style={inputStyle} />
                       </div>
                     </div>
-                    <p style={{ color: '#6b7280', fontSize: 11, margin: '-8px 0 0' }}>Plano gratuito do Resend: 100/dia, 3.000/mês. Ajuste aqui se fizer upgrade.</p>
+                    <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 11, margin: '-8px 0 0' }}>Plano gratuito do Resend: 100/dia, 3.000/mês. Ajuste aqui se fizer upgrade.</p>
                     <div>
                       <label style={labelStyle}>WhatsApp Numero de Contato</label>
                       <input value={config.whatsapp_numero} onChange={e => setConfig(c => ({ ...c, whatsapp_numero: e.target.value }))}
@@ -3607,23 +3617,23 @@ export default function AdminPage() {
                       <label style={labelStyle}>xR URL Base do Site</label>
                       <input value={config.base_url} onChange={e => setConfig(c => ({ ...c, base_url: e.target.value }))}
                         placeholder="https://seusite.vercel.app" style={inputStyle} />
-                      <p style={{ color: '#6b7280', fontSize: 11, margin: '5px 0 0' }}>Usado nos links de aprovação enviados por e-mail</p>
+                      <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 11, margin: '5px 0 0' }}>Usado nos links de aprovação enviados por e-mail</p>
                     </div>
                   </div>
                 </div>
 
                 {loadingConfig ? (
-                  <div style={{ color: '#6b7280', fontSize: 13 }}>Carregando...</div>
+                  <div style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13 }}>Carregando...</div>
                 ) : (
-                  <button type="submit" style={{ background: '#111827', color: '#fff', fontWeight: 700, padding: '14px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 15, fontFamily: 'inherit' }}>
+                  <button type="submit" style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', fontWeight: 700, padding: '14px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 15, fontFamily: 'inherit' }}>
                     Salvar Configuracoes
                   </button>
                 )}
               </form>
 
-              <div style={{ marginTop: 20, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10 }}>Sobre as Configuracoes</div>
-                <ul style={{ color: '#6b7280', fontSize: 12, lineHeight: 1.8, margin: 0, paddingLeft: 16 }}>
+              <div style={{ marginTop: 20, background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary, #374151)', marginBottom: 10 }}>Sobre as Configuracoes</div>
+                <ul style={{ color: 'var(--text-muted, #6b7280)', fontSize: 12, lineHeight: 1.8, margin: 0, paddingLeft: 16 }}>
                   <li>Configurações ficam na memória enquanto o servidor estiver rodando</li>
                   <li>Para configuração permanente, adicione ao arquivo <code style={{ color: '#16a34a' }}>.env.local</code></li>
                   <li>Mercado Pago: sem token, pagamento vai pelo WhatsApp</li>
@@ -3636,38 +3646,38 @@ export default function AdminPage() {
           {/* ======== ABA LOG (so superadmin) ======== */}
           {aba === 'logs' && isSuperadmin && (
             <div>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>
-                Log de Atividade <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({logs.length})</span>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 6, marginTop: 0 }}>
+                Log de Atividade <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({logs.length})</span>
               </h2>
-              <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>
+              <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, marginBottom: 20 }}>
                 Tudo que os usuários admin alteram no sistema. Visível apenas para o superadmin.
               </p>
               {loadingLogs ? (
-                <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
               ) : logs.length === 0 ? (
-                <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
                   Nenhuma atividade registrada ainda.
                 </div>
               ) : (
-                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                   <div className="admin-table-scroll">
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
-                      <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
                         {['Quando', 'Quem', 'Ação', 'Detalhe'].map(h => (
-                          <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                          <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {logs.map((l, idx) => (
-                        <tr key={l.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                          <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                        <tr key={l.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                          <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
                             {new Date(l.created_at).toLocaleString('pt-BR')}
                           </td>
-                          <td style={{ padding: '11px 14px', fontWeight: 700, color: '#374151' }}>{l.ator}</td>
-                          <td style={{ padding: '11px 14px', color: '#111827' }}>{l.acao}</td>
-                          <td style={{ padding: '11px 14px', color: '#6b7280' }}>{l.detalhe || '—'}</td>
+                          <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--text-secondary, #374151)' }}>{l.ator}</td>
+                          <td style={{ padding: '11px 14px', color: 'var(--text)' }}>{l.acao}</td>
+                          <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{l.detalhe || '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -3685,35 +3695,35 @@ export default function AdminPage() {
             const medicosUnicos = porMedico.size;
             return (
               <div>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 20, marginTop: 0 }}>
-                  Mentoria <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({mentoriaCliques.length})</span>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 20, marginTop: 0 }}>
+                  Mentoria <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({mentoriaCliques.length})</span>
                 </h2>
 
                 <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 24 }}>
                   <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: '#111827' }}>{mentoriaCliques.length}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Cliques totais</div>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--text)' }}>{mentoriaCliques.length}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Cliques totais</div>
                   </div>
                   <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: '#111827' }}>{medicosUnicos}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Médicos</div>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--text)' }}>{medicosUnicos}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Médicos</div>
                   </div>
                 </div>
 
                 {loadingMentoria ? (
-                  <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+                  <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
                 ) : mentoriaCliques.length === 0 ? (
-                  <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                  <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
                     Ninguém clicou no card Mentoria ainda.
                   </div>
                 ) : (
-                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                     <div className="admin-table-scroll">
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
-                        <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                        <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
                           {['Médico', 'WhatsApp', 'E-mail', 'Quando', 'Ações'].map(h => (
-                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
@@ -3721,11 +3731,11 @@ export default function AdminPage() {
                         {mentoriaCliques.map((c, idx) => {
                           const medico = cadastros.find(cad => cad.id === c.medico_id);
                           return (
-                          <tr key={c.id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                            <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{c.medico_nome}</td>
-                            <td style={{ padding: '11px 14px', color: '#374151' }}>{medico?.whatsapp || '—'}</td>
-                            <td style={{ padding: '11px 14px', color: '#374151' }}>{medico?.email || '—'}</td>
-                            <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                          <tr key={c.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                            <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--text)' }}>{c.medico_nome}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)' }}>{medico?.whatsapp || '—'}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)' }}>{medico?.email || '—'}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
                               {new Date(c.created_at).toLocaleString('pt-BR')}
                             </td>
                             <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
@@ -3764,39 +3774,39 @@ export default function AdminPage() {
 
             return (
               <div>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 20, marginTop: 0 }}>
-                  Monitoramento de Carrinho <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 400 }}>({lista.length})</span>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 20, marginTop: 0 }}>
+                  Monitoramento de Carrinho <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({lista.length})</span>
                 </h2>
 
                 <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 24 }}>
                   <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: '#111827' }}>{carrinhoEventos.length}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Adições ao carrinho</div>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--text)' }}>{carrinhoEventos.length}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Adições ao carrinho</div>
                   </div>
                   <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: '#111827' }}>{lista.length}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Médicos que adicionaram</div>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--text)' }}>{lista.length}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Médicos que adicionaram</div>
                   </div>
                   <div style={{ background: '#3741510d', border: '1px solid #37415133', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #374151' }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: '#374151' }}>{semPedido.length}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, fontWeight: 600 }}>Carrinho sem pedido enviado</div>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--text-secondary, #374151)' }}>{semPedido.length}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Carrinho sem pedido enviado</div>
                   </div>
                 </div>
 
                 {loadingCarrinho ? (
-                  <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Carregando...</div>
+                  <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
                 ) : lista.length === 0 ? (
-                  <div style={{ padding: 60, textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                  <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
                     Ninguém adicionou produtos ao carrinho ainda.
                   </div>
                 ) : (
-                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                     <div className="admin-table-scroll">
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
-                        <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                        <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
                           {['Médico', 'Produtos no carrinho', 'Última atividade', 'Status', 'Ações'].map(h => (
-                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
@@ -3805,18 +3815,18 @@ export default function AdminPage() {
                           const comprou = pedidosPorNome.has(normalizar(m.medico_nome));
                           const cadastro = cadastros.find(c => c.id === m.medico_id);
                           return (
-                            <tr key={m.medico_id} style={{ borderBottom: '1px solid #f3f4f6', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                              <td style={{ padding: '11px 14px', fontWeight: 700, color: '#111827' }}>{m.medico_nome}</td>
-                              <td style={{ padding: '11px 14px', color: '#374151', maxWidth: 260, fontSize: 12 }}>
+                            <tr key={m.medico_id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                              <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--text)' }}>{m.medico_nome}</td>
+                              <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', maxWidth: 260, fontSize: 12 }}>
                                 {[...m.produtos.entries()].map(([nome, qtd]) => `${nome}${qtd > 1 ? ` x${qtd}` : ''}`).join(', ')}
                               </td>
-                              <td style={{ padding: '11px 14px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                              <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
                                 {new Date(m.ultima).toLocaleString('pt-BR')}
                               </td>
                               <td style={{ padding: '11px 14px' }}>
                                 <span style={{
-                                  background: comprou ? '#f0fdf4' : '#f9fafb', color: comprou ? '#15803d' : '#374151',
-                                  border: `1px solid ${comprou ? '#86efac' : '#d1d5db'}`, padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                                  background: comprou ? '#f0fdf4' : 'var(--surface-hover)', color: comprou ? '#15803d' : 'var(--text-secondary, #374151)',
+                                  border: `1px solid ${comprou ? '#86efac' : 'var(--border)'}`, padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
                                 }}>
                                   {comprou ? 'Comprou' : 'Não enviou pedido'}
                                 </span>
@@ -3862,8 +3872,8 @@ export default function AdminPage() {
 
             return (
               <div style={{ maxWidth: 720 }}>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, marginTop: 0 }}>Link de Rastreio</h2>
-                <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 6, marginTop: 0 }}>Link de Rastreio</h2>
+                <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, marginBottom: 20 }}>
                   Encontre o médico ou paciente, cole o link de rastreio do pedido e envie pelo WhatsApp.
                 </p>
 
@@ -3874,25 +3884,25 @@ export default function AdminPage() {
                       style={{ ...inputStyle, marginBottom: 16 }} />
 
                     {q.length < 2 ? (
-                      <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 13, background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-soft, #9ca3af)', fontSize: 13, background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
                         Digite ao menos 2 letras do nome para buscar.
                       </div>
                     ) : resultados.length === 0 ? (
-                      <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 13, background: '#f9fafb', borderRadius: 12, border: '1px dashed #d1d5db' }}>
+                      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-soft, #9ca3af)', fontSize: 13, background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
                         Nenhum médico ou paciente encontrado para &quot;{buscaRastreio}&quot;.
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {resultados.map(r => (
                           <button key={`${r.tipo}-${r.id}`} onClick={() => { setRastreioSelecionado(r); setLinkRastreio(''); }}
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 16px', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
                             <div>
-                              <div style={{ fontWeight: 700, color: '#111827', fontSize: 14 }}>{r.nome}</div>
-                              <div style={{ color: '#6b7280', fontSize: 12 }}>{r.whatsapp || 'sem WhatsApp cadastrado'}</div>
+                              <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: 14 }}>{r.nome}</div>
+                              <div style={{ color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>{r.whatsapp || 'sem WhatsApp cadastrado'}</div>
                             </div>
                             <span style={{
                               padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                              background: r.tipo === 'medico' ? '#f3f4f6' : '#f0fdf4', color: r.tipo === 'medico' ? '#374151' : '#15803d',
+                              background: r.tipo === 'medico' ? 'var(--surface-hover)' : '#f0fdf4', color: r.tipo === 'medico' ? 'var(--text-secondary, #374151)' : '#15803d',
                             }}>
                               {r.tipo === 'medico' ? 'Médico' : 'Paciente'}
                             </span>
@@ -3903,13 +3913,13 @@ export default function AdminPage() {
                   </>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px' }}>
                       <div>
-                        <div style={{ fontWeight: 700, color: '#111827', fontSize: 14 }}>{rastreioSelecionado.nome}</div>
-                        <div style={{ color: '#6b7280', fontSize: 12 }}>{rastreioSelecionado.whatsapp || 'sem WhatsApp cadastrado'} · {rastreioSelecionado.tipo === 'medico' ? 'Médico' : 'Paciente'}</div>
+                        <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: 14 }}>{rastreioSelecionado.nome}</div>
+                        <div style={{ color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>{rastreioSelecionado.whatsapp || 'sem WhatsApp cadastrado'} · {rastreioSelecionado.tipo === 'medico' ? 'Médico' : 'Paciente'}</div>
                       </div>
                       <button onClick={() => { setRastreioSelecionado(null); setBuscaRastreio(''); setLinkRastreio(''); }}
-                        style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>
+                        style={{ background: 'var(--surface)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>
                         Trocar
                       </button>
                     </div>
@@ -3949,7 +3959,7 @@ export default function AdminPage() {
                       <button onClick={() => baixarArteRastreio(rastreioSelecionado.nome.toLowerCase().replace(/\s+/g, '-'), rastreioSelecionado.nome, linkRastreio)}
                         disabled={!linkRastreio.trim() || baixandoArteRastreio}
                         style={{
-                          background: linkRastreio.trim() ? '#16a34a' : '#e5e7eb', color: linkRastreio.trim() ? '#fff' : '#9ca3af',
+                          background: linkRastreio.trim() ? '#16a34a' : 'var(--border)', color: linkRastreio.trim() ? '#fff' : 'var(--text-soft, #9ca3af)',
                           border: 'none', padding: '11px 22px', borderRadius: 8, cursor: linkRastreio.trim() && !baixandoArteRastreio ? 'pointer' : 'not-allowed',
                           fontSize: 13, fontWeight: 700, fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 8,
                         }}>
@@ -3957,21 +3967,21 @@ export default function AdminPage() {
                       </button>
                       <button onClick={() => { navigator.clipboard.writeText(mensagem); showMsg('OK: Mensagem copiada!'); }}
                         disabled={!linkRastreio.trim()}
-                        style={{ background: '#fff', color: '#374151', border: '1px solid #d1d5db', padding: '11px 18px', borderRadius: 8, cursor: linkRastreio.trim() ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', opacity: linkRastreio.trim() ? 1 : 0.5 }}>
+                        style={{ background: 'var(--surface)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '11px 18px', borderRadius: 8, cursor: linkRastreio.trim() ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', opacity: linkRastreio.trim() ? 1 : 0.5 }}>
                         Copiar mensagem
                       </button>
                       <a href={linkRastreio.trim() && numeroWhats ? `https://wa.me/${numeroWhats}?text=${encodeURIComponent(mensagem)}` : undefined}
                         target="_blank" rel="noreferrer"
                         onClick={e => { if (!linkRastreio.trim() || !numeroWhats) e.preventDefault(); }}
                         style={{
-                          background: '#fff', color: linkRastreio.trim() && numeroWhats ? '#16a34a' : '#9ca3af',
-                          border: `1px solid ${linkRastreio.trim() && numeroWhats ? '#86efac' : '#e5e7eb'}`, padding: '11px 18px', borderRadius: 8, cursor: linkRastreio.trim() && numeroWhats ? 'pointer' : 'not-allowed',
+                          background: 'var(--surface)', color: linkRastreio.trim() && numeroWhats ? '#16a34a' : 'var(--text-soft, #9ca3af)',
+                          border: `1px solid ${linkRastreio.trim() && numeroWhats ? '#86efac' : 'var(--border)'}`, padding: '11px 18px', borderRadius: 8, cursor: linkRastreio.trim() && numeroWhats ? 'pointer' : 'not-allowed',
                           fontSize: 13, fontWeight: 700, fontFamily: 'inherit', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8,
                         }}>
                         Abrir WhatsApp →
                       </a>
                     </div>
-                    <div style={{ color: '#9ca3af', fontSize: 11, marginTop: -6 }}>
+                    <div style={{ color: 'var(--text-soft, #9ca3af)', fontSize: 11, marginTop: -6 }}>
                       O WhatsApp não deixa anexar imagem automaticamente por link: baixe a imagem primeiro e anexe ela na conversa.
                     </div>
                     {!numeroWhats && (
@@ -4670,12 +4680,12 @@ export default function AdminPage() {
                             background: l.status === 'esgotado' ? '#fef2f2' : '#fffbeb', border: `1px solid ${l.status === 'esgotado' ? '#fecaca' : '#fde68a'}`,
                           }}>
                             <div>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{l.produto.nome}</div>
-                              <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>{l.produto.dose}</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{l.produto.nome}</div>
+                              <div style={{ fontSize: 11, color: '#6b7280' }}>{l.produto.dose}</div>
                             </div>
                             <div style={{ textAlign: 'right' }}>
                               <div style={{ fontSize: 13, fontWeight: 800, color: l.status === 'esgotado' ? '#dc2626' : '#b45309' }}>{l.atual}</div>
-                              <div style={{ fontSize: 10, color: 'var(--text-soft, #9ca3af)' }}>mín: {l.produto.estoque_minimo ?? 0}</div>
+                              <div style={{ fontSize: 10, color: '#9ca3af' }}>mín: {l.produto.estoque_minimo ?? 0}</div>
                             </div>
                           </div>
                         ))}
