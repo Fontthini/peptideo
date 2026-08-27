@@ -200,20 +200,18 @@ function ComissaoWidget({ id, comissaoValor, comissaoPaga, mostrar, totalBase, p
 
 function EstoqueRow({ produto, vendido, onSalvar }: {
   produto: Produto; vendido: number;
-  onSalvar: (id: string, dados: { estoque_inicial: number; estoque_minimo: number; custo: number }) => Promise<void>;
+  onSalvar: (id: string, dados: { estoque_inicial: number; custo: number }) => Promise<void>;
 }) {
   const [inicial, setInicial] = useState(String(produto.estoque_inicial ?? 0));
-  const [minimo, setMinimo] = useState(String(produto.estoque_minimo ?? 0));
   const [custo, setCusto] = useState(String(produto.custo ?? 0));
   const [salvando, setSalvando] = useState(false);
 
   const inicialNum = parseFloat(inicial) || 0;
-  const minimoNum = parseFloat(minimo) || 0;
   const custoNum = parseFloat(custo) || 0;
   const atual = inicialNum - vendido;
-  const valorAtivo = Math.max(atual, 0) * custoNum;
-  const status = atual <= 0 ? 'esgotado' : atual <= minimoNum ? 'baixo' : 'ok';
-  const dirty = inicialNum !== (produto.estoque_inicial ?? 0) || minimoNum !== (produto.estoque_minimo ?? 0) || custoNum !== (produto.custo ?? 0);
+  const valorEstoque = Math.max(atual, 0) * custoNum;
+  const status = atual <= 0 ? 'esgotado' : 'ok';
+  const dirty = inicialNum !== (produto.estoque_inicial ?? 0) || custoNum !== (produto.custo ?? 0);
 
   const numInputStyle: React.CSSProperties = { width: 80, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12.5, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' };
 
@@ -226,23 +224,21 @@ function EstoqueRow({ produto, vendido, onSalvar }: {
         <input type="number" min="0" step="1" value={inicial} onChange={e => setInicial(e.target.value)} style={numInputStyle} />
       </td>
       <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)' }}>{vendido}</td>
-      <td style={{ padding: '10px 14px', fontWeight: 700, color: status === 'esgotado' ? '#dc2626' : status === 'baixo' ? '#b45309' : '#16a34a', fontVariantNumeric: 'tabular-nums' }}>{atual}</td>
-      <td style={{ padding: '10px 14px' }}>
-        <input type="number" min="0" step="1" value={minimo} onChange={e => setMinimo(e.target.value)} style={numInputStyle} />
-      </td>
+      <td style={{ padding: '10px 14px', fontWeight: 700, color: status === 'esgotado' ? '#dc2626' : '#16a34a', fontVariantNumeric: 'tabular-nums' }}>{atual}</td>
       <td style={{ padding: '10px 14px' }}>
         <input type="number" min="0" step="0.01" value={custo} onChange={e => setCusto(e.target.value)} style={numInputStyle} />
       </td>
-      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>R$ {valorAtivo.toFixed(2)}</td>
+      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>R$ {produto.preco.toFixed(2)}</td>
+      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>R$ {valorEstoque.toFixed(2)}</td>
       <td style={{ padding: '10px 14px' }}>
-        <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: status === 'esgotado' ? '#fef2f2' : status === 'baixo' ? '#fffbeb' : '#f0fdf4', color: status === 'esgotado' ? '#dc2626' : status === 'baixo' ? '#b45309' : '#16a34a' }}>
-          {status === 'esgotado' ? 'Esgotado' : status === 'baixo' ? 'Estoque Baixo' : 'OK'}
+        <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: status === 'esgotado' ? '#fef2f2' : '#f0fdf4', color: status === 'esgotado' ? '#dc2626' : '#16a34a' }}>
+          {status === 'esgotado' ? 'Esgotado' : 'OK'}
         </span>
       </td>
       <td style={{ padding: '10px 14px' }}>
         <button disabled={!dirty || salvando} onClick={async () => {
           setSalvando(true);
-          await onSalvar(produto.id, { estoque_inicial: inicialNum, estoque_minimo: minimoNum, custo: custoNum });
+          await onSalvar(produto.id, { estoque_inicial: inicialNum, custo: custoNum });
           setSalvando(false);
         }} style={{ background: dirty ? 'var(--btn-primary-bg)' : 'var(--surface-hover)', color: dirty ? 'var(--btn-primary-text)' : 'var(--text-soft, #9ca3af)', border: 'none', padding: '6px 12px', borderRadius: 6, cursor: dirty ? 'pointer' : 'default', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>
           {salvando ? '...' : 'Salvar'}
@@ -583,7 +579,7 @@ export default function AdminPage() {
     } finally { setLoadingProd(false); }
   };
 
-  const salvarEstoqueProduto = async (id: string, dados: { estoque_inicial: number; estoque_minimo: number; custo: number }) => {
+  const salvarEstoqueProduto = async (id: string, dados: { estoque_inicial: number; custo: number }) => {
     const r = await fetch('/api/admin/produtos', {
       method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
       body: JSON.stringify({ id, ...dados }),
@@ -4583,16 +4579,15 @@ export default function AdminPage() {
             const linhas = produtos.map(p => {
               const vendido = vendidoPorNome.get(p.nome) || 0;
               const atual = (p.estoque_inicial ?? 0) - vendido;
-              const status: 'esgotado' | 'baixo' | 'ok' = atual <= 0 ? 'esgotado' : atual <= (p.estoque_minimo ?? 0) ? 'baixo' : 'ok';
-              return { produto: p, vendido, atual, valorAtivo: Math.max(atual, 0) * (p.custo ?? 0), status };
+              const status: 'esgotado' | 'ok' = atual <= 0 ? 'esgotado' : 'ok';
+              return { produto: p, vendido, atual, valorEstoque: Math.max(atual, 0) * (p.custo ?? 0), status };
             });
 
             const totalSkus = produtos.length;
             const pecasEmEstoque = linhas.reduce((s, l) => s + Math.max(l.atual, 0), 0);
-            const valorAtivoTotal = linhas.reduce((s, l) => s + l.valorAtivo, 0);
-            const estoqueBaixoCount = linhas.filter(l => l.status === 'baixo').length;
+            const valorEstoqueTotal = linhas.reduce((s, l) => s + l.valorEstoque, 0);
             const esgotadoCount = linhas.filter(l => l.status === 'esgotado').length;
-            const alertas = linhas.filter(l => l.status !== 'ok').sort((a, b) => a.atual - b.atual);
+            const alertas = linhas.filter(l => l.status === 'esgotado').sort((a, b) => a.atual - b.atual);
 
             // Janela de 30 dias — faturamento, custo do vendido e historico diario
             const hoje = new Date();
@@ -4638,8 +4633,8 @@ export default function AdminPage() {
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Peças em Estoque</div>
                   </div>
                   <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {valorAtivoTotal.toFixed(2)}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Valor Ativo (Custo)</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {valorEstoqueTotal.toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Valor de Estoque</div>
                   </div>
                   <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
                     <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {faturamento30d.toFixed(2)}</div>
@@ -4652,10 +4647,6 @@ export default function AdminPage() {
                   <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid var(--text-soft, #9ca3af)' }}>
                     <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{margemMedia30d.toFixed(1)}%</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Margem Média (30D)</div>
-                  </div>
-                  <div style={{ background: estoqueBaixoCount > 0 ? '#d977060d' : 'var(--surface-hover)', border: `1px solid ${estoqueBaixoCount > 0 ? '#d9770633' : 'var(--border)'}`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${estoqueBaixoCount > 0 ? '#d97706' : 'var(--text-soft, #9ca3af)'}` }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: estoqueBaixoCount > 0 ? '#d97706' : 'var(--text)' }}>{estoqueBaixoCount}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Estoque Baixo</div>
                   </div>
                   <div style={{ background: esgotadoCount > 0 ? '#dc26260d' : 'var(--surface-hover)', border: `1px solid ${esgotadoCount > 0 ? '#dc262633' : 'var(--border)'}`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${esgotadoCount > 0 ? '#dc2626' : 'var(--text-soft, #9ca3af)'}` }}>
                     <div style={{ fontSize: 26, fontWeight: 800, color: esgotadoCount > 0 ? '#dc2626' : 'var(--text)' }}>{esgotadoCount}</div>
@@ -4677,15 +4668,15 @@ export default function AdminPage() {
                         {alertas.map(l => (
                           <div key={l.produto.id} style={{
                             display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 8,
-                            background: l.status === 'esgotado' ? '#fef2f2' : '#fffbeb', border: `1px solid ${l.status === 'esgotado' ? '#fecaca' : '#fde68a'}`,
+                            background: '#fef2f2', border: '1px solid #fecaca',
                           }}>
                             <div>
                               <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{l.produto.nome}</div>
                               <div style={{ fontSize: 11, color: '#6b7280' }}>{l.produto.dose}</div>
                             </div>
                             <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: 13, fontWeight: 800, color: l.status === 'esgotado' ? '#dc2626' : '#b45309' }}>{l.atual}</div>
-                              <div style={{ fontSize: 10, color: '#9ca3af' }}>mín: {l.produto.estoque_minimo ?? 0}</div>
+                              <div style={{ fontSize: 13, fontWeight: 800, color: '#dc2626' }}>{l.atual}</div>
+                              <div style={{ fontSize: 10, color: '#9ca3af' }}>esgotado</div>
                             </div>
                           </div>
                         ))}
@@ -4700,7 +4691,7 @@ export default function AdminPage() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
-                          {['Produto', 'Estoque Inicial', 'Vendido (histórico)', 'Estoque Atual', 'Mínimo', 'Custo Unit.', 'Valor Ativo', 'Status', ''].map(h => (
+                          {['Produto', 'Estoque Inicial', 'Vendido (histórico)', 'Estoque Atual', 'Custo Unit.', 'Valor de Venda', 'Valor de Estoque', 'Status', ''].map(h => (
                             <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                           ))}
                         </tr>

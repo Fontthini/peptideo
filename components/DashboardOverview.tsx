@@ -119,10 +119,9 @@ export function DashboardOverview({
   const estoqueLinhas = produtos.map(p => {
     const vendido = vendidoPorNome.get(p.nome) || 0;
     const atual = (p.estoque_inicial ?? 0) - vendido;
-    const status: 'esgotado' | 'baixo' | 'ok' = atual <= 0 ? 'esgotado' : atual <= (p.estoque_minimo ?? 0) ? 'baixo' : 'ok';
-    return { atual, valorAtivo: Math.max(atual, 0) * (p.custo ?? 0), status };
+    const status: 'esgotado' | 'ok' = atual <= 0 ? 'esgotado' : 'ok';
+    return { atual, valorEstoque: Math.max(atual, 0) * (p.custo ?? 0), status };
   });
-  const estoqueBaixoCount = estoqueLinhas.filter(l => l.status === 'baixo').length;
   const estoqueEsgotadoCount = estoqueLinhas.filter(l => l.status === 'esgotado').length;
 
   const porMedico = new Map<string, { nome: string; total: number }>();
@@ -220,9 +219,9 @@ export function DashboardOverview({
           <KpiCard size={22} label="Saldo Financeiro" value={`R$ ${saldo.toFixed(2)}`} color={saldo >= 0 ? undefined : '#dc2626'} />
           <KpiCard size={22} label="Comissões Pagas" value={`R$ ${totalComissoesPagas.toFixed(2)}`} />
           <KpiCard size={22} label="Comissões Pendentes" value={comissoesPendentes} />
-          <KpiCard size={22} label="Alertas de Estoque" value={estoqueEsgotadoCount + estoqueBaixoCount}
-            color={(estoqueBaixoCount + estoqueEsgotadoCount) > 0 ? '#dc2626' : undefined}
-            sub={`${estoqueEsgotadoCount} esgotado · ${estoqueBaixoCount} baixo`} />
+          <KpiCard size={22} label="Alertas de Estoque" value={estoqueEsgotadoCount}
+            color={estoqueEsgotadoCount > 0 ? '#dc2626' : undefined}
+            sub={`${estoqueEsgotadoCount} esgotado`} />
         </div>
 
         <div className="admin-grid-auto" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
