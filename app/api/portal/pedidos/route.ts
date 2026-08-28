@@ -99,11 +99,11 @@ export async function PATCH(req: NextRequest) {
   const membro = mem_buscarMembroPorToken(token);
   if (!membro) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
-  const { id, status, obs } = await req.json();
+  const { id, status, obs, preco } = await req.json();
   if (!id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
 
   const statusAnterior = mem_listarPedidos().find(p => p.id === id)?.status;
-  const pedido = mem_atualizarPedido(id, { status, obs });
+  const pedido = mem_atualizarPedido(id, { status, obs, preco: preco !== undefined ? parseFloat(preco) : undefined });
   if (!pedido) return NextResponse.json({ error: 'Pedido não encontrado' }, { status: 404 });
   const ator = `${membro.nome} (${membro.cargo})`;
   mem_registrarLog(ator, 'Atualizou pedido', `${pedido.cadastro_nome} — ${pedido.produto_nome} (${pedido.status})`);

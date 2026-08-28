@@ -3307,7 +3307,7 @@ export default function AdminPage() {
                                   const v = parseFloat(e.target.value);
                                   if (!isNaN(v) && v !== p.preco) atualizarValorPedido(p.id, v);
                                 }}
-                                style={{ width: 88, border: '1px solid var(--border)', borderRadius: 5, padding: '4px 6px', fontSize: 13, fontWeight: 700, color: '#16a34a', fontFamily: 'inherit' }} />
+                                style={{ width: 88, border: '1px solid var(--border)', borderRadius: 5, padding: '4px 6px', fontSize: 13, fontWeight: 700, color: '#16a34a', fontFamily: 'inherit', background: 'var(--surface)' }} />
                             </div>
                           </td>
                           <td style={{ padding: '11px 14px' }}>

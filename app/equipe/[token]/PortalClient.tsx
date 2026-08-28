@@ -1346,6 +1346,18 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
     } finally { setLoadingPedidoStatus(''); }
   }
 
+  async function atualizarValorPedido(id: string, preco: number) {
+    const r = await fetch('/api/portal/pedidos', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-member-token': token },
+      body: JSON.stringify({ id, preco }),
+    });
+    if (r.ok) {
+      const p = await r.json();
+      setPedidos(prev => prev.map(x => x.id === id ? p : x));
+    }
+  }
+
   async function salvarEstoqueProdutoPortal(id: string, dados: { estoque_inicial: number; custo: number }) {
     const r = await fetch('/api/portal/produtos', {
       method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
@@ -1557,7 +1569,17 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                       <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', maxWidth: 200, fontSize: 12 }}>
                         {p.itens ? p.itens.map(i => `${i.nome} x${i.quantidade}`).join(', ') : p.produto_nome}
                       </td>
-                      <td style={{ padding: '10px 14px', fontWeight: 700, color: '#16a34a' }}>R$ {p.preco.toFixed(2)}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                          <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>R$</span>
+                          <input type="number" step="0.01" min="0" defaultValue={p.preco} key={`${p.id}-${p.preco}`}
+                            onBlur={e => {
+                              const v = parseFloat(e.target.value);
+                              if (!isNaN(v) && v !== p.preco) atualizarValorPedido(p.id, v);
+                            }}
+                            style={{ width: 88, border: '1px solid var(--border)', borderRadius: 5, padding: '4px 6px', fontSize: 13, fontWeight: 700, color: '#16a34a', fontFamily: 'inherit', background: 'var(--surface)' }} />
+                        </div>
+                      </td>
                       <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontSize: 12 }}>{vendNome || '—'}</td>
                       <td style={{ padding: '10px 14px' }}>
                         <select value={p.status} disabled={loadingPedidoStatus === p.id} onChange={e => marcarPedidoStatus(p.id, e.target.value)}
