@@ -118,8 +118,9 @@ export function DashboardOverview({
   });
   const estoqueLinhas = produtos.map(p => {
     const vendido = vendidoPorNome.get(p.nome) || 0;
-    const atual = (p.estoque_inicial ?? 0) - vendido;
-    const status: 'esgotado' | 'ok' = atual <= 0 ? 'esgotado' : 'ok';
+    const inicial = p.estoque_inicial ?? 0;
+    const atual = inicial - vendido;
+    const status: 'esgotado' | 'ok' | 'nao_configurado' = inicial <= 0 ? 'nao_configurado' : atual <= 0 ? 'esgotado' : 'ok';
     return { atual, valorEstoque: Math.max(atual, 0) * (p.custo ?? 0), status };
   });
   const estoqueEsgotadoCount = estoqueLinhas.filter(l => l.status === 'esgotado').length;

@@ -210,7 +210,7 @@ function EstoqueRow({ produto, vendido, onSalvar }: {
   const custoNum = parseFloat(custo) || 0;
   const atual = inicialNum - vendido;
   const valorEstoque = Math.max(atual, 0) * custoNum;
-  const status = atual <= 0 ? 'esgotado' : 'ok';
+  const status = inicialNum <= 0 ? 'nao_configurado' : atual <= 0 ? 'esgotado' : 'ok';
   const dirty = inicialNum !== (produto.estoque_inicial ?? 0) || custoNum !== (produto.custo ?? 0);
 
   const numInputStyle: React.CSSProperties = { width: 80, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12.5, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' };
@@ -224,15 +224,15 @@ function EstoqueRow({ produto, vendido, onSalvar }: {
         <input type="number" min="0" step="1" value={inicial} onChange={e => setInicial(e.target.value)} style={numInputStyle} />
       </td>
       <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)' }}>{vendido}</td>
-      <td style={{ padding: '10px 14px', fontWeight: 700, color: status === 'esgotado' ? '#dc2626' : '#16a34a', fontVariantNumeric: 'tabular-nums' }}>{atual}</td>
+      <td style={{ padding: '10px 14px', fontWeight: 700, color: status === 'esgotado' ? '#dc2626' : status === 'nao_configurado' ? 'var(--text-muted, #6b7280)' : '#16a34a', fontVariantNumeric: 'tabular-nums' }}>{atual}</td>
       <td style={{ padding: '10px 14px' }}>
         <input type="number" min="0" step="0.01" value={custo} onChange={e => setCusto(e.target.value)} style={numInputStyle} />
       </td>
       <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>R$ {produto.preco.toFixed(2)}</td>
       <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>R$ {valorEstoque.toFixed(2)}</td>
       <td style={{ padding: '10px 14px' }}>
-        <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: status === 'esgotado' ? '#fef2f2' : '#f0fdf4', color: status === 'esgotado' ? '#dc2626' : '#16a34a' }}>
-          {status === 'esgotado' ? 'Esgotado' : 'OK'}
+        <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: status === 'esgotado' ? '#fef2f2' : status === 'nao_configurado' ? 'var(--surface-hover)' : '#f0fdf4', color: status === 'esgotado' ? '#dc2626' : status === 'nao_configurado' ? 'var(--text-muted, #6b7280)' : '#16a34a' }}>
+          {status === 'esgotado' ? 'Esgotado' : status === 'nao_configurado' ? 'Não configurado' : 'OK'}
         </span>
       </td>
       <td style={{ padding: '10px 14px' }}>
@@ -4578,8 +4578,9 @@ export default function AdminPage() {
 
             const linhas = produtos.map(p => {
               const vendido = vendidoPorNome.get(p.nome) || 0;
-              const atual = (p.estoque_inicial ?? 0) - vendido;
-              const status: 'esgotado' | 'ok' = atual <= 0 ? 'esgotado' : 'ok';
+              const inicial = p.estoque_inicial ?? 0;
+              const atual = inicial - vendido;
+              const status: 'esgotado' | 'ok' | 'nao_configurado' = inicial <= 0 ? 'nao_configurado' : atual <= 0 ? 'esgotado' : 'ok';
               return { produto: p, vendido, atual, valorEstoque: Math.max(atual, 0) * (p.custo ?? 0), status };
             });
 
