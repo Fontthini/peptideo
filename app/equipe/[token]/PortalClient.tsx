@@ -143,7 +143,9 @@ function ComissaoWidget({ id, comissaoValor, comissaoPaga, mostrar, totalBase, p
   if (comissaoPaga && promptId !== id) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>OK Comissão: R$ {(comissaoValor || 0).toFixed(2)}</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>
+          OK Comissão: {totalBase > 0 ? `${((comissaoValor || 0) / totalBase * 100).toFixed(2)}%` : `R$ ${(comissaoValor || 0).toFixed(2)}`}
+        </div>
         <button onClick={() => {
           setPromptId(id);
           setInput(totalBase > 0 ? ((comissaoValor || 0) / totalBase * 100).toFixed(2) : String(comissaoValor || ''));
