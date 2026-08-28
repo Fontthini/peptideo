@@ -61,7 +61,7 @@ const labelStyle: React.CSSProperties = {
 type Membro = { id: string; nome: string; email: string; cargo: string; ativo: boolean; created_at: string; };
 type PedidoItem = { nome: string; preco: number; quantidade: number };
 type Pedido = {
-  id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string;
+  id: string; cadastro_id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string;
   indicacao_id?: string | null; paciente_nome?: string;
   produto_nome: string; preco: number; itens?: PedidoItem[];
   status: string; obs?: string; created_at: string; vendedor_id?: string;
@@ -70,7 +70,7 @@ type Indicacao = {
   id: string; medico_id: string; medico_nome: string;
   nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string;
   status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string;
-  obs?: string; comissao_valor?: number | null; comissao_paga?: boolean;
+  obs?: string; comissao_valor?: number | null; comissao_paga?: boolean; comissao_despesa_id?: string | null;
 };
 
 // Status compartilhado entre Pedidos e Indicações de pacientes (mesmo pipeline de venda).
@@ -191,7 +191,7 @@ function ComissaoWidget({ id, comissaoValor, comissaoPaga, mostrar, totalBase, p
     </button>
   );
 }
-type Produto = { id: string; nome: string; preco: number };
+type Produto = { id: string; nome: string; preco: number; dose?: string; custo?: number; estoque_inicial?: number };
 type Despesa = { id: string; tipo: 'entrada' | 'saida'; categoria: string; descricao: string; valor: number; data: string; comprovante_url?: string; created_at: string; };
 type MentoriaCliqueLog = { id: string; medico_id: string; medico_nome: string; created_at: string; };
 type Material = { nome: string; url: string };
@@ -236,6 +236,78 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
+function dentroPeriodo(dataStr: string | undefined | null, inicio: string, fim: string): boolean {
+  if (!dataStr) return false;
+  const d = dataStr.slice(0, 10);
+  if (inicio && d < inicio) return false;
+  if (fim && d > fim) return false;
+  return true;
+}
+
+function baixarCSV(nomeArquivo: string, headers: string[], linhas: (string | number)[][]) {
+  const escapar = (v: string | number) => {
+    const s = String(v);
+    return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const csv = [headers, ...linhas].map(row => row.map(escapar).join(';')).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nomeArquivo;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function EstoqueRow({ produto, vendido, onSalvar }: {
+  produto: Produto; vendido: number;
+  onSalvar: (id: string, dados: { estoque_inicial: number; custo: number }) => Promise<void>;
+}) {
+  const [inicial, setInicial] = useState(String(produto.estoque_inicial ?? 0));
+  const [custo, setCusto] = useState(String(produto.custo ?? 0));
+  const [salvando, setSalvando] = useState(false);
+
+  const inicialNum = parseFloat(inicial) || 0;
+  const custoNum = parseFloat(custo) || 0;
+  const atual = inicialNum - vendido;
+  const valorEstoque = Math.max(atual, 0) * custoNum;
+  const status = inicialNum <= 0 ? 'nao_configurado' : atual <= 0 ? 'esgotado' : 'ok';
+  const dirty = inicialNum !== (produto.estoque_inicial ?? 0) || custoNum !== (produto.custo ?? 0);
+
+  const numInputStyle: React.CSSProperties = { width: 80, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12.5, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' };
+
+  return (
+    <tr style={{ borderBottom: '1px solid var(--border)' }}>
+      <td style={{ padding: '10px 14px', color: 'var(--text)', fontWeight: 600 }}>
+        {produto.nome} <span style={{ color: 'var(--text-soft, #9ca3af)', fontWeight: 400 }}>{produto.dose}</span>
+      </td>
+      <td style={{ padding: '10px 14px' }}>
+        <input type="number" min="0" step="1" value={inicial} onChange={e => setInicial(e.target.value)} style={numInputStyle} />
+      </td>
+      <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)' }}>{vendido}</td>
+      <td style={{ padding: '10px 14px', fontWeight: 700, color: status === 'esgotado' ? '#dc2626' : status === 'nao_configurado' ? 'var(--text-muted, #6b7280)' : '#16a34a', fontVariantNumeric: 'tabular-nums' }}>{atual}</td>
+      <td style={{ padding: '10px 14px' }}>
+        <input type="number" min="0" step="0.01" value={custo} onChange={e => setCusto(e.target.value)} style={numInputStyle} />
+      </td>
+      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>R$ {produto.preco.toFixed(2)}</td>
+      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>R$ {valorEstoque.toFixed(2)}</td>
+      <td style={{ padding: '10px 14px' }}>
+        <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: status === 'esgotado' ? '#fef2f2' : status === 'nao_configurado' ? 'var(--surface-hover)' : '#f0fdf4', color: status === 'esgotado' ? '#dc2626' : status === 'nao_configurado' ? 'var(--text-muted, #6b7280)' : '#16a34a' }}>
+          {status === 'esgotado' ? 'Esgotado' : status === 'nao_configurado' ? 'Não configurado' : 'OK'}
+        </span>
+      </td>
+      <td style={{ padding: '10px 14px' }}>
+        <button disabled={!dirty || salvando} onClick={async () => {
+          setSalvando(true);
+          await onSalvar(produto.id, { estoque_inicial: inicialNum, custo: custoNum });
+          setSalvando(false);
+        }} style={{ background: dirty ? 'var(--btn-primary-bg)' : 'var(--surface-hover)', color: dirty ? 'var(--btn-primary-text)' : 'var(--text-soft, #9ca3af)', border: 'none', padding: '6px 12px', borderRadius: 6, cursor: dirty ? 'pointer' : 'default', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>
+          {salvando ? '...' : 'Salvar'}
+        </button>
+      </td>
+    </tr>
+  );
+}
+
 const ABA_NAV: { key: string; icon: string; label: string; color: string; gerenteOnly?: boolean }[] = [
   { key: 'dashboard', icon: '#', label: 'Dashboard', color: 'var(--text)', gerenteOnly: true },
   { key: 'leads', icon: 'L', label: 'Leads', color: '#16a34a' },
@@ -243,6 +315,8 @@ const ABA_NAV: { key: string; icon: string; label: string; color: string; gerent
   { key: 'indicacoes', icon: 'I', label: 'Indicações', color: 'var(--text)' },
   { key: 'indicacoes-medicas', icon: 'M', label: 'Indicações Médicas', color: 'var(--text-secondary, #374151)', gerenteOnly: true },
   { key: 'financeiro', icon: '$', label: 'Financeiro', color: 'var(--text-secondary, #374151)', gerenteOnly: true },
+  { key: 'estoque', icon: 'E', label: 'Estoque', color: 'var(--text)', gerenteOnly: true },
+  { key: 'relatorios', icon: 'i', label: 'Relatórios', color: 'var(--text-secondary, #374151)', gerenteOnly: true },
   { key: 'mentoria', icon: '%', label: 'Mentoria', color: 'var(--text)', gerenteOnly: true },
   { key: 'blog', icon: 'B', label: 'Blog', color: 'var(--text)', gerenteOnly: true },
   { key: 'rastreio', icon: 'R', label: 'Link de Rastreio', color: 'var(--text-secondary, #374151)', gerenteOnly: true },
@@ -850,7 +924,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
   const [selectedLead, setSelectedLead] = useState<Cadastro | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [indicacoes, setIndicacoes] = useState<Indicacao[]>([]);
-  const [aba, setAba] = useState<'dashboard' | 'leads' | 'pedidos' | 'indicacoes' | 'indicacoes-medicas' | 'financeiro' | 'mentoria' | 'blog' | 'rastreio'>('dashboard');
+  const [aba, setAba] = useState<'dashboard' | 'leads' | 'pedidos' | 'indicacoes' | 'indicacoes-medicas' | 'financeiro' | 'estoque' | 'relatorios' | 'mentoria' | 'blog' | 'rastreio'>('dashboard');
   const [buscaMedico, setBuscaMedico] = useState('');
   const [verLeadsKanban, setVerLeadsKanban] = useState(true);
   const [editandoProdutoCardId, setEditandoProdutoCardId] = useState<string | null>(null);
@@ -877,6 +951,14 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
   const [msgNovoCadastro, setMsgNovoCadastro] = useState('');
 
   const [produtosCatalogo, setProdutosCatalogo] = useState<Produto[]>([]);
+  const [loadingPedidoStatus, setLoadingPedidoStatus] = useState('');
+
+  const [relatorioTipo, setRelatorioTipo] = useState<'faturamento' | 'medicos' | 'comissoes' | 'financeiro'>('faturamento');
+  const [relFiltroInicio, setRelFiltroInicio] = useState('');
+  const [relFiltroFim, setRelFiltroFim] = useState('');
+  const [relFiltroMedico, setRelFiltroMedico] = useState('');
+  const [relAgrupamento, setRelAgrupamento] = useState<'dia' | 'mes'>('dia');
+  const [relFiltroTipoFin, setRelFiltroTipoFin] = useState<'todos' | 'entrada' | 'saida'>('todos');
 
   useEffect(() => {
     fetch('/api/portal/produtos', { headers: { 'x-member-token': token } })
@@ -1249,6 +1331,32 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
     } finally { setLoadingArtigos(false); }
   }
 
+  async function marcarPedidoStatus(id: string, status: string) {
+    setLoadingPedidoStatus(id);
+    try {
+      const r = await fetch('/api/portal/pedidos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-member-token': token },
+        body: JSON.stringify({ id, status }),
+      });
+      if (r.ok) {
+        const p = await r.json();
+        setPedidos(prev => prev.map(x => x.id === id ? p : x));
+      }
+    } finally { setLoadingPedidoStatus(''); }
+  }
+
+  async function salvarEstoqueProdutoPortal(id: string, dados: { estoque_inicial: number; custo: number }) {
+    const r = await fetch('/api/portal/produtos', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
+      body: JSON.stringify({ id, ...dados }),
+    });
+    if (r.ok) {
+      const atualizado = await r.json();
+      setProdutosCatalogo(prev => prev.map(p => p.id === id ? atualizado : p));
+    }
+  }
+
   async function uploadImagemArtigo(file: File, onUrl: (url: string) => void) {
     setUploadandoArtigo(true);
     try {
@@ -1309,6 +1417,32 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
         indicacoes: () => carregarIndicacoes('indicacoes'),
         'indicacoes-medicas': () => carregarIndicacoes('indicacoes-medicas'),
         financeiro: carregarFinanceiro,
+        estoque: async () => {
+          setAba('estoque');
+          if (produtosCatalogo.length === 0) {
+            const r = await fetch('/api/portal/produtos', { headers: { 'x-member-token': token } });
+            if (r.ok) setProdutosCatalogo(await r.json());
+          }
+          if (pedidos.length === 0) {
+            const r = await fetch('/api/portal/pedidos', { headers: { 'x-member-token': token } });
+            if (r.ok) setPedidos(await r.json());
+          }
+        },
+        relatorios: async () => {
+          setAba('relatorios');
+          if (indicacoes.length === 0) {
+            const r = await fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } });
+            if (r.ok) setIndicacoes(await r.json());
+          }
+          if (despesas.length === 0) {
+            const r = await fetch('/api/portal/despesas', { headers: { 'x-member-token': token } });
+            if (r.ok) setDespesas(await r.json());
+          }
+          if (pedidos.length === 0) {
+            const r = await fetch('/api/portal/pedidos', { headers: { 'x-member-token': token } });
+            if (r.ok) setPedidos(await r.json());
+          }
+        },
         mentoria: carregarMentoria,
         blog: carregarBlog,
         rastreio: async () => {
@@ -1322,7 +1456,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
 
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* KPIs */}
-      {!['dashboard', 'financeiro', 'mentoria', 'blog', 'rastreio'].includes(aba) && (
+      {!['dashboard', 'financeiro', 'estoque', 'relatorios', 'mentoria', 'blog', 'rastreio'].includes(aba) && (
         <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
           <StatCard label="Total Leads" value={lista.length} />
           <StatCard label="Pendentes" value={pendentes.length} color="var(--text-muted, #6b7280)" />
@@ -1426,9 +1560,13 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                       <td style={{ padding: '10px 14px', fontWeight: 700, color: '#16a34a' }}>R$ {p.preco.toFixed(2)}</td>
                       <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontSize: 12 }}>{vendNome || '—'}</td>
                       <td style={{ padding: '10px 14px' }}>
-                        <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: cc.bg, color: cc.text }}>
-                          {PEDIDO_STATUS_LABEL[p.status] || p.status}
-                        </span>
+                        <select value={p.status} disabled={loadingPedidoStatus === p.id} onChange={e => marcarPedidoStatus(p.id, e.target.value)}
+                          style={{ background: cc.bg, color: cc.text, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                          <option value="em_atendimento">Em Atendimento</option>
+                          <option value="negociacao">Negociação</option>
+                          <option value="pago">Pago</option>
+                          <option value="cancelado">Cancelado</option>
+                        </select>
                       </td>
                       <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>{formatDate(p.created_at)}</td>
                     </tr>
@@ -2109,6 +2247,448 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                 </form>
               </div>
             </div>
+          </div>
+        );
+      })()}
+
+      {/* ABA ESTOQUE */}
+      {aba === 'estoque' && (() => {
+        const pedidosPagos = pedidos.filter(p => p.status === 'pago');
+        const vendidoPorNome = new Map<string, number>();
+        pedidosPagos.forEach(p => {
+          if (p.itens && p.itens.length) {
+            p.itens.forEach(item => vendidoPorNome.set(item.nome, (vendidoPorNome.get(item.nome) || 0) + item.quantidade));
+          } else {
+            vendidoPorNome.set(p.produto_nome, (vendidoPorNome.get(p.produto_nome) || 0) + 1);
+          }
+        });
+
+        const linhas = produtosCatalogo.map(p => {
+          const vendido = vendidoPorNome.get(p.nome) || 0;
+          const inicial = p.estoque_inicial ?? 0;
+          const atual = inicial - vendido;
+          const status: 'esgotado' | 'ok' | 'nao_configurado' = inicial <= 0 ? 'nao_configurado' : atual <= 0 ? 'esgotado' : 'ok';
+          return { produto: p, vendido, atual, valorEstoque: Math.max(atual, 0) * (p.custo ?? 0), status };
+        });
+
+        const totalSkus = produtosCatalogo.length;
+        const pecasEmEstoque = linhas.reduce((s, l) => s + Math.max(l.atual, 0), 0);
+        const valorEstoqueTotal = linhas.reduce((s, l) => s + l.valorEstoque, 0);
+        const esgotadoCount = linhas.filter(l => l.status === 'esgotado').length;
+        const alertas = linhas.filter(l => l.status === 'esgotado').sort((a, b) => a.atual - b.atual);
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 6, marginTop: 0 }}>Estoque</h2>
+              <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, margin: 0 }}>
+                Estoque atual calculado a partir de todo o histórico de pedidos pagos.
+              </p>
+            </div>
+
+            <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+              <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid var(--text-soft, #9ca3af)' }}>
+                <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{totalSkus}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total de SKUs</div>
+              </div>
+              <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid var(--text-soft, #9ca3af)' }}>
+                <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{pecasEmEstoque}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Peças em Estoque</div>
+              </div>
+              <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
+                <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {valorEstoqueTotal.toFixed(2)}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Valor de Estoque</div>
+              </div>
+              <div style={{ background: esgotadoCount > 0 ? '#dc26260d' : 'var(--surface-hover)', border: `1px solid ${esgotadoCount > 0 ? '#dc262633' : 'var(--border)'}`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${esgotadoCount > 0 ? '#dc2626' : 'var(--text-soft, #9ca3af)'}` }}>
+                <div style={{ fontSize: 26, fontWeight: 800, color: esgotadoCount > 0 ? '#dc2626' : 'var(--text)' }}>{esgotadoCount}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Item Esgotado</div>
+              </div>
+            </div>
+
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Alertas de Reposição</div>
+              {alertas.length === 0 ? (
+                <div style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>Nenhum alerta — estoque saudável.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
+                  {alertas.map(l => (
+                    <div key={l.produto.id} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 8,
+                      background: '#fef2f2', border: '1px solid #fecaca',
+                    }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{l.produto.nome}</div>
+                        <div style={{ fontSize: 11, color: '#6b7280' }}>{l.produto.dose}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: '#dc2626' }}>{l.atual}</div>
+                        <div style={{ fontSize: 10, color: '#9ca3af' }}>esgotado</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+              <div className="portal-table-scroll">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
+                      {['Produto', 'Estoque Inicial', 'Vendido (histórico)', 'Estoque Atual', 'Custo Unit.', 'Valor de Venda', 'Valor de Estoque', 'Status', ''].map(h => (
+                        <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {produtosCatalogo.length === 0 ? (
+                      <tr><td colSpan={9} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum produto cadastrado.</td></tr>
+                    ) : produtosCatalogo.map(p => (
+                      <EstoqueRow key={p.id} produto={p} vendido={vendidoPorNome.get(p.nome) || 0} onSalvar={salvarEstoqueProdutoPortal} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ABA RELATÓRIOS */}
+      {aba === 'relatorios' && (() => {
+        const medicosOrdenados = [...lista].sort((a, b) => a.nome.localeCompare(b.nome));
+        const despesaPorId = new Map(despesas.map(d => [d.id, d]));
+
+        const pedidosPeriodo = pedidos.filter(p =>
+          p.status === 'pago' &&
+          dentroPeriodo(p.created_at, relFiltroInicio, relFiltroFim) &&
+          (!relFiltroMedico || p.cadastro_id === relFiltroMedico)
+        );
+
+        const comissoesPeriodo = indicacoes
+          .filter(i => i.comissao_paga && (!relFiltroMedico || i.medico_id === relFiltroMedico))
+          .map(i => {
+            const desp = i.comissao_despesa_id ? despesaPorId.get(i.comissao_despesa_id) : undefined;
+            return { ...i, _data: desp?.data || i.created_at.slice(0, 10) };
+          })
+          .filter(i => dentroPeriodo(i._data, relFiltroInicio, relFiltroFim))
+          .sort((a, b) => b._data.localeCompare(a._data));
+
+        const despesasPeriodo = despesas
+          .filter(d => dentroPeriodo(d.data, relFiltroInicio, relFiltroFim) && (relFiltroTipoFin === 'todos' || d.tipo === relFiltroTipoFin))
+          .sort((a, b) => b.data.localeCompare(a.data));
+
+        const totalFaturamento = pedidosPeriodo.reduce((s, p) => s + p.preco, 0);
+        const ticketMedio = pedidosPeriodo.length ? totalFaturamento / pedidosPeriodo.length : 0;
+        const totalComissoes = comissoesPeriodo.reduce((s, i) => s + (i.comissao_valor || 0), 0);
+        const totalEntradasFin = despesasPeriodo.filter(d => d.tipo === 'entrada').reduce((s, d) => s + d.valor, 0);
+        const totalSaidasFin = despesasPeriodo.filter(d => d.tipo === 'saida').reduce((s, d) => s + d.valor, 0);
+
+        const agrupadoFaturamento = (() => {
+          const m = new Map<string, { qtd: number; total: number }>();
+          pedidosPeriodo.forEach(p => {
+            const key = relAgrupamento === 'dia' ? p.created_at.slice(0, 10) : p.created_at.slice(0, 7);
+            const cur = m.get(key) || { qtd: 0, total: 0 };
+            cur.qtd += 1; cur.total += p.preco;
+            m.set(key, cur);
+          });
+          return [...m.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+        })();
+
+        const agrupadoPorMedico = (() => {
+          const m = new Map<string, { nome: string; qtdProprio: number; totalProprio: number; qtdIndicado: number; totalIndicado: number }>();
+          pedidosPeriodo.forEach(p => {
+            const cur = m.get(p.cadastro_id) || { nome: p.cadastro_nome, qtdProprio: 0, totalProprio: 0, qtdIndicado: 0, totalIndicado: 0 };
+            if (p.indicacao_id) { cur.qtdIndicado += 1; cur.totalIndicado += p.preco; }
+            else { cur.qtdProprio += 1; cur.totalProprio += p.preco; }
+            m.set(p.cadastro_id, cur);
+          });
+          const comissaoPorMedico = new Map<string, number>();
+          comissoesPeriodo.forEach(i => comissaoPorMedico.set(i.medico_id, (comissaoPorMedico.get(i.medico_id) || 0) + (i.comissao_valor || 0)));
+          return [...m.entries()]
+            .map(([id, v]) => ({ id, ...v, total: v.totalProprio + v.totalIndicado, comissao: comissaoPorMedico.get(id) || 0 }))
+            .sort((a, b) => b.total - a.total);
+        })();
+
+        const formatData = (d: string) => new Date(d.slice(0, 10) + 'T00:00:00').toLocaleDateString('pt-BR');
+        const formatPeriodoKey = (key: string) => relAgrupamento === 'dia'
+          ? formatData(key)
+          : new Date(key + '-01T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+        const limparFiltros = () => { setRelFiltroInicio(''); setRelFiltroFim(''); setRelFiltroMedico(''); setRelFiltroTipoFin('todos'); };
+
+        const pills: { key: typeof relatorioTipo; label: string }[] = [
+          { key: 'faturamento', label: 'Faturamento' },
+          { key: 'medicos', label: 'Por Médico' },
+          { key: 'comissoes', label: 'Comissões Atribuídas' },
+          { key: 'financeiro', label: 'Entradas e Saídas' },
+        ];
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <style>{`
+              @media print {
+                .portal-sidenav, header, .no-print { display: none !important; }
+                body { background: #fff !important; }
+              }
+            `}</style>
+
+            <div>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 6, marginTop: 0 }}>Relatórios</h2>
+              <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, margin: 0 }}>
+                Faturamento, comissões e financeiro — filtre por período e médico, imprima ou baixe em CSV.
+              </p>
+            </div>
+
+            <div className="no-print" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {pills.map(p => (
+                <button key={p.key} onClick={() => setRelatorioTipo(p.key)}
+                  style={{
+                    background: relatorioTipo === p.key ? 'var(--btn-primary-bg)' : 'var(--surface)', color: relatorioTipo === p.key ? 'var(--btn-primary-text)' : 'var(--text-secondary, #374151)',
+                    border: '1px solid ' + (relatorioTipo === p.key ? 'var(--btn-primary-bg)' : 'var(--border)'), padding: '8px 16px', borderRadius: 20,
+                    fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  }}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="no-print" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>DE</div>
+                <input type="date" value={relFiltroInicio} onChange={e => setRelFiltroInicio(e.target.value)}
+                  style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>ATÉ</div>
+                <input type="date" value={relFiltroFim} onChange={e => setRelFiltroFim(e.target.value)}
+                  style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' }} />
+              </div>
+              {(relatorioTipo === 'faturamento' || relatorioTipo === 'medicos' || relatorioTipo === 'comissoes') && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>MÉDICO</div>
+                  <select value={relFiltroMedico} onChange={e => setRelFiltroMedico(e.target.value)}
+                    style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', maxWidth: 220, background: 'var(--surface)', color: 'var(--text)' }}>
+                    <option value="">Todos os médicos</option>
+                    {medicosOrdenados.map(c => <option key={c.id} value={c.id}>{c.nome} {c.sobrenome}</option>)}
+                  </select>
+                </div>
+              )}
+              {relatorioTipo === 'faturamento' && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>AGRUPAR POR</div>
+                  <select value={relAgrupamento} onChange={e => setRelAgrupamento(e.target.value as 'dia' | 'mes')}
+                    style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' }}>
+                    <option value="dia">Dia</option>
+                    <option value="mes">Mês</option>
+                  </select>
+                </div>
+              )}
+              {relatorioTipo === 'financeiro' && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>TIPO</div>
+                  <select value={relFiltroTipoFin} onChange={e => setRelFiltroTipoFin(e.target.value as 'todos' | 'entrada' | 'saida')}
+                    style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' }}>
+                    <option value="todos">Todos</option>
+                    <option value="entrada">Entrada</option>
+                    <option value="saida">Saída</option>
+                  </select>
+                </div>
+              )}
+              <button onClick={limparFiltros}
+                style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
+                Limpar filtros
+              </button>
+              <div style={{ flex: 1 }} />
+              <button onClick={() => window.print()}
+                style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit' }}>
+                Imprimir
+              </button>
+              <button onClick={() => {
+                if (relatorioTipo === 'faturamento') {
+                  baixarCSV('faturamento.csv', ['Período', 'Nº Pedidos', 'Faturamento'],
+                    agrupadoFaturamento.map(([k, v]) => [formatPeriodoKey(k), v.qtd, v.total.toFixed(2)]));
+                } else if (relatorioTipo === 'medicos') {
+                  baixarCSV('faturamento-por-medico.csv', ['Médico', 'Pedidos Próprios', 'Faturamento Próprio', 'Pedidos de Indicados', 'Faturamento de Indicados', 'Comissões Pagas'],
+                    agrupadoPorMedico.map(m => [m.nome, m.qtdProprio, m.totalProprio.toFixed(2), m.qtdIndicado, m.totalIndicado.toFixed(2), m.comissao.toFixed(2)]));
+                } else if (relatorioTipo === 'comissoes') {
+                  baixarCSV('comissoes-atribuidas.csv', ['Data', 'Médico Indicador', 'Indicado', 'Tipo', 'Valor'],
+                    comissoesPeriodo.map(i => [formatData(i._data), i.medico_nome, `${i.nome} ${i.sobrenome || ''}`.trim(), i.tipo === 'medico' ? 'Médico Indicado' : 'Paciente', (i.comissao_valor || 0).toFixed(2)]));
+                } else {
+                  baixarCSV('entradas-e-saidas.csv', ['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor'],
+                    despesasPeriodo.map(d => [formatData(d.data), d.tipo === 'entrada' ? 'Entrada' : 'Saída', d.categoria, d.descricao, d.valor.toFixed(2)]));
+                }
+              }} style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>
+                Baixar CSV
+              </button>
+            </div>
+
+            {relatorioTipo === 'faturamento' && (
+              <>
+                <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                  <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalFaturamento.toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Faturamento Total</div>
+                  </div>
+                  <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid var(--text-soft, #9ca3af)' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{pedidosPeriodo.length}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Pedidos Pagos</div>
+                  </div>
+                  <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid var(--text-soft, #9ca3af)' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>R$ {ticketMedio.toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Ticket Médio</div>
+                  </div>
+                </div>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                  <div className="portal-table-scroll">
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
+                          {['Período', 'Nº Pedidos', 'Faturamento'].map(h => (
+                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {agrupadoFaturamento.length === 0 ? (
+                          <tr><td colSpan={3} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum pedido pago no período.</td></tr>
+                        ) : agrupadoFaturamento.map(([k, v], idx) => (
+                          <tr key={k} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', textTransform: 'capitalize' }}>{formatPeriodoKey(k)}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{v.qtd}</td>
+                            <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>R$ {v.total.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {relatorioTipo === 'medicos' && (
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                <div className="portal-table-scroll">
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
+                        {['Médico', 'Pedidos Próprios', 'Faturamento Próprio', 'Pedidos de Indicados', 'Faturamento de Indicados', 'Comissões Pagas'].map(h => (
+                          <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {agrupadoPorMedico.length === 0 ? (
+                        <tr><td colSpan={6} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum pedido pago no período.</td></tr>
+                      ) : agrupadoPorMedico.map((m, idx) => (
+                        <tr key={m.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                          <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600 }}>{m.nome}</td>
+                          <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{m.qtdProprio || '-'}</td>
+                          <td style={{ padding: '11px 14px', fontWeight: 700, color: m.totalProprio > 0 ? '#16a34a' : 'var(--text-soft, #9ca3af)', fontVariantNumeric: 'tabular-nums' }}>{m.totalProprio > 0 ? `R$ ${m.totalProprio.toFixed(2)}` : '-'}</td>
+                          <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{m.qtdIndicado || '-'}</td>
+                          <td style={{ padding: '11px 14px', fontWeight: 700, color: m.totalIndicado > 0 ? '#16a34a' : 'var(--text-soft, #9ca3af)', fontVariantNumeric: 'tabular-nums' }}>{m.totalIndicado > 0 ? `R$ ${m.totalIndicado.toFixed(2)}` : '-'}</td>
+                          <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>{m.comissao > 0 ? `R$ ${m.comissao.toFixed(2)}` : '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {relatorioTipo === 'comissoes' && (
+              <>
+                <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                  <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalComissoes.toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total em Comissões</div>
+                  </div>
+                  <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid var(--text-soft, #9ca3af)' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{comissoesPeriodo.length}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Comissões Lançadas</div>
+                  </div>
+                </div>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                  <div className="portal-table-scroll">
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
+                          {['Data', 'Médico Indicador', 'Indicado', 'Tipo', 'Valor'].map(h => (
+                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {comissoesPeriodo.length === 0 ? (
+                          <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhuma comissão lançada no período.</td></tr>
+                        ) : comissoesPeriodo.map((i, idx) => (
+                          <tr key={i.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{formatData(i._data)}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600 }}>{i.medico_nome}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)' }}>{i.nome} {i.sobrenome || ''}</td>
+                            <td style={{ padding: '11px 14px' }}>
+                              <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: i.tipo === 'medico' ? '#f0fdf4' : 'var(--surface-hover)', color: i.tipo === 'medico' ? '#16a34a' : 'var(--text-secondary, #374151)' }}>
+                                {i.tipo === 'medico' ? 'Médico Indicado' : 'Paciente'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>R$ {(i.comissao_valor || 0).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {relatorioTipo === 'financeiro' && (
+              <>
+                <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                  <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalEntradasFin.toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total Entradas</div>
+                  </div>
+                  <div style={{ background: '#dc26260d', border: '1px solid #dc262633', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #dc2626' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#dc2626' }}>R$ {totalSaidasFin.toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total Saídas</div>
+                  </div>
+                  <div style={{ background: totalEntradasFin - totalSaidasFin >= 0 ? 'var(--surface-hover)' : '#dc26260d', border: `1px solid ${totalEntradasFin - totalSaidasFin >= 0 ? 'var(--border)' : '#dc262633'}`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${totalEntradasFin - totalSaidasFin >= 0 ? 'var(--text-soft, #9ca3af)' : '#dc2626'}` }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: totalEntradasFin - totalSaidasFin >= 0 ? 'var(--text)' : '#dc2626' }}>R$ {(totalEntradasFin - totalSaidasFin).toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Saldo</div>
+                  </div>
+                </div>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                  <div className="portal-table-scroll">
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
+                          {['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor'].map(h => (
+                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {despesasPeriodo.length === 0 ? (
+                          <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum lançamento no período.</td></tr>
+                        ) : despesasPeriodo.map((d, idx) => (
+                          <tr key={d.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{formatData(d.data)}</td>
+                            <td style={{ padding: '11px 14px' }}>
+                              <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: d.tipo === 'entrada' ? '#dcfce7' : '#fee2e2', color: d.tipo === 'entrada' ? '#15803d' : '#dc2626' }}>
+                                {d.tipo === 'entrada' ? 'Entrada' : 'Saída'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap' }}>{d.categoria}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{d.descricao}</td>
+                            <td style={{ padding: '11px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626', fontVariantNumeric: 'tabular-nums' }}>R$ {d.valor.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         );
       })()}

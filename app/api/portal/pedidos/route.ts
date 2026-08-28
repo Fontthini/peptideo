@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mem_buscarMembroPorToken, mem_listarPedidosPorVendedor, mem_listarPedidos, mem_atualizarPedido, mem_registrarLog, mem_buscarId, mem_criarPedido, mem_criarDespesa, mem_atualizarFunil, mem_listarIndicacoes } from '@/lib/db-memory';
+import { mem_buscarMembroPorToken, mem_listarPedidosPorVendedor, mem_listarPedidos, mem_atualizarPedido, mem_registrarLog, mem_buscarId, mem_criarPedido, mem_criarDespesa, mem_deletarDespesa, mem_atualizarFunil, mem_listarIndicacoes } from '@/lib/db-memory';
 import { reloadFromSupabase, ensureCadastros, ensureIndicacoes } from '@/lib/ensure-equipe';
 
 const STATUS_VALIDOS = ['em_atendimento', 'negociacao', 'pago', 'cancelado'];
@@ -102,8 +102,34 @@ export async function PATCH(req: NextRequest) {
   const { id, status, obs } = await req.json();
   if (!id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
 
+  const statusAnterior = mem_listarPedidos().find(p => p.id === id)?.status;
   const pedido = mem_atualizarPedido(id, { status, obs });
   if (!pedido) return NextResponse.json({ error: 'Pedido não encontrado' }, { status: 404 });
-  mem_registrarLog(`${membro.nome} (${membro.cargo})`, 'Atualizou pedido', `${pedido.cadastro_nome} — ${pedido.produto_nome} (${pedido.status})`);
+  const ator = `${membro.nome} (${membro.cargo})`;
+  mem_registrarLog(ator, 'Atualizou pedido', `${pedido.cadastro_nome} — ${pedido.produto_nome} (${pedido.status})`);
+
+  // Mesmo fluxo automatico do admin: ao marcar como pago, lanca entrada no
+  // Financeiro e avanca o lead pra "cliente"; ao sair de pago, desfaz a entrada.
+  if (pedido.status === 'pago' && statusAnterior !== 'pago') {
+    const d = mem_criarDespesa({
+      tipo: 'entrada', categoria: 'PEDIDO PAGO',
+      descricao: `Pedido pago — ${pedido.cadastro_nome} (${pedido.produto_nome})`,
+      valor: pedido.preco, data: new Date().toISOString().slice(0, 10),
+    });
+    mem_atualizarPedido(pedido.id, { despesa_id: d.id });
+    mem_registrarLog(ator, 'Lançou entrada automática (pedido pago)', `${d.categoria} — ${d.descricao} — R$ ${d.valor.toFixed(2)}`);
+
+    const cadastro = mem_buscarId(pedido.cadastro_id);
+    if (cadastro && cadastro.funil_status !== 'cliente') {
+      mem_atualizarFunil(pedido.cadastro_id, 'cliente');
+      mem_registrarLog(ator, 'Lead avançou automaticamente no funil', `${pedido.cadastro_nome} → cliente`);
+    }
+  }
+  if (statusAnterior === 'pago' && pedido.status !== 'pago' && pedido.despesa_id) {
+    mem_deletarDespesa(pedido.despesa_id);
+    mem_registrarLog(ator, 'Removeu entrada automática (pedido não é mais pago)', `${pedido.cadastro_nome} — ${pedido.produto_nome} — R$ ${pedido.preco.toFixed(2)}`);
+    mem_atualizarPedido(pedido.id, { despesa_id: null });
+  }
+
   return NextResponse.json(pedido);
 }
