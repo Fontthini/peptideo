@@ -1241,8 +1241,8 @@ export default function AdminPage() {
         <aside className="admin-sidebar" style={{ background: 'var(--surface)', flexShrink: 0, display: 'flex' }}>
           <div className="admin-sidebar-title" style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-soft)', letterSpacing: 1, marginBottom: 10, paddingLeft: 6, textTransform: 'uppercase' }}>Menu</div>
           {navItem('dashboard', '#', 'Dashboard')}
-          {navItem('leads', '-', 'Leads')}
-          {navItem('clientes', 'C', 'Clientes')}
+          {navItem('leads', '-', 'C. Médicos')}
+          {navItem('clientes', 'C', 'C. Clientes')}
           {navItem('produtos', '+', 'Produtos')}
           {navItem('estoque', 'E', 'Estoque')}
           {navItem('banners', '*', 'Banners')}
@@ -1281,7 +1281,7 @@ export default function AdminPage() {
           {aba === 'leads' && (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: 0 }}>Leads</h2>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: 0 }}>C. Médicos</h2>
                 <button onClick={() => setNovoCadastroTipo('escolher')}
                   style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 16px', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
                   + Cadastro Novo
@@ -1924,7 +1924,7 @@ export default function AdminPage() {
             return (
               <>
                 <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 20, marginTop: 0 }}>
-                  Clientes <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({clientes.length})</span>
+                  C. Clientes <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({clientes.length})</span>
                 </h2>
                 <input value={buscaLead} onChange={e => setBuscaLead(e.target.value)}
                   placeholder="Buscar cliente por nome, e-mail ou WhatsApp..."
