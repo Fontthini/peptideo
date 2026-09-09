@@ -312,7 +312,7 @@ function EstoqueRow({ produto, vendido, onSalvar }: {
 
 const ABA_NAV: { key: string; icon: string; label: string; color: string; gerenteOnly?: boolean }[] = [
   { key: 'dashboard', icon: '#', label: 'Dashboard', color: 'var(--text)', gerenteOnly: true },
-  { key: 'leads', icon: 'L', label: 'Leads', color: '#16a34a' },
+  { key: 'leads', icon: 'L', label: 'C. Médicos', color: '#16a34a' },
   { key: 'pedidos', icon: 'P', label: 'Pedidos', color: 'var(--text)' },
   { key: 'indicacoes', icon: 'I', label: 'Indicações', color: 'var(--text)' },
   { key: 'indicacoes-medicas', icon: 'M', label: 'Indicações Médicas', color: 'var(--text-secondary, #374151)', gerenteOnly: true },
