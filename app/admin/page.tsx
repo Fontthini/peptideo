@@ -274,6 +274,7 @@ export default function AdminPage() {
   const [relFiltroFim, setRelFiltroFim] = useState('');
   const [relFiltroMedico, setRelFiltroMedico] = useState('');
   const [relFiltroTipoFin, setRelFiltroTipoFin] = useState<'todos' | 'entrada' | 'saida'>('todos');
+  const [relFiltroCategoria, setRelFiltroCategoria] = useState('');
   const [relAgrupamento, setRelAgrupamento] = useState<'dia' | 'mes'>('mes');
   const [loadingDespesas, setLoadingDespesas] = useState(false);
   const [categoriasFinanceiras, setCategoriasFinanceiras] = useState<string[]>([]);
@@ -4158,8 +4159,9 @@ export default function AdminPage() {
               .filter(i => dentroPeriodo(i._data, relFiltroInicio, relFiltroFim))
               .sort((a, b) => b._data.localeCompare(a._data));
 
+            const categoriasPresentes = [...new Set(despesas.map(d => d.categoria))].sort((a, b) => a.localeCompare(b));
             const despesasPeriodo = despesas
-              .filter(d => dentroPeriodo(d.data, relFiltroInicio, relFiltroFim) && (relFiltroTipoFin === 'todos' || d.tipo === relFiltroTipoFin))
+              .filter(d => dentroPeriodo(d.data, relFiltroInicio, relFiltroFim) && (relFiltroTipoFin === 'todos' || d.tipo === relFiltroTipoFin) && (!relFiltroCategoria || d.categoria === relFiltroCategoria))
               .sort((a, b) => b.data.localeCompare(a.data));
 
             const totalFaturamento = pedidosPeriodo.reduce((s, p) => s + p.preco, 0);
@@ -4199,7 +4201,7 @@ export default function AdminPage() {
               ? formatData(key)
               : new Date(key + '-01T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-            const limparFiltros = () => { setRelFiltroInicio(''); setRelFiltroFim(''); setRelFiltroMedico(''); setRelFiltroTipoFin('todos'); };
+            const limparFiltros = () => { setRelFiltroInicio(''); setRelFiltroFim(''); setRelFiltroMedico(''); setRelFiltroTipoFin('todos'); setRelFiltroCategoria(''); };
 
             const pills: { key: typeof relatorioTipo; label: string }[] = [
               { key: 'faturamento', label: 'Faturamento' },
@@ -4272,15 +4274,25 @@ export default function AdminPage() {
                     </div>
                   )}
                   {relatorioTipo === 'financeiro' && (
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>TIPO</div>
-                      <select value={relFiltroTipoFin} onChange={e => setRelFiltroTipoFin(e.target.value as 'todos' | 'entrada' | 'saida')}
-                        style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)', colorScheme: tema }}>
-                        <option value="todos">Todos</option>
-                        <option value="entrada">Entrada</option>
-                        <option value="saida">Saída</option>
-                      </select>
-                    </div>
+                    <>
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>TIPO</div>
+                        <select value={relFiltroTipoFin} onChange={e => setRelFiltroTipoFin(e.target.value as 'todos' | 'entrada' | 'saida')}
+                          style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)', colorScheme: tema }}>
+                          <option value="todos">Todos</option>
+                          <option value="entrada">Entrada</option>
+                          <option value="saida">Saída</option>
+                        </select>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>CATEGORIA</div>
+                        <select value={relFiltroCategoria} onChange={e => setRelFiltroCategoria(e.target.value)}
+                          style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', maxWidth: 200, background: 'var(--surface)', color: 'var(--text)', colorScheme: tema }}>
+                          <option value="">Todas as categorias</option>
+                          {categoriasPresentes.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                    </>
                   )}
                   <button onClick={limparFiltros}
                     style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>

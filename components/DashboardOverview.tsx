@@ -1,11 +1,12 @@
 'use client';
+import { useState } from 'react';
 import { estaOnline, HBarChart, LeadsChart30d, FaturamentoChart30d } from './DashboardCharts';
 
 export type DashCadastro = {
   id: string; nome: string; sobrenome: string; status: string; onde_conheceu: string | null;
   crm?: string | null; created_at: string; updated_at?: string; vendedor_id?: string | null;
   last_seen_loja?: string | null; last_seen_blog?: string | null;
-  indicado_por_medico_id?: string | null; comissao_valor?: number | null; comissao_paga?: boolean;
+  indicado_por_medico_id?: string | null; comissao_valor?: number | null; comissao_paga?: boolean; comissao_despesa_id?: string | null;
 };
 export type DashPedidoItem = { nome: string; preco: number; quantidade: number };
 export type DashPedido = { id: string; cadastro_id?: string; cadastro_nome: string; cadastro_email: string; indicacao_id?: string | null; paciente_nome?: string; produto_nome: string; preco: number; itens?: DashPedidoItem[]; status: string; created_at: string; };
@@ -17,7 +18,10 @@ export type DashConfig = {
   cliques_cards?: Record<string, number>; cliques_cards_hoje?: Record<string, number>;
 };
 export type DashDespesa = { id: string; tipo: 'entrada' | 'saida'; categoria: string; valor: number; data: string; };
-export type DashIndicacao = { id: string; medico_id: string; medico_nome: string; status: string; tipo?: 'paciente' | 'medico'; comissao_valor?: number | null; comissao_paga?: boolean; };
+export type DashIndicacao = {
+  id: string; medico_id: string; medico_nome: string; status: string; tipo?: 'paciente' | 'medico'; created_at: string;
+  comissao_valor?: number | null; comissao_paga?: boolean; comissao_despesa_id?: string | null;
+};
 
 const PIPELINE_STATUS_LABEL: Record<string, string> = {
   em_atendimento: 'Em Atendimento', negociacao: 'Negociação', pago: 'Pago', cancelado: 'Cancelado',
@@ -81,16 +85,55 @@ export function DashboardOverview({
   onIrParaRelatorios?: () => void; onIrParaEstoque?: () => void; onIrParaFinanceiro?: () => void;
   mostrarVisaoNegocio?: boolean;
 }) {
-  const total = cadastros.length;
-  const aprovados = cadastros.filter(c => c.status === 'aprovado').length;
-  const pendentes = cadastros.filter(c => c.status === 'pendente').length;
-  const emAnalise = cadastros.filter(c => c.status === 'em_analise').length;
+  // ---- Filtro de período: afeta tudo que tem uma data própria (faturamento,
+  // financeiro, comissões, leads, pedidos). Fica de fora o que é "estado
+  // atual"/cumulativo por natureza (quem está online agora, alertas de
+  // estoque, e-mails do mês, cliques/views — não têm data por evento) e os
+  // dois gráficos de "últimos 30 dias", que são janelas fixas por definição.
+  type Periodo = 'hoje' | '7d' | '30d' | 'mes' | 'ano' | 'tudo' | 'custom';
+  // Começa em "Tudo" pra não mudar os números que todo mundo já conhece
+  // assim que a tela abre — o filtro é pra quando quiser recortar, não o
+  // padrão.
+  const [periodo, setPeriodo] = useState<Periodo>('tudo');
+  const [customDe, setCustomDe] = useState('');
+  const [customAte, setCustomAte] = useState('');
 
-  const totalPedidos = pedidos.length;
-  const valorTotalPedidos = pedidos.reduce((s, p) => s + p.preco, 0);
-  const pedidosVendidos = pedidos.filter(p => p.status === 'pago').length;
+  const hojeStr = new Date().toISOString().slice(0, 10);
+  const diasAtras = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+  const [periodoInicio, periodoFim]: [string, string] = (() => {
+    switch (periodo) {
+      case 'hoje': return [hojeStr, hojeStr];
+      case '7d': return [diasAtras(6), hojeStr];
+      case '30d': return [diasAtras(29), hojeStr];
+      case 'mes': return [hojeStr.slice(0, 7) + '-01', hojeStr];
+      case 'ano': return [hojeStr.slice(0, 4) + '-01-01', hojeStr];
+      case 'custom': return [customDe || '0000-01-01', customAte || hojeStr];
+      default: return ['0000-01-01', hojeStr];
+    }
+  })();
+  const dentroPeriodo = (dataISO: string | undefined | null) => {
+    if (!dataISO) return false;
+    const d = dataISO.slice(0, 10);
+    return d >= periodoInicio && d <= periodoFim;
+  };
+  const PERIODO_LABEL: Record<Periodo, string> = {
+    hoje: 'hoje', '7d': 'últimos 7 dias', '30d': 'últimos 30 dias', mes: 'este mês', ano: 'este ano', tudo: 'todo o período', custom: 'período selecionado',
+  };
+
+  const cadastrosPeriodo = cadastros.filter(c => dentroPeriodo(c.created_at));
+  const totalPacientesPeriodo = indicacoes.filter(i => i.tipo !== 'medico' && dentroPeriodo(i.created_at)).length;
+  const total = cadastrosPeriodo.length;
+  const aprovados = cadastrosPeriodo.filter(c => c.status === 'aprovado').length;
+  const pendentes = cadastrosPeriodo.filter(c => c.status === 'pendente').length;
+  const emAnalise = cadastrosPeriodo.filter(c => c.status === 'em_analise').length;
+
+  const pedidosPeriodo = pedidos.filter(p => dentroPeriodo(p.created_at));
+  const totalPedidos = pedidosPeriodo.length;
+  const valorTotalPedidos = pedidosPeriodo.reduce((s, p) => s + p.preco, 0);
+  const pedidosVendidos = pedidosPeriodo.filter(p => p.status === 'pago').length;
   const pedidosPagos = pedidos.filter(p => p.status === 'pago');
-  const valorVendido = pedidosPagos.reduce((s, p) => s + p.preco, 0);
+  const pedidosPagosPeriodo = pedidosPeriodo.filter(p => p.status === 'pago');
+  const valorVendido = pedidosPagosPeriodo.reduce((s, p) => s + p.preco, 0);
 
   // ---- Visao do negocio: faturamento, financeiro, comissoes, estoque ----
   const hoje30 = new Date();
@@ -104,20 +147,26 @@ export function DashboardOverview({
     return [new Date(dia + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }), Math.round(totalDia)];
   });
 
-  const totalEntradas = despesas.filter(d => d.tipo === 'entrada').reduce((s, d) => s + d.valor, 0);
-  const totalSaidas = despesas.filter(d => d.tipo === 'saida').reduce((s, d) => s + d.valor, 0);
+  const despesasPeriodo = despesas.filter(d => dentroPeriodo(d.data));
+  const totalEntradas = despesasPeriodo.filter(d => d.tipo === 'entrada').reduce((s, d) => s + d.valor, 0);
+  const totalSaidas = despesasPeriodo.filter(d => d.tipo === 'saida').reduce((s, d) => s + d.valor, 0);
   const saldo = totalEntradas - totalSaidas;
 
   // Comissão vem de duas origens: indicação de paciente (Indicacao) e médico
   // que indicou outro médico (Cadastro.indicado_por_medico_id) — precisa
   // somar as duas, senão o cashback de médico-para-médico some do painel.
-  const comissoesPagas = indicacoes.filter(i => i.comissao_paga);
-  const cadastrosComComissaoPaga = cadastros.filter(c => c.indicado_por_medico_id && c.comissao_paga);
+  // A data que conta pro período é a da despesa lançada (mesmo critério do
+  // relatório de Comissões Atribuídas), com created_at como reserva.
+  const despesaPorId = new Map(despesas.map(d => [d.id, d]));
+  const dataComissao = (comissaoDespesaId: string | null | undefined, criadoEm: string) =>
+    (comissaoDespesaId && despesaPorId.get(comissaoDespesaId)?.data) || criadoEm;
+  const comissoesPagas = indicacoes.filter(i => i.comissao_paga && dentroPeriodo(dataComissao(i.comissao_despesa_id, i.created_at)));
+  const cadastrosComComissaoPaga = cadastros.filter(c => c.indicado_por_medico_id && c.comissao_paga && dentroPeriodo(dataComissao(c.comissao_despesa_id, c.created_at)));
   const totalComissoesPagas = comissoesPagas.reduce((s, i) => s + (i.comissao_valor || 0), 0)
     + cadastrosComComissaoPaga.reduce((s, c) => s + (c.comissao_valor || 0), 0);
-  const cadastrosComPedidoProprioPago = new Set(pedidosPagos.filter(p => !p.indicacao_id && p.cadastro_id).map(p => p.cadastro_id));
-  const comissoesPendentes = indicacoes.filter(i => !i.comissao_paga && (i.status === 'pago' || i.status === 'convertido')).length
-    + cadastros.filter(c => c.indicado_por_medico_id && !c.comissao_paga && cadastrosComPedidoProprioPago.has(c.id)).length;
+  const cadastrosComPedidoProprioPago = new Set(pedidosPagosPeriodo.filter(p => !p.indicacao_id && p.cadastro_id).map(p => p.cadastro_id));
+  const comissoesPendentes = indicacoes.filter(i => dentroPeriodo(i.created_at) && !i.comissao_paga && (i.status === 'pago' || i.status === 'convertido')).length
+    + cadastros.filter(c => dentroPeriodo(c.created_at) && c.indicado_por_medico_id && !c.comissao_paga && cadastrosComPedidoProprioPago.has(c.id)).length;
 
   const vendidoPorNome = new Map<string, number>();
   pedidosPagos.forEach(p => {
@@ -134,7 +183,7 @@ export function DashboardOverview({
   const estoqueEsgotadoCount = estoqueLinhas.filter(l => l.status === 'esgotado').length;
 
   const porMedico = new Map<string, { nome: string; total: number }>();
-  pedidosPagos.forEach(p => {
+  pedidosPagosPeriodo.forEach(p => {
     const key = p.cadastro_id || p.cadastro_nome;
     const cur = porMedico.get(key) || { nome: p.cadastro_nome, total: 0 };
     cur.total += p.preco;
@@ -142,14 +191,14 @@ export function DashboardOverview({
   });
   const topMedicos = [...porMedico.values()].sort((a, b) => b.total - a.total).slice(0, 5);
 
-  const comData = cadastros.filter(c => c.status === 'aprovado' && c.updated_at);
+  const comData = cadastrosPeriodo.filter(c => c.status === 'aprovado' && c.updated_at);
   const tempoMedio = comData.length > 0
     ? (comData.reduce((acc, c) => acc + (new Date(c.updated_at!).getTime() - new Date(c.created_at).getTime()) / 1000 / 60 / 60, 0) / comData.length)
     : null;
   const tempoLabel = tempoMedio === null ? '—' : tempoMedio < 24 ? `${tempoMedio.toFixed(0)}h` : `${(tempoMedio / 24).toFixed(1)}d`;
 
   const origens: Record<string, number> = {};
-  cadastros.forEach(c => { const o = c.onde_conheceu || 'Não informado'; origens[o] = (origens[o] || 0) + 1; });
+  cadastrosPeriodo.forEach(c => { const o = c.onde_conheceu || 'Não informado'; origens[o] = (origens[o] || 0) + 1; });
   const origensSort = Object.entries(origens).sort((a, b) => b[1] - a[1]).slice(0, 6);
 
   const ultimos30 = (() => {
@@ -218,10 +267,37 @@ export function DashboardOverview({
         </div>
       </div>
 
+      {/* Filtro de período — afeta faturamento, financeiro, comissões, leads
+          e pedidos em todo o dashboard. O que é "agora"/cumulativo (online
+          na loja, estoque, e-mails, cliques, views) fica de fora, e os
+          gráficos de 30 dias continuam sendo uma janela fixa. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-soft, #9ca3af)', textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 2 }}>Período:</span>
+        {([['hoje', 'Hoje'], ['7d', '7 dias'], ['30d', '30 dias'], ['mes', 'Este mês'], ['ano', 'Este ano'], ['tudo', 'Tudo'], ['custom', 'Personalizado']] as [Periodo, string][]).map(([val, label]) => (
+          <button key={val} onClick={() => setPeriodo(val)}
+            style={{
+              background: periodo === val ? 'var(--btn-primary-bg)' : 'var(--surface-hover)', color: periodo === val ? 'var(--btn-primary-text)' : 'var(--text-secondary, #374151)',
+              border: `1px solid ${periodo === val ? 'var(--btn-primary-bg)' : 'var(--border)'}`, padding: '5px 12px', borderRadius: 20, cursor: 'pointer',
+              fontWeight: periodo === val ? 700 : 500, fontFamily: 'inherit', fontSize: 12.5,
+            }}>
+            {label}
+          </button>
+        ))}
+        {periodo === 'custom' && (
+          <>
+            <input type="date" value={customDe} onChange={e => setCustomDe(e.target.value)}
+              style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12.5, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' }} />
+            <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>até</span>
+            <input type="date" value={customAte} onChange={e => setCustomAte(e.target.value)}
+              style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12.5, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' }} />
+          </>
+        )}
+      </div>
+
       {/* ==== Visao do Negocio: faturamento, financeiro, comissoes, estoque ==== */}
       {mostrarVisaoNegocio && (
       <div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Visão do Negócio</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Visão do Negócio <span style={{ fontWeight: 400, color: 'var(--text-muted, #6b7280)', fontSize: 12.5 }}>— {PERIODO_LABEL[periodo]}</span></div>
         <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 20 }}>
           <KpiCard size={22} label="Faturamento Total" value={`R$ ${valorVendido.toFixed(2)}`} />
           <KpiCard size={22} label="Faturamento (30D)" value={`R$ ${faturamento30d.toFixed(2)}`} />
@@ -263,11 +339,14 @@ export function DashboardOverview({
       </div>
       )}
 
-      {/* Total / Médicos / Pacientes */}
+      {/* Total / Médicos / Pacientes — "Novos no período" pra ficar consistente
+          com o resto do dashboard (totalPacientes vem pronto do backend sem
+          filtro, então recalcula aqui em cima de indicacoes pra respeitar o
+          período escolhido). */}
       <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
-        <KpiCard size={32} label="Total" value={total + totalPacientes} />
-        <KpiCard size={32} label="Médicos" value={total} />
-        <KpiCard size={32} label="Pacientes" value={totalPacientes} />
+        <KpiCard size={32} label="Total" value={total + totalPacientesPeriodo} sub={PERIODO_LABEL[periodo]} />
+        <KpiCard size={32} label="Médicos" value={total} sub={PERIODO_LABEL[periodo]} />
+        <KpiCard size={32} label="Pacientes" value={totalPacientesPeriodo} sub={PERIODO_LABEL[periodo]} />
       </div>
 
       {/* KPIs */}
@@ -412,7 +491,7 @@ export function DashboardOverview({
       </div>
 
       {/* Pedidos recentes */}
-      {pedidos.length > 0 && (
+      {pedidosPeriodo.length > 0 && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
           <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>
             Pedidos Recentes
@@ -427,7 +506,7 @@ export function DashboardOverview({
               </tr>
             </thead>
             <tbody>
-              {pedidos.slice(0, 10).map(p => {
+              {pedidosPeriodo.slice(0, 10).map(p => {
                 const cc = PIPELINE_STATUS_COLOR[p.status] || { bg: 'var(--surface-hover)', text: 'var(--text-secondary, #374151)' };
                 return (
                   <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
@@ -468,7 +547,7 @@ export function DashboardOverview({
             </tr>
           </thead>
           <tbody>
-            {cadastros.slice(0, 8).map(c => {
+            {cadastrosPeriodo.slice(0, 8).map(c => {
               const sc: Record<string, { bg: string; text: string }> = {
                 pendente: { bg: 'var(--surface-hover)', text: 'var(--text-secondary, #374151)' }, aprovado: { bg: '#dcfce7', text: '#15803d' },
                 rejeitado: { bg: '#fef2f2', text: '#dc2626' }, em_analise: { bg: 'var(--surface-hover)', text: 'var(--text-secondary, #374151)' },
