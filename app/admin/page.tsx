@@ -15,6 +15,10 @@ type Cadastro = {
   cidade?: string | null; estado?: string | null; especialidade?: string | null; cpf?: string | null;
   produtos_interesse?: string[];
   funil_status?: string; motivo_perda?: string | null;
+  indicado_por_medico_id?: string | null; indicado_por_medico_nome?: string | null;
+  rg?: string | null; documentos?: string[];
+  comissao_valor?: number | null; comissao_paga?: boolean; comissao_despesa_id?: string | null;
+  categoria?: 'normal' | 'cortesia';
 };
 type Produto = {
   id: string; nome: string; dose: string; preco: number;
@@ -40,7 +44,14 @@ type Artigo = { id: string; titulo: string; conteudo: string; imagem?: string; v
 type Membro = { id: string; nome: string; email: string; cargo: string; ativo: boolean; created_at: string; senha?: string; token_acesso?: string; last_seen?: string | null; };
 type PedidoItem = { nome: string; preco: number; quantidade: number };
 type Pedido = { id: string; cadastro_id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string; indicacao_id?: string | null; paciente_nome?: string; produto_nome: string; preco: number; itens?: PedidoItem[]; vendedor_id?: string; status: string; obs?: string; created_at: string; };
-type Indicacao = { id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string; status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string; comissao_valor?: number | null; comissao_paga?: boolean; comissao_despesa_id?: string | null; };
+type Indicacao = {
+  id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string;
+  status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string;
+  comissao_valor?: number | null; comissao_paga?: boolean; comissao_despesa_id?: string | null;
+  cpf?: string | null; rg?: string | null; cidade?: string | null; estado?: string | null;
+  receita?: string | null; documentos?: string[]; comprovante_pagamento?: string | null;
+  desconto?: number; categoria?: 'normal' | 'cortesia';
+};
 type Despesa = { id: string; tipo: 'entrada' | 'saida'; categoria: string; descricao: string; valor: number; data: string; comprovante_url?: string; created_at: string; updated_at?: string; };
 
 // Status compartilhado entre Pedidos e Indicações de pacientes (mesmo pipeline de venda).
@@ -97,48 +108,6 @@ const FUNIL_COLOR_FIXO: Record<string, string> = {
   interessado: '#374151', link_pix_enviado: '#111827', cliente: '#16a34a', perdido: '#dc2626',
 };
 const MOTIVOS_PERDA = ['Sem dinheiro', 'Adiou para depois', 'Escolheu concorrente', 'Não respondeu', 'Sem tempo', 'Desistiu', 'Outro'];
-
-function ToggleListaKanban({ kanban, onChange }: { kanban: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <div style={{ display: 'inline-flex', background: 'var(--surface-hover)', borderRadius: 8, padding: 3, gap: 2 }}>
-      {[['Lista', false], ['Kanban', true]].map(([label, val]) => (
-        <button key={label as string} type="button" onClick={() => onChange(val as boolean)}
-          style={{ padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', background: kanban === val ? 'var(--btn-primary-bg)' : 'transparent', color: kanban === val ? 'var(--btn-primary-text)' : 'var(--text-muted, #6b7280)' }}>
-          {label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function KanbanBoard({ children }: { children: React.ReactNode }) {
-  return <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, alignItems: 'flex-start' }}>{children}</div>;
-}
-
-function KanbanColuna({ titulo, cor, total, children }: { titulo: string; cor: string; total: number; children: React.ReactNode }) {
-  return (
-    <div style={{ minWidth: 250, maxWidth: 250, flexShrink: 0, background: 'var(--surface-hover)', borderRadius: 12, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 320px)' }}>
-      <div style={{ padding: '11px 14px', borderTop: `3px solid ${cor}`, borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface)', borderRadius: '10px 10px 0 0' }}>
-        <span style={{ fontSize: 12, fontWeight: 800, color: cor }}>{titulo}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', padding: '1px 8px', borderRadius: 10 }}>{total}</span>
-      </div>
-      <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto', flex: 1 }}>
-        {total === 0
-          ? <div style={{ padding: '20px 8px', textAlign: 'center', color: 'var(--text-soft, #9ca3af)', fontSize: 12 }}>Vazio</div>
-          : children}
-      </div>
-    </div>
-  );
-}
-
-function KanbanCard({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
-  return (
-    <div onClick={onClick}
-      style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 10, boxShadow: '0 1px 2px rgba(0,0,0,0.04)', cursor: onClick ? 'pointer' : 'default' }}>
-      {children}
-    </div>
-  );
-}
 
 function ComissaoWidget({ id, comissaoValor, comissaoPaga, mostrar, totalBase, promptId, setPromptId, input, setInput, onConfirmar }: {
   id: string; comissaoValor?: number | null; comissaoPaga?: boolean; mostrar: boolean; totalBase: number;
@@ -289,7 +258,7 @@ export default function AdminPage() {
   const [logado, setLogado] = useState(false);
   const [adminNome, setAdminNome] = useState('');
   const [isSuperadmin, setIsSuperadmin] = useState(false);
-  const [aba, setAba] = useState<'leads' | 'clientes' | 'produtos' | 'banners' | 'blog' | 'despesas' | 'equipe' | 'indicacoes' | 'indicacoes-medicas' | 'pedidos' | 'config' | 'dashboard' | 'logs' | 'mentoria' | 'carrinho' | 'rastreio' | 'relatorios' | 'estoque'>('dashboard');
+  const [aba, setAba] = useState<'leads' | 'clientes' | 'produtos' | 'banners' | 'blog' | 'despesas' | 'equipe' | 'config' | 'dashboard' | 'logs' | 'mentoria' | 'carrinho' | 'rastreio' | 'relatorios' | 'estoque'>('dashboard');
   const [msg, setMsg] = useState('');
   const [logs, setLogs] = useState<AdminLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -320,15 +289,34 @@ export default function AdminPage() {
   const [filtroEtiqueta, setFiltroEtiqueta] = useState('todas');
   const [buscaIndicacao, setBuscaIndicacao] = useState('');
   const [novoCadastroTipo, setNovoCadastroTipo] = useState<'escolher' | 'medico' | 'paciente' | null>(null);
-  const [novoMedico, setNovoMedico] = useState({ nome: '', sobrenome: '', email: '', whatsapp: '', endereco: '', crm: '', onde_conheceu: '' });
-  const [novoPaciente, setNovoPaciente] = useState({ medico_id: '', nome: '', sobrenome: '', whatsapp: '', email: '', endereco: '' });
+  const [wizardStep, setWizardStep] = useState(0);
+  const NOVO_MEDICO_INICIAL = {
+    indicado_por_medico_id: '', nome: '', sobrenome: '', email: '', whatsapp: '', endereco: '', crm: '', onde_conheceu: '',
+    cpf: '', rg: '', cidade: '', estado: '', documentos: [] as string[],
+    produto_id: '', quantidade: '1', desconto: '0', comprovante_pagamento: '', cashback_percentual: '0',
+  };
+  const NOVO_PACIENTE_INICIAL = {
+    medico_id: '', receita: '',
+    nome: '', sobrenome: '', whatsapp: '', email: '', endereco: '', cpf: '', rg: '', cidade: '', estado: '',
+    produto_id: '', quantidade: '1', desconto: '0', comprovante_pagamento: '', documentos: [] as string[], cashback_percentual: '0',
+  };
+  const [novoMedico, setNovoMedico] = useState(NOVO_MEDICO_INICIAL);
+  const [novoPaciente, setNovoPaciente] = useState(NOVO_PACIENTE_INICIAL);
   const [buscaMedicoIndicador, setBuscaMedicoIndicador] = useState('');
   const [salvandoNovoCadastro, setSalvandoNovoCadastro] = useState(false);
+  const [uploadandoWizard, setUploadandoWizard] = useState<string | null>(null);
+
+  // Sequência combinada do wizard interno, per pedido do usuário: quem
+  // indicou → receita (só paciente) → dados gerais → produto/pedido+desconto
+  // → comprovante de pagamento → documentos → cashback %.
+  const PACIENTE_STEPS = ['indicador', 'receita', 'dados', 'produto', 'comprovante', 'documentos', 'cashback'] as const;
+  const MEDICO_STEPS = ['indicador', 'dados', 'produto', 'comprovante', 'documentos', 'cashback'] as const;
 
   const fecharNovoCadastro = () => {
     setNovoCadastroTipo(null);
-    setNovoMedico({ nome: '', sobrenome: '', email: '', whatsapp: '', endereco: '', crm: '', onde_conheceu: '' });
-    setNovoPaciente({ medico_id: '', nome: '', sobrenome: '', whatsapp: '', email: '', endereco: '' });
+    setWizardStep(0);
+    setNovoMedico(NOVO_MEDICO_INICIAL);
+    setNovoPaciente(NOVO_PACIENTE_INICIAL);
     setBuscaMedicoIndicador('');
   };
 
@@ -340,7 +328,7 @@ export default function AdminPage() {
       body: JSON.stringify(novoMedico),
     });
     setSalvandoNovoCadastro(false);
-    if (r.ok) { showMsg('OK: Médico cadastrado!'); fecharNovoCadastro(); carregarCadastros(); }
+    if (r.ok) { showMsg('OK: Médico cadastrado!'); fecharNovoCadastro(); carregarCadastros(); carregarPedidos(); carregarDespesas(); }
     else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao cadastrar médico')); }
   };
 
@@ -348,16 +336,27 @@ export default function AdminPage() {
     e.preventDefault();
     if (!novoPaciente.medico_id) { showMsg('R Busque o médico indicador e clique no nome dele na lista antes de cadastrar'); return; }
     setSalvandoNovoCadastro(true);
-    const r = await fetch('/api/admin/indicacoes', {
+    const r = await fetch('/api/admin/pacientes/completo', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
       body: JSON.stringify(novoPaciente),
     });
     setSalvandoNovoCadastro(false);
-    if (r.ok) { showMsg('OK: Paciente cadastrado!'); fecharNovoCadastro(); carregarIndicacoes(); }
+    if (r.ok) { showMsg('OK: Paciente cadastrado!'); fecharNovoCadastro(); carregarIndicacoes(); carregarPedidos(); carregarDespesas(); }
     else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao cadastrar paciente')); }
   };
+
+  const uploadWizardFile = async (field: string, file: File, onUrl: (url: string) => void) => {
+    setUploadandoWizard(field);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await fetch('/api/admin/upload', { method: 'POST', headers: { 'x-admin-key': getKey() }, body: fd });
+      const d = await r.json();
+      if (r.ok) { onUrl(d.url); showMsg('OK: Arquivo anexado!'); }
+      else showMsg('R ' + (d.error || 'Erro ao enviar arquivo'));
+    } finally { setUploadandoWizard(null); }
+  };
   const [filtroIndicacao, setFiltroIndicacao] = useState('todos');
-  const [filtroPedido, setFiltroPedido] = useState('todos');
   const [novoPedidoAberto, setNovoPedidoAberto] = useState(false);
   const [novoPedidoTipoCliente, setNovoPedidoTipoCliente] = useState<'medico' | 'paciente'>('medico');
   const [novoPedidoMedicoId, setNovoPedidoMedicoId] = useState('');
@@ -395,9 +394,10 @@ export default function AdminPage() {
     if (r.ok) { showMsg('OK: Pedido criado!'); fecharNovoPedido(); carregarPedidos(); }
     else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao criar pedido')); }
   };
-  const [verLeadsKanban, setVerLeadsKanban] = useState(true);
-  const [verIndicacoesKanban, setVerIndicacoesKanban] = useState(true);
-  const [verIndicacoesMedicasKanban, setVerIndicacoesMedicasKanban] = useState(true);
+  // Pivot: cadastro unificado — a aba "C. Médicos" alterna entre a lista de
+  // médicos (Cadastro) e a de pacientes (Indicacao), absorvendo as antigas
+  // abas "Indicações" e "Indicações Médicas".
+  const [tipoCadastroView, setTipoCadastroView] = useState<'medico' | 'paciente'>('medico');
 
   const [buscaRastreio, setBuscaRastreio] = useState('');
   const [rastreioSelecionado, setRastreioSelecionado] = useState<{ id: string; nome: string; whatsapp: string; tipo: 'medico' | 'paciente' } | null>(null);
@@ -752,15 +752,14 @@ export default function AdminPage() {
     if (a === 'banners') carregarBanners();
     if (a === 'blog') { carregarArtigos(); carregarCategoriasBlog(); carregarBannersBlog(); }
     if (a === 'equipe') carregarEquipe();
-    if (a === 'indicacoes' || a === 'indicacoes-medicas') { carregarIndicacoes(); if (pedidos.length === 0) carregarPedidos(); }
-    if (a === 'pedidos') { carregarPedidos(); if (produtos.length === 0) carregarProdutos(); if (cadastros.length === 0) carregarCadastros(); if (indicacoes.length === 0) carregarIndicacoes(); }
     if (a === 'dashboard') { carregarCadastros(); carregarEquipe(); carregarPedidos(); carregarIndicacoes(); carregarDespesas(); if (produtos.length === 0) carregarProdutos(); }
     if (a === 'leads') {
-      if (indicacoes.length === 0) carregarIndicacoes();
+      carregarIndicacoes();
+      carregarPedidos();
       if (equipe.length === 0) carregarEquipe();
       if (produtos.length === 0) carregarProdutos();
     }
-    if (a === 'clientes') { carregarPedidos(); if (equipe.length === 0) carregarEquipe(); }
+    if (a === 'clientes') { carregarPedidos(); if (equipe.length === 0) carregarEquipe(); if (indicacoes.length === 0) carregarIndicacoes(); if (cadastros.length === 0) carregarCadastros(); }
     if (a === 'logs') carregarLogs();
     if (a === 'mentoria') carregarMentoriaCliques();
     if (a === 'despesas') { carregarDespesas(); carregarCategoriasFinanceiras(); }
@@ -1249,9 +1248,6 @@ export default function AdminPage() {
           {navItem('blog', '~', 'Blog')}
           {navItem('despesas', '&', 'Financeiro')}
           {navItem('equipe', '@', 'Equipe')}
-          {navItem('indicacoes', '>', 'Indicações')}
-          {navItem('indicacoes-medicas', '+', 'Indicações Médicas')}
-          {navItem('pedidos', '$', 'Pedidos')}
           {navItem('relatorios', 'i', 'Relatórios')}
           {navItem('config', '=', 'Config')}
           {navItem('mentoria', '%', 'Mentoria')}
@@ -1302,6 +1298,19 @@ export default function AdminPage() {
                 ))}
               </div>
 
+              {/* Alternador Médicos / Pacientes — absorve as antigas abas
+                  "Indicações" e "Indicações Médicas" nesta mesma tela */}
+              <div style={{ display: 'inline-flex', background: 'var(--surface-hover)', borderRadius: 8, padding: 3, gap: 2, marginBottom: 20 }}>
+                {(['medico', 'paciente'] as const).map(t => (
+                  <button key={t} type="button" onClick={() => setTipoCadastroView(t)}
+                    style={{ padding: '7px 18px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', background: tipoCadastroView === t ? 'var(--btn-primary-bg)' : 'transparent', color: tipoCadastroView === t ? 'var(--btn-primary-text)' : 'var(--text-muted, #6b7280)' }}>
+                    {t === 'medico' ? `Médicos (${counts.todos})` : `Pacientes (${totalPacientes})`}
+                  </button>
+                ))}
+              </div>
+
+              {tipoCadastroView === 'medico' && (
+              <>
               {/* Stats médicos */}
               <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 24 }}>
                 {[
@@ -1352,93 +1361,13 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {/* Busca + alternador de visualização */}
+              {/* Busca */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
                 <input value={buscaLead} onChange={e => setBuscaLead(e.target.value)}
                   placeholder="Buscar médico por nome, e-mail, WhatsApp ou CRM..."
                   style={{ ...inputStyle, maxWidth: 420, marginBottom: 0 }} />
-                <ToggleListaKanban kanban={verLeadsKanban} onChange={setVerLeadsKanban} />
               </div>
 
-              {verLeadsKanban ? (
-                <>
-                <datalist id="produtos-catalogo-kanban">
-                  {produtos.map(p => <option key={p.id} value={p.nome} />)}
-                </datalist>
-                <KanbanBoard>
-                  {FUNIL_ETAPAS.map(etapa => {
-                    const itens = filtrados.filter(c => (c.funil_status || 'novo') === etapa);
-                    return (
-                      <KanbanColuna key={etapa} titulo={FUNIL_LABEL[etapa]} cor={FUNIL_COLOR[etapa]} total={itens.length}>
-                        {itens.map(c => (
-                          <KanbanCard key={c.id} onClick={() => { setEditandoLead(c); setNovoProdutoInteresseInput(''); }}>
-                            <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>{c.nome} {c.sobrenome}</div>
-                            <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none' }}>{c.whatsapp}</a>
-                            <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 5, alignItems: 'center' }}>
-                              {(c.produtos_interesse || []).map(p => (
-                                <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 700, background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', padding: '1px 6px', borderRadius: 10 }}>
-                                  {p}
-                                  <button onClick={() => atualizarProdutosInteresseLead(c.id, (c.produtos_interesse || []).filter(x => x !== p))}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary, #374151)', fontSize: 11, lineHeight: 1, padding: 0, fontWeight: 900 }}>×</button>
-                                </span>
-                              ))}
-                              {editandoProdutoCardId === c.id ? (
-                                <input autoFocus value={novoProdutoCardInput} onChange={e => setNovoProdutoCardInput(e.target.value)}
-                                  list="produtos-catalogo-kanban"
-                                  onBlur={() => { setEditandoProdutoCardId(null); setNovoProdutoCardInput(''); }}
-                                  onKeyDown={e => {
-                                    if (e.key === 'Enter') {
-                                      const v = novoProdutoCardInput.trim();
-                                      if (v && !(c.produtos_interesse || []).includes(v)) atualizarProdutosInteresseLead(c.id, [...(c.produtos_interesse || []), v]);
-                                      setNovoProdutoCardInput(''); setEditandoProdutoCardId(null);
-                                    } else if (e.key === 'Escape') { setNovoProdutoCardInput(''); setEditandoProdutoCardId(null); }
-                                  }}
-                                  placeholder="produto..." style={{ width: 70, border: '1px solid var(--border)', borderRadius: 10, padding: '1px 6px', fontSize: 9.5, fontFamily: 'inherit' }} />
-                              ) : (
-                                <button onClick={() => setEditandoProdutoCardId(c.id)}
-                                  style={{ background: 'var(--surface-hover)', color: 'var(--text-muted, #6b7280)', border: '1px dashed var(--border)', padding: '1px 6px', borderRadius: 10, fontSize: 9.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                                  + produto
-                                </button>
-                              )}
-                            </div>
-                            {(c.tags || []).length > 0 && (
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
-                                {(c.tags || []).map(t => {
-                                  const cor = corDaEtiqueta(t);
-                                  return <span key={t} style={{ fontSize: 9.5, fontWeight: 700, background: `${cor}1a`, color: cor, padding: '1px 6px', borderRadius: 10 }}>{t}</span>;
-                                })}
-                              </div>
-                            )}
-                            <div style={{ fontSize: 10.5, color: 'var(--text-soft, #9ca3af)', marginTop: 5 }}>{equipe.find(m => m.id === c.vendedor_id)?.nome || 'Sem consultor'}</div>
-                            <div onClick={e => e.stopPropagation()}>
-                              <select value={etapa} onChange={e => {
-                                  const v = e.target.value;
-                                  if (v === 'perdido') { setPerdaPromptId(c.id); setMotivoPerdaInput(''); }
-                                  else atualizarFunilLead(c.id, v);
-                                }}
-                                style={{ width: '100%', marginTop: 7, border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
-                                {FUNIL_ETAPAS.map(e => <option key={e} value={e}>{FUNIL_LABEL[e]}</option>)}
-                              </select>
-                              {perdaPromptId === c.id && (
-                                <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
-                                  <select autoFocus value={motivoPerdaInput} onChange={e => setMotivoPerdaInput(e.target.value)}
-                                    style={{ flex: 1, border: '1px solid var(--border)', borderRadius: 6, padding: '3px 4px', fontSize: 10.5, fontFamily: 'inherit' }}>
-                                    <option value="">Motivo...</option>
-                                    {MOTIVOS_PERDA.map(m => <option key={m} value={m}>{m}</option>)}
-                                  </select>
-                                  <button onClick={() => { atualizarFunilLead(c.id, 'perdido', motivoPerdaInput); setPerdaPromptId(null); setMotivoPerdaInput(''); }}
-                                    style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 7px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
-                                </div>
-                              )}
-                            </div>
-                          </KanbanCard>
-                        ))}
-                      </KanbanColuna>
-                    );
-                  })}
-                </KanbanBoard>
-                </>
-              ) : (
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                 {loadingLeads ? (
                   <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
@@ -1449,7 +1378,7 @@ export default function AdminPage() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
-                          {['Nome','Sobrenome','E-mail','WhatsApp','CRM','Onde Conheceu','Etiquetas','Endereço','Status','Funil','Consultor','Data','Ações'].map(h => (
+                          {['Nome','Sobrenome','E-mail','WhatsApp','CRM','Indicado por','Onde Conheceu','Etiquetas','Endereço','Status','Funil','Consultor','Data','Ações'].map(h => (
                             <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'var(--surface-hover)', zIndex: 1 }}>{h}</th>
                           ))}
                         </tr>
@@ -1474,6 +1403,7 @@ export default function AdminPage() {
                               <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: whatsDup ? 'var(--text-secondary, #374151)' : '#16a34a', textDecoration: 'none', fontWeight: whatsDup ? 700 : 400 }}>{c.whatsapp}</a>
                             </td>
                             <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{c.crm || '-'}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{c.indicado_por_medico_nome || '-'}</td>
                             <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{c.onde_conheceu || '-'}</td>
                             <td style={{ padding: '11px 14px', minWidth: 160 }} onClick={e => e.stopPropagation()}>
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
@@ -1589,6 +1519,13 @@ export default function AdminPage() {
                                   title="Editar dados do cadastro">
                                   Editar
                                 </button>
+                                {c.status === 'aprovado' && (
+                                  <button onClick={() => { setNovoPedidoTipoCliente('medico'); setNovoPedidoMedicoId(c.id); setBuscaMedicoPedido(''); setNovoPedidoAberto(true); }}
+                                    style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}
+                                    title="Lançar um novo pedido para este médico">
+                                    + Pedido
+                                  </button>
+                                )}
                                 {c.whatsapp && (
                                   <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
                                     style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
@@ -1612,7 +1549,147 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
+              </>
               )}
+
+              {tipoCadastroView === 'paciente' && (() => {
+                const indicacoesPacientes = indicacoes.filter(i => i.tipo !== 'medico');
+                const porFiltro = filtroIndicacao === 'todos' ? indicacoesPacientes : indicacoesPacientes.filter(i => i.status === filtroIndicacao);
+                const q = buscaIndicacao.trim().toLowerCase();
+                const indicacoesFiltradas = !q ? porFiltro : porFiltro.filter(i =>
+                  `${i.medico_nome} ${i.nome} ${i.sobrenome} ${i.email || ''}`.toLowerCase().includes(q));
+                const comComissao = indicacoesPacientes.filter(i => i.comissao_paga);
+                const totalComissoes = comComissao.reduce((s, i) => s + (i.comissao_valor || 0), 0);
+                const pendencias = (i: Indicacao) => {
+                  const faltando: string[] = [];
+                  if (!i.receita) faltando.push('Receita');
+                  if (!i.comprovante_pagamento) faltando.push('Comprovante');
+                  if (!(i.documentos || []).length) faltando.push('Documentos');
+                  return faltando;
+                };
+                return (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+                      <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
+                        placeholder="Buscar por médico indicador ou paciente indicado..."
+                        style={{ ...inputStyle, maxWidth: 420, marginBottom: 0 }} />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                      {(['todos', 'em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(val => {
+                        const corSemantica = val === 'pago' ? '#15803d' : val === 'cancelado' ? '#dc2626' : null;
+                        const label = val === 'todos' ? 'Todos' : PIPELINE_STATUS_LABEL[val];
+                        const n = val === 'todos' ? indicacoesPacientes.length : indicacoesPacientes.filter(i => i.status === val).length;
+                        const ativo = filtroIndicacao === val;
+                        return (
+                          <button key={val} onClick={() => setFiltroIndicacao(val)}
+                            style={{
+                              background: ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--surface)',
+                              color: ativo ? (corSemantica ? '#fff' : 'var(--btn-primary-text)') : 'var(--text-secondary, #374151)',
+                              border: `1px solid ${ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--border)'}`,
+                              padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: ativo ? 700 : 400, fontFamily: 'inherit', fontSize: 13,
+                            }}>
+                            {label} ({n})
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {comComissao.length > 0 && (
+                      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Comissões (Cashback) Pagas</div>
+                          <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {totalComissoes.toFixed(2)}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {loadingIndicacoes ? (
+                      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
+                    ) : indicacoesFiltradas.length === 0 ? (
+                      <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
+                        {indicacoesPacientes.length === 0 ? <>Nenhum paciente cadastrado ainda.</> : <>Nenhum paciente encontrado para essa busca.</>}
+                      </div>
+                    ) : (
+                      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                        <div className="admin-table-scroll">
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
+                              {['Paciente', 'WhatsApp', 'CPF', 'Cidade/UF', 'Médico Indicador', 'Status', 'Pendências', 'Data', 'Ações'].map(h => (
+                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {indicacoesFiltradas.map((i, idx) => {
+                              const falt = pendencias(i);
+                              return (
+                              <tr key={i.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                                <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--text)' }}>{i.nome} {i.sobrenome}</td>
+                                <td style={{ padding: '11px 14px' }}>
+                                  {i.whatsapp && (
+                                    <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                                      style={{ color: '#128C46', textDecoration: 'none', fontWeight: 600 }}>{i.whatsapp}</a>
+                                  )}
+                                </td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{i.cpf || '-'}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{i.cidade ? `${i.cidade}/${i.estado || ''}` : '-'}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 700 }}>{i.medico_nome}</td>
+                                <td style={{ padding: '11px 14px' }}>
+                                  <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
+                                    style={{ background: (PIPELINE_STATUS_COLOR[i.status] || { bg: 'var(--surface)' }).bg, color: (PIPELINE_STATUS_COLOR[i.status] || { text: 'var(--text)' }).text, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                    <option value="em_atendimento">Em Atendimento</option>
+                                    <option value="negociacao">Negociação</option>
+                                    <option value="pago">Pago</option>
+                                    <option value="cancelado">Cancelado</option>
+                                  </select>
+                                  <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga} totalBase={totalBaseFor(i.id)}
+                                    mostrar={i.status === 'pago'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
+                                    input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
+                                </td>
+                                <td style={{ padding: '11px 14px' }}>
+                                  {falt.length === 0 ? (
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>OK Completo</span>
+                                  ) : (
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626' }} title={falt.join(', ')}>Faltando: {falt.join(', ')}</span>
+                                  )}
+                                </td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
+                                  {new Date(i.created_at).toLocaleDateString('pt-BR')}
+                                </td>
+                                <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                  <div style={{ display: 'flex', gap: 6 }}>
+                                    <button onClick={() => { setNovoPedidoTipoCliente('paciente'); setNovoPedidoIndicacaoId(i.id); setBuscaPacientePedido(''); setNovoPedidoAberto(true); }}
+                                      style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}
+                                      title="Lançar um novo pedido para este paciente">
+                                      + Pedido
+                                    </button>
+                                    {i.whatsapp && (
+                                      <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                                        style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
+                                        WhatsApp
+                                      </a>
+                                    )}
+                                    {isSuperadmin && (
+                                      <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
+                                        style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
+                                        Excluir
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Modal: editar cadastro */}
               {editandoLead && (
@@ -1759,11 +1836,11 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {/* Modal: novo cadastro (médico ou paciente) */}
+              {/* Modal: novo cadastro (médico ou paciente) — wizard multi-etapa */}
               {novoCadastroTipo && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 700, overflowY: 'auto', padding: '24px 16px' }}>
                   <div onClick={fecharNovoCadastro} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
-                  <div style={{ position: 'relative', maxWidth: 520, margin: '0 auto', background: 'var(--surface)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
+                  <div style={{ position: 'relative', maxWidth: 560, margin: '0 auto', background: 'var(--surface)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
                     <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text)' }}>
                         {novoCadastroTipo === 'escolher' ? 'Cadastro Novo' : novoCadastroTipo === 'medico' ? 'Cadastrar Médico' : 'Cadastrar Paciente'}
@@ -1773,7 +1850,7 @@ export default function AdminPage() {
 
                     {novoCadastroTipo === 'escolher' && (
                       <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        <button onClick={() => setNovoCadastroTipo('medico')}
+                        <button onClick={() => { setNovoCadastroTipo('medico'); setWizardStep(0); }}
                           style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
                           <span style={{ fontSize: 24 }}>🩺</span>
                           <span>
@@ -1781,7 +1858,7 @@ export default function AdminPage() {
                             <div style={{ color: 'var(--text-muted, #6b7280)', fontSize: 12, marginTop: 2 }}>Registrar um novo profissional diretamente</div>
                           </span>
                         </button>
-                        <button onClick={() => setNovoCadastroTipo('paciente')}
+                        <button onClick={() => { setNovoCadastroTipo('paciente'); setWizardStep(0); }}
                           style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
                           <span style={{ fontSize: 24 }}>🧑</span>
                           <span>
@@ -1792,123 +1869,370 @@ export default function AdminPage() {
                       </div>
                     )}
 
-                    {novoCadastroTipo === 'medico' && (
-                      <form onSubmit={criarMedicoManual} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
-                          <div>
-                            <label style={labelStyle}>Nome *</label>
-                            <input value={novoMedico.nome} onChange={e => setNovoMedico(p => ({ ...p, nome: e.target.value }))} required style={inputStyle} />
-                          </div>
-                          <div>
-                            <label style={labelStyle}>Sobrenome</label>
-                            <input value={novoMedico.sobrenome} onChange={e => setNovoMedico(p => ({ ...p, sobrenome: e.target.value }))} style={inputStyle} />
-                          </div>
-                        </div>
-                        <div>
-                          <label style={labelStyle}>E-mail *</label>
-                          <input type="email" value={novoMedico.email} onChange={e => setNovoMedico(p => ({ ...p, email: e.target.value }))} required style={inputStyle} />
-                        </div>
-                        <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
-                          <div>
-                            <label style={labelStyle}>WhatsApp *</label>
-                            <input value={novoMedico.whatsapp} onChange={e => setNovoMedico(p => ({ ...p, whatsapp: e.target.value }))} required style={inputStyle} />
-                          </div>
-                          <div>
-                            <label style={labelStyle}>CRM</label>
-                            <input value={novoMedico.crm} onChange={e => setNovoMedico(p => ({ ...p, crm: e.target.value }))} style={inputStyle} />
-                          </div>
-                        </div>
-                        <div>
-                          <label style={labelStyle}>Endereço</label>
-                          <input value={novoMedico.endereco} onChange={e => setNovoMedico(p => ({ ...p, endereco: e.target.value }))} style={inputStyle} />
-                        </div>
-                        <div>
-                          <label style={labelStyle}>Onde Conheceu</label>
-                          <select value={novoMedico.onde_conheceu} onChange={e => setNovoMedico(p => ({ ...p, onde_conheceu: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
-                            <option value="">Selecione...</option>
-                            {['Convidado pela PeptideZ Health', 'Pós Graduação LR', 'Indicação de Médico', 'Mentoria ICS', 'Blog da PeptideZ Health', 'Outro'].map(o => (
-                              <option key={o} value={o}>{o}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div style={{ display: 'flex', gap: 10 }}>
-                          <button type="button" onClick={() => setNovoCadastroTipo('escolher')} style={{ background: 'var(--surface)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
-                            Voltar
-                          </button>
-                          <button type="submit" disabled={salvandoNovoCadastro} style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoNovoCadastro ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoNovoCadastro ? 0.6 : 1 }}>
-                            {salvandoNovoCadastro ? 'Salvando...' : 'Cadastrar Médico'}
-                          </button>
-                        </div>
-                      </form>
-                    )}
+                    {novoCadastroTipo === 'medico' && (() => {
+                      const steps = MEDICO_STEPS;
+                      const stepKey = steps[wizardStep];
+                      const produtoSel = produtos.find(p => p.id === novoMedico.produto_id);
+                      const precoTotal = produtoSel ? produtoSel.preco * (parseInt(novoMedico.quantidade, 10) || 1) : 0;
+                      const descontoValor = Math.min(Math.max(0, parseFloat(novoMedico.desconto) || 0), precoTotal);
+                      const valorPago = Math.max(0, precoTotal - descontoValor);
+                      const cashbackPct = Math.min(Math.max(0, parseFloat(novoMedico.cashback_percentual) || 0), 100);
+                      const comissaoCalc = valorPago * cashbackPct / 100;
+                      const seraCortesia = precoTotal > 0 && valorPago === 0 && cashbackPct === 0;
+                      const indicador = cadastros.find(c => c.id === novoMedico.indicado_por_medico_id);
+                      const podeAvancar = stepKey === 'dados' ? !!novoMedico.nome.trim() && !!novoMedico.email.trim() && !!novoMedico.whatsapp.trim() : true;
 
-                    {novoCadastroTipo === 'paciente' && (
-                      <form onSubmit={criarPacienteManual} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        <div>
-                          <label style={labelStyle}>Médico Indicador *</label>
-                          {novoPaciente.medico_id ? (
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>
-                                {cadastros.find(c => c.id === novoPaciente.medico_id)?.nome} {cadastros.find(c => c.id === novoPaciente.medico_id)?.sobrenome}
-                              </span>
-                              <button type="button" onClick={() => setNovoPaciente(p => ({ ...p, medico_id: '' }))} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Trocar</button>
-                            </div>
-                          ) : (
-                            <>
-                              <input value={buscaMedicoIndicador} onChange={e => setBuscaMedicoIndicador(e.target.value)}
-                                placeholder="Buscar médico aprovado por nome..." style={inputStyle} />
-                              <div style={{ fontSize: 11, color: 'var(--text-soft, #9ca3af)', marginTop: 4 }}>Clique no nome do médico na lista para selecionar.</div>
-                              {buscaMedicoIndicador.trim().length >= 2 && (
-                                <div style={{ marginTop: 6, border: '1px solid var(--border)', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
-                                  {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoIndicador.trim().toLowerCase())).slice(0, 8).map(c => (
-                                    <div key={c.id} onClick={() => { setNovoPaciente(p => ({ ...p, medico_id: c.id })); setBuscaMedicoIndicador(''); }}
-                                      style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--border)' }}>
-                                      <span style={{ fontWeight: 700, color: 'var(--text)' }}>{c.nome} {c.sobrenome}</span>
-                                      {c.crm && <span style={{ color: 'var(--text-muted, #6b7280)' }}> · {c.crm}</span>}
+                      return (
+                        <form onSubmit={criarMedicoManual} style={{ display: 'flex', flexDirection: 'column' }}>
+                          <div style={{ display: 'flex', gap: 4, padding: '14px 24px 0' }}>
+                            {steps.map((s, i) => <div key={s} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= wizardStep ? 'var(--btn-primary-bg)' : 'var(--surface-hover)' }} />)}
+                          </div>
+                          <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14, minHeight: 240 }}>
+
+                            {stepKey === 'indicador' && (
+                              <div>
+                                <label style={labelStyle}>Quem indicou este médico (opcional)</label>
+                                {novoMedico.indicado_por_medico_id ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>{indicador?.nome} {indicador?.sobrenome}</span>
+                                    <button type="button" onClick={() => setNovoMedico(p => ({ ...p, indicado_por_medico_id: '' }))} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Trocar</button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <input value={buscaMedicoIndicador} onChange={e => setBuscaMedicoIndicador(e.target.value)} placeholder="Buscar médico aprovado por nome..." style={inputStyle} />
+                                    {buscaMedicoIndicador.trim().length >= 2 && (
+                                      <div style={{ marginTop: 6, border: '1px solid var(--border)', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
+                                        {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoIndicador.trim().toLowerCase())).slice(0, 8).map(c => (
+                                          <div key={c.id} onClick={() => { setNovoMedico(p => ({ ...p, indicado_por_medico_id: c.id })); setBuscaMedicoIndicador(''); }} style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--border)' }}>
+                                            <span style={{ fontWeight: 700, color: 'var(--text)' }}>{c.nome} {c.sobrenome}</span>
+                                            {c.crm && <span style={{ color: 'var(--text-muted, #6b7280)' }}> · {c.crm}</span>}
+                                          </div>
+                                        ))}
+                                        {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoIndicador.trim().toLowerCase())).length === 0 && (
+                                          <div style={{ padding: '9px 12px', fontSize: 12, color: 'var(--text-muted, #6b7280)' }}>Nenhum médico aprovado encontrado.</div>
+                                        )}
+                                      </div>
+                                    )}
+                                    <div style={{ fontSize: 11, color: 'var(--text-soft, #9ca3af)', marginTop: 6 }}>Se este médico entrou direto (sem indicação), pode deixar em branco e avançar.</div>
+                                  </>
+                                )}
+                              </div>
+                            )}
+
+                            {stepKey === 'dados' && (
+                              <>
+                                <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>Nome *</label><input value={novoMedico.nome} onChange={e => setNovoMedico(p => ({ ...p, nome: e.target.value }))} required style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>Sobrenome</label><input value={novoMedico.sobrenome} onChange={e => setNovoMedico(p => ({ ...p, sobrenome: e.target.value }))} style={inputStyle} /></div>
+                                </div>
+                                <div><label style={labelStyle}>E-mail *</label><input type="email" value={novoMedico.email} onChange={e => setNovoMedico(p => ({ ...p, email: e.target.value }))} required style={inputStyle} /></div>
+                                <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>WhatsApp *</label><input value={novoMedico.whatsapp} onChange={e => setNovoMedico(p => ({ ...p, whatsapp: e.target.value }))} required style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>CRM</label><input value={novoMedico.crm} onChange={e => setNovoMedico(p => ({ ...p, crm: e.target.value }))} style={inputStyle} /></div>
+                                </div>
+                                <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>CPF</label><input value={novoMedico.cpf} onChange={e => setNovoMedico(p => ({ ...p, cpf: e.target.value }))} style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>RG</label><input value={novoMedico.rg} onChange={e => setNovoMedico(p => ({ ...p, rg: e.target.value }))} style={inputStyle} /></div>
+                                </div>
+                                <div><label style={labelStyle}>Endereço</label><input value={novoMedico.endereco} onChange={e => setNovoMedico(p => ({ ...p, endereco: e.target.value }))} style={inputStyle} /></div>
+                                <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>Cidade</label><input value={novoMedico.cidade} onChange={e => setNovoMedico(p => ({ ...p, cidade: e.target.value }))} style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>Estado (UF)</label><input value={novoMedico.estado} onChange={e => setNovoMedico(p => ({ ...p, estado: e.target.value.toUpperCase().slice(0, 2) }))} maxLength={2} style={inputStyle} /></div>
+                                </div>
+                                <div>
+                                  <label style={labelStyle}>Onde Conheceu</label>
+                                  <select value={novoMedico.onde_conheceu} onChange={e => setNovoMedico(p => ({ ...p, onde_conheceu: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
+                                    <option value="">Selecione...</option>
+                                    {['Convidado pela PeptideZ Health', 'Pós Graduação LR', 'Indicação de Médico', 'Mentoria ICS', 'Blog da PeptideZ Health', 'Outro'].map(o => <option key={o} value={o}>{o}</option>)}
+                                  </select>
+                                </div>
+                              </>
+                            )}
+
+                            {stepKey === 'produto' && (
+                              <>
+                                <div>
+                                  <label style={labelStyle}>Produto (pedido do médico) — opcional</label>
+                                  <select value={novoMedico.produto_id} onChange={e => setNovoMedico(p => ({ ...p, produto_id: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
+                                    <option value="">Nenhum pedido agora</option>
+                                    {produtos.map(p => <option key={p.id} value={p.id}>{p.nome} — R$ {p.preco.toFixed(2)}</option>)}
+                                  </select>
+                                </div>
+                                {novoMedico.produto_id && (
+                                  <>
+                                    <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                      <div><label style={labelStyle}>Quantidade</label><input type="number" min="1" value={novoMedico.quantidade} onChange={e => setNovoMedico(p => ({ ...p, quantidade: e.target.value }))} style={inputStyle} /></div>
+                                      <div><label style={labelStyle}>Desconto (R$)</label><input type="number" min="0" step="0.01" value={novoMedico.desconto} onChange={e => setNovoMedico(p => ({ ...p, desconto: e.target.value }))} style={inputStyle} /></div>
+                                    </div>
+                                    <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
+                                      <span style={{ color: 'var(--text-secondary, #374151)' }}>Valor do pedido</span>
+                                      <span style={{ color: '#16a34a' }}>R$ {valorPago.toFixed(2)}</span>
+                                    </div>
+                                  </>
+                                )}
+                              </>
+                            )}
+
+                            {stepKey === 'comprovante' && (
+                              <div>
+                                <label style={labelStyle}>Comprovante de Pagamento</label>
+                                {!novoMedico.produto_id ? (
+                                  <div style={{ fontSize: 12, color: 'var(--text-soft, #9ca3af)' }}>Sem pedido nesta etapa — não há pagamento a comprovar.</div>
+                                ) : novoMedico.comprovante_pagamento ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
+                                    <a href={novoMedico.comprovante_pagamento} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, color: '#15803d', fontWeight: 700 }}>Ver comprovante anexado</a>
+                                    <button type="button" onClick={() => setNovoMedico(p => ({ ...p, comprovante_pagamento: '' }))} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Remover</button>
+                                  </div>
+                                ) : (
+                                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--surface-hover)', border: '1px dashed var(--border)', borderRadius: 8, padding: '10px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary, #374151)' }}>
+                                    {uploadandoWizard === 'medico-comprovante' ? 'Enviando...' : 'Anexar comprovante'}
+                                    <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadWizardFile('medico-comprovante', f, url => setNovoMedico(p => ({ ...p, comprovante_pagamento: url }))); e.target.value = ''; }} />
+                                  </label>
+                                )}
+                                {!!novoMedico.produto_id && <div style={{ fontSize: 11, color: 'var(--text-soft, #9ca3af)', marginTop: 6 }}>Se anexar agora, o pedido já nasce como Pago e lança a entrada no Financeiro.</div>}
+                              </div>
+                            )}
+
+                            {stepKey === 'documentos' && (
+                              <div>
+                                <label style={labelStyle}>Documentos</label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                  {novoMedico.documentos.map((url, idx) => (
+                                    <div key={url} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-hover)', borderRadius: 8, padding: '7px 12px' }}>
+                                      <a href={url} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, color: 'var(--text-secondary, #374151)' }}>Documento {idx + 1}</a>
+                                      <button type="button" onClick={() => setNovoMedico(p => ({ ...p, documentos: p.documentos.filter((_, i) => i !== idx) }))} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
                                     </div>
                                   ))}
-                                  {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoIndicador.trim().toLowerCase())).length === 0 && (
-                                    <div style={{ padding: '9px 12px', fontSize: 12, color: 'var(--text-muted, #6b7280)' }}>Nenhum médico aprovado encontrado.</div>
-                                  )}
                                 </div>
-                              )}
-                            </>
-                          )}
-                        </div>
-                        <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
-                          <div>
-                            <label style={labelStyle}>Nome *</label>
-                            <input value={novoPaciente.nome} onChange={e => setNovoPaciente(p => ({ ...p, nome: e.target.value }))} required style={inputStyle} />
+                                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, background: 'var(--surface-hover)', border: '1px dashed var(--border)', borderRadius: 8, padding: '10px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary, #374151)' }}>
+                                  {uploadandoWizard === 'medico-documento' ? 'Enviando...' : '+ Anexar documento'}
+                                  <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadWizardFile('medico-documento', f, url => setNovoMedico(p => ({ ...p, documentos: [...p.documentos, url] }))); e.target.value = ''; }} />
+                                </label>
+                              </div>
+                            )}
+
+                            {stepKey === 'cashback' && (
+                              <div>
+                                <label style={labelStyle}>Cashback (%) para {indicador ? `${indicador.nome} ${indicador.sobrenome || ''}`.trim() : '—'}</label>
+                                {!novoMedico.indicado_por_medico_id ? (
+                                  <div style={{ fontSize: 12, color: 'var(--text-soft, #9ca3af)' }}>Sem indicador nesta etapa — não há a quem pagar cashback.</div>
+                                ) : !novoMedico.produto_id ? (
+                                  <div style={{ fontSize: 12, color: 'var(--text-soft, #9ca3af)' }}>Sem pedido nesta etapa — não há base para calcular cashback.</div>
+                                ) : (
+                                  <>
+                                    <input type="number" min="0" max="100" step="0.1" value={novoMedico.cashback_percentual} onChange={e => setNovoMedico(p => ({ ...p, cashback_percentual: e.target.value }))} style={inputStyle} />
+                                    <div style={{ marginTop: 8, fontSize: 12.5, color: '#16a34a', fontWeight: 700 }}>= R$ {comissaoCalc.toFixed(2)}</div>
+                                  </>
+                                )}
+                                {seraCortesia && (
+                                  <div style={{ marginTop: 10, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: '#92400e', fontWeight: 600 }}>
+                                    Sem valor pago e sem cashback — este pedido será registrado como Cortesia.
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <div>
-                            <label style={labelStyle}>Sobrenome</label>
-                            <input value={novoPaciente.sobrenome} onChange={e => setNovoPaciente(p => ({ ...p, sobrenome: e.target.value }))} style={inputStyle} />
+
+                          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10 }}>
+                            <button type="button" onClick={() => wizardStep === 0 ? (setNovoCadastroTipo('escolher')) : setWizardStep(s => s - 1)} style={{ background: 'var(--surface)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                              Voltar
+                            </button>
+                            {wizardStep < steps.length - 1 ? (
+                              <button type="button" disabled={!podeAvancar} onClick={() => setWizardStep(s => s + 1)} style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: podeAvancar ? 'pointer' : 'default', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: podeAvancar ? 1 : 0.5 }}>
+                                Avançar
+                              </button>
+                            ) : (
+                              <button type="submit" disabled={salvandoNovoCadastro} style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoNovoCadastro ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoNovoCadastro ? 0.6 : 1 }}>
+                                {salvandoNovoCadastro ? 'Salvando...' : 'Cadastrar Médico'}
+                              </button>
+                            )}
                           </div>
-                        </div>
-                        <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
-                          <div>
-                            <label style={labelStyle}>WhatsApp *</label>
-                            <input value={novoPaciente.whatsapp} onChange={e => setNovoPaciente(p => ({ ...p, whatsapp: e.target.value }))} required style={inputStyle} />
+                        </form>
+                      );
+                    })()}
+
+                    {novoCadastroTipo === 'paciente' && (() => {
+                      const steps = PACIENTE_STEPS;
+                      const stepKey = steps[wizardStep];
+                      const produtoSel = produtos.find(p => p.id === novoPaciente.produto_id);
+                      const precoTotal = produtoSel ? produtoSel.preco * (parseInt(novoPaciente.quantidade, 10) || 1) : 0;
+                      const descontoValor = Math.min(Math.max(0, parseFloat(novoPaciente.desconto) || 0), precoTotal);
+                      const valorPago = Math.max(0, precoTotal - descontoValor);
+                      const cashbackPct = Math.min(Math.max(0, parseFloat(novoPaciente.cashback_percentual) || 0), 100);
+                      const comissaoCalc = valorPago * cashbackPct / 100;
+                      const seraCortesia = precoTotal > 0 && valorPago === 0 && cashbackPct === 0;
+                      const medicoIndicador = cadastros.find(c => c.id === novoPaciente.medico_id);
+                      const podeAvancar =
+                        stepKey === 'indicador' ? !!novoPaciente.medico_id :
+                        stepKey === 'dados' ? !!novoPaciente.nome.trim() && !!novoPaciente.whatsapp.trim() :
+                        stepKey === 'produto' ? !!novoPaciente.produto_id :
+                        true;
+
+                      return (
+                        <form onSubmit={criarPacienteManual} style={{ display: 'flex', flexDirection: 'column' }}>
+                          <div style={{ display: 'flex', gap: 4, padding: '14px 24px 0' }}>
+                            {steps.map((s, i) => <div key={s} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= wizardStep ? 'var(--btn-primary-bg)' : 'var(--surface-hover)' }} />)}
                           </div>
-                          <div>
-                            <label style={labelStyle}>E-mail</label>
-                            <input type="email" value={novoPaciente.email} onChange={e => setNovoPaciente(p => ({ ...p, email: e.target.value }))} style={inputStyle} />
+                          <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14, minHeight: 240 }}>
+
+                            {stepKey === 'indicador' && (
+                              <div>
+                                <label style={labelStyle}>Quem indicou (médico) *</label>
+                                {novoPaciente.medico_id ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>{medicoIndicador?.nome} {medicoIndicador?.sobrenome}</span>
+                                    <button type="button" onClick={() => setNovoPaciente(p => ({ ...p, medico_id: '' }))} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Trocar</button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <input value={buscaMedicoIndicador} onChange={e => setBuscaMedicoIndicador(e.target.value)} placeholder="Buscar médico aprovado por nome..." style={inputStyle} />
+                                    <div style={{ fontSize: 11, color: 'var(--text-soft, #9ca3af)', marginTop: 4 }}>Clique no nome do médico na lista para selecionar.</div>
+                                    {buscaMedicoIndicador.trim().length >= 2 && (
+                                      <div style={{ marginTop: 6, border: '1px solid var(--border)', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
+                                        {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoIndicador.trim().toLowerCase())).slice(0, 8).map(c => (
+                                          <div key={c.id} onClick={() => { setNovoPaciente(p => ({ ...p, medico_id: c.id })); setBuscaMedicoIndicador(''); }} style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--border)' }}>
+                                            <span style={{ fontWeight: 700, color: 'var(--text)' }}>{c.nome} {c.sobrenome}</span>
+                                            {c.crm && <span style={{ color: 'var(--text-muted, #6b7280)' }}> · {c.crm}</span>}
+                                          </div>
+                                        ))}
+                                        {cadastros.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoIndicador.trim().toLowerCase())).length === 0 && (
+                                          <div style={{ padding: '9px 12px', fontSize: 12, color: 'var(--text-muted, #6b7280)' }}>Nenhum médico aprovado encontrado.</div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            )}
+
+                            {stepKey === 'receita' && (
+                              <div>
+                                <label style={labelStyle}>Receita Médica</label>
+                                {novoPaciente.receita ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
+                                    <a href={novoPaciente.receita} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, color: '#15803d', fontWeight: 700 }}>Ver receita anexada</a>
+                                    <button type="button" onClick={() => setNovoPaciente(p => ({ ...p, receita: '' }))} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Remover</button>
+                                  </div>
+                                ) : (
+                                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--surface-hover)', border: '1px dashed var(--border)', borderRadius: 8, padding: '10px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary, #374151)' }}>
+                                    {uploadandoWizard === 'paciente-receita' ? 'Enviando...' : 'Anexar receita'}
+                                    <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadWizardFile('paciente-receita', f, url => setNovoPaciente(p => ({ ...p, receita: url }))); e.target.value = ''; }} />
+                                  </label>
+                                )}
+                              </div>
+                            )}
+
+                            {stepKey === 'dados' && (
+                              <>
+                                <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>Nome *</label><input value={novoPaciente.nome} onChange={e => setNovoPaciente(p => ({ ...p, nome: e.target.value }))} required style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>Sobrenome</label><input value={novoPaciente.sobrenome} onChange={e => setNovoPaciente(p => ({ ...p, sobrenome: e.target.value }))} style={inputStyle} /></div>
+                                </div>
+                                <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>WhatsApp *</label><input value={novoPaciente.whatsapp} onChange={e => setNovoPaciente(p => ({ ...p, whatsapp: e.target.value }))} required style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>E-mail</label><input type="email" value={novoPaciente.email} onChange={e => setNovoPaciente(p => ({ ...p, email: e.target.value }))} style={inputStyle} /></div>
+                                </div>
+                                <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>CPF</label><input value={novoPaciente.cpf} onChange={e => setNovoPaciente(p => ({ ...p, cpf: e.target.value }))} style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>RG</label><input value={novoPaciente.rg} onChange={e => setNovoPaciente(p => ({ ...p, rg: e.target.value }))} style={inputStyle} /></div>
+                                </div>
+                                <div><label style={labelStyle}>Endereço</label><input value={novoPaciente.endereco} onChange={e => setNovoPaciente(p => ({ ...p, endereco: e.target.value }))} style={inputStyle} /></div>
+                                <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>Cidade</label><input value={novoPaciente.cidade} onChange={e => setNovoPaciente(p => ({ ...p, cidade: e.target.value }))} style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>Estado (UF)</label><input value={novoPaciente.estado} onChange={e => setNovoPaciente(p => ({ ...p, estado: e.target.value.toUpperCase().slice(0, 2) }))} maxLength={2} style={inputStyle} /></div>
+                                </div>
+                              </>
+                            )}
+
+                            {stepKey === 'produto' && (
+                              <>
+                                <div>
+                                  <label style={labelStyle}>Produto (pedido) *</label>
+                                  <select value={novoPaciente.produto_id} onChange={e => setNovoPaciente(p => ({ ...p, produto_id: e.target.value }))} required style={{ ...inputStyle, cursor: 'pointer' }}>
+                                    <option value="">Selecione o produto...</option>
+                                    {produtos.map(p => <option key={p.id} value={p.id}>{p.nome} — R$ {p.preco.toFixed(2)}</option>)}
+                                  </select>
+                                </div>
+                                <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>Quantidade</label><input type="number" min="1" value={novoPaciente.quantidade} onChange={e => setNovoPaciente(p => ({ ...p, quantidade: e.target.value }))} style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>Desconto (R$)</label><input type="number" min="0" step="0.01" value={novoPaciente.desconto} onChange={e => setNovoPaciente(p => ({ ...p, desconto: e.target.value }))} style={inputStyle} /></div>
+                                </div>
+                                {novoPaciente.produto_id && (
+                                  <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
+                                    <span style={{ color: 'var(--text-secondary, #374151)' }}>Valor do pedido</span>
+                                    <span style={{ color: '#16a34a' }}>R$ {valorPago.toFixed(2)}</span>
+                                  </div>
+                                )}
+                              </>
+                            )}
+
+                            {stepKey === 'comprovante' && (
+                              <div>
+                                <label style={labelStyle}>Comprovante de Pagamento</label>
+                                {novoPaciente.comprovante_pagamento ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
+                                    <a href={novoPaciente.comprovante_pagamento} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, color: '#15803d', fontWeight: 700 }}>Ver comprovante anexado</a>
+                                    <button type="button" onClick={() => setNovoPaciente(p => ({ ...p, comprovante_pagamento: '' }))} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Remover</button>
+                                  </div>
+                                ) : (
+                                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--surface-hover)', border: '1px dashed var(--border)', borderRadius: 8, padding: '10px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary, #374151)' }}>
+                                    {uploadandoWizard === 'paciente-comprovante' ? 'Enviando...' : 'Anexar comprovante'}
+                                    <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadWizardFile('paciente-comprovante', f, url => setNovoPaciente(p => ({ ...p, comprovante_pagamento: url }))); e.target.value = ''; }} />
+                                  </label>
+                                )}
+                                <div style={{ fontSize: 11, color: 'var(--text-soft, #9ca3af)', marginTop: 6 }}>Se anexar agora, o pedido já nasce como Pago e lança a entrada no Financeiro.</div>
+                              </div>
+                            )}
+
+                            {stepKey === 'documentos' && (
+                              <div>
+                                <label style={labelStyle}>Documentos</label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                  {novoPaciente.documentos.map((url, idx) => (
+                                    <div key={url} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-hover)', borderRadius: 8, padding: '7px 12px' }}>
+                                      <a href={url} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, color: 'var(--text-secondary, #374151)' }}>Documento {idx + 1}</a>
+                                      <button type="button" onClick={() => setNovoPaciente(p => ({ ...p, documentos: p.documentos.filter((_, i) => i !== idx) }))} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+                                    </div>
+                                  ))}
+                                </div>
+                                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, background: 'var(--surface-hover)', border: '1px dashed var(--border)', borderRadius: 8, padding: '10px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary, #374151)' }}>
+                                  {uploadandoWizard === 'paciente-documento' ? 'Enviando...' : '+ Anexar documento'}
+                                  <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadWizardFile('paciente-documento', f, url => setNovoPaciente(p => ({ ...p, documentos: [...p.documentos, url] }))); e.target.value = ''; }} />
+                                </label>
+                              </div>
+                            )}
+
+                            {stepKey === 'cashback' && (
+                              <div>
+                                <label style={labelStyle}>Cashback (%) para {medicoIndicador ? `${medicoIndicador.nome} ${medicoIndicador.sobrenome || ''}`.trim() : 'o médico'}</label>
+                                <input type="number" min="0" max="100" step="0.1" value={novoPaciente.cashback_percentual} onChange={e => setNovoPaciente(p => ({ ...p, cashback_percentual: e.target.value }))} style={inputStyle} />
+                                <div style={{ marginTop: 8, fontSize: 12.5, color: '#16a34a', fontWeight: 700 }}>= R$ {comissaoCalc.toFixed(2)}</div>
+                                {seraCortesia && (
+                                  <div style={{ marginTop: 10, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: '#92400e', fontWeight: 600 }}>
+                                    Sem valor pago e sem cashback — este pedido será registrado como Cortesia.
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
-                        </div>
-                        <div>
-                          <label style={labelStyle}>Endereço</label>
-                          <input value={novoPaciente.endereco} onChange={e => setNovoPaciente(p => ({ ...p, endereco: e.target.value }))} style={inputStyle} />
-                        </div>
-                        <div style={{ display: 'flex', gap: 10 }}>
-                          <button type="button" onClick={() => setNovoCadastroTipo('escolher')} style={{ background: 'var(--surface)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
-                            Voltar
-                          </button>
-                          <button type="submit" disabled={salvandoNovoCadastro} style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoNovoCadastro ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: (salvandoNovoCadastro || !novoPaciente.medico_id) ? 0.6 : 1 }}>
-                            {salvandoNovoCadastro ? 'Salvando...' : 'Cadastrar Paciente'}
-                          </button>
-                        </div>
-                      </form>
-                    )}
+
+                          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10 }}>
+                            <button type="button" onClick={() => wizardStep === 0 ? (setNovoCadastroTipo('escolher')) : setWizardStep(s => s - 1)} style={{ background: 'var(--surface)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                              Voltar
+                            </button>
+                            {wizardStep < steps.length - 1 ? (
+                              <button type="button" disabled={!podeAvancar} onClick={() => setWizardStep(s => s + 1)} style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: podeAvancar ? 'pointer' : 'default', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: podeAvancar ? 1 : 0.5 }}>
+                                Avançar
+                              </button>
+                            ) : (
+                              <button type="submit" disabled={salvandoNovoCadastro} style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoNovoCadastro ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoNovoCadastro ? 0.6 : 1 }}>
+                                {salvandoNovoCadastro ? 'Salvando...' : 'Cadastrar Paciente'}
+                              </button>
+                            )}
+                          </div>
+                        </form>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
@@ -1916,15 +2240,56 @@ export default function AdminPage() {
           )}
 
           {/* ======== ABA CLIENTES ======== */}
+          {/* Pivot: cadastro unificado — lista por PESSOA que efetivamente
+              comprou (médico pra si mesmo, ou paciente indicado), cada um com
+              seu próprio checklist do que falta pra fechar o pedido. */}
           {aba === 'clientes' && (() => {
-            const clientes = cadastros.filter(c => c.funil_status === 'cliente');
+            type ClienteLinha = {
+              key: string; tipo: 'medico' | 'paciente'; nome: string; whatsapp: string; email: string;
+              cidade?: string | null; estado?: string | null; indicadoPor?: string;
+              pedidosPessoa: Pedido[]; consultorNome?: string; pendencias: string[];
+            };
+
+            const medicosClientes: ClienteLinha[] = cadastros
+              .filter(c => pedidos.some(p => p.cadastro_id === c.id && !p.indicacao_id && p.status === 'pago'))
+              .map(c => {
+                const pendencias: string[] = [];
+                if (!(c.documentos || []).length) pendencias.push('Documentos');
+                return {
+                  key: `medico-${c.id}`, tipo: 'medico', nome: `${c.nome} ${c.sobrenome || ''}`.trim(),
+                  whatsapp: c.whatsapp, email: c.email, cidade: c.cidade, estado: c.estado,
+                  pedidosPessoa: pedidos.filter(p => p.cadastro_id === c.id && !p.indicacao_id),
+                  consultorNome: equipe.find(m => m.id === c.vendedor_id)?.nome,
+                  pendencias,
+                };
+              });
+
+            const pacientesClientes: ClienteLinha[] = indicacoes
+              .filter(i => i.tipo !== 'medico' && pedidos.some(p => p.indicacao_id === i.id && p.status === 'pago'))
+              .map(i => {
+                const pendencias: string[] = [];
+                if (!i.receita) pendencias.push('Receita');
+                if (!i.comprovante_pagamento) pendencias.push('Comprovante');
+                if (!(i.documentos || []).length) pendencias.push('Documentos');
+                const medico = cadastros.find(c => c.id === i.medico_id);
+                return {
+                  key: `paciente-${i.id}`, tipo: 'paciente', nome: `${i.nome} ${i.sobrenome || ''}`.trim(),
+                  whatsapp: i.whatsapp, email: i.email, cidade: i.cidade, estado: i.estado, indicadoPor: i.medico_nome,
+                  pedidosPessoa: pedidos.filter(p => p.indicacao_id === i.id),
+                  consultorNome: medico ? equipe.find(m => m.id === medico.vendedor_id)?.nome : undefined,
+                  pendencias,
+                };
+              });
+
+            const todosClientes = [...medicosClientes, ...pacientesClientes];
             const q = buscaLead.trim().toLowerCase();
-            const clientesFiltrados = !q ? clientes : clientes.filter(c =>
-              `${c.nome} ${c.sobrenome} ${c.email} ${c.whatsapp}`.toLowerCase().includes(q));
+            const clientesFiltrados = !q ? todosClientes : todosClientes.filter(c =>
+              `${c.nome} ${c.email} ${c.whatsapp}`.toLowerCase().includes(q));
+
             return (
               <>
                 <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 20, marginTop: 0 }}>
-                  C. Clientes <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({clientes.length})</span>
+                  C. Clientes <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({todosClientes.length})</span>
                 </h2>
                 <input value={buscaLead} onChange={e => setBuscaLead(e.target.value)}
                   placeholder="Buscar cliente por nome, e-mail ou WhatsApp..."
@@ -1932,44 +2297,57 @@ export default function AdminPage() {
                 <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                   {clientesFiltrados.length === 0 ? (
                     <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>
-                      {clientes.length === 0 ? 'Nenhum cliente ainda. Leads viram cliente automaticamente quando um pedido é marcado como pago.' : 'Nenhum cliente encontrado para essa busca.'}
+                      {todosClientes.length === 0 ? 'Nenhum cliente ainda. Uma pessoa vira cliente automaticamente quando um pedido dela é marcado como pago.' : 'Nenhum cliente encontrado para essa busca.'}
                     </div>
                   ) : (
                     <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 300px)' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
-                            {['Nome', 'WhatsApp', 'E-mail', 'Cidade/UF', 'Total Gasto', 'Produtos Comprados', 'Último Pedido', 'Consultor'].map(h => (
+                            {['Nome', 'Tipo', 'WhatsApp', 'E-mail', 'Cidade/UF', 'Total Gasto', 'Produtos Comprados', 'Pendências', 'Último Pedido', 'Consultor'].map(h => (
                               <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
                           {clientesFiltrados.map((c, i) => {
-                            const pedidosCliente = pedidos.filter(p => p.cadastro_id === c.id);
-                            const pedidosPagos = pedidosCliente.filter(p => p.status === 'pago');
+                            const pedidosPagos = c.pedidosPessoa.filter(p => p.status === 'pago');
                             const totalGasto = pedidosPagos.reduce((s, p) => s + p.preco, 0);
                             const produtosComprados = Array.from(new Set(pedidosPagos.map(p => p.produto_nome)));
-                            const ultimoPedido = pedidosCliente.length > 0
-                              ? [...pedidosCliente].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+                            const ultimoPedido = c.pedidosPessoa.length > 0
+                              ? [...c.pedidosPessoa].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
                               : null;
-                            const consultor = equipe.find(m => m.id === c.vendedor_id)?.nome;
                             return (
-                              <tr key={c.id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
-                                <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>{c.nome} {c.sobrenome}</td>
-                                <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                                  <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#16a34a', textDecoration: 'none' }}>{c.whatsapp}</a>
+                              <tr key={c.key} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                                <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                  {c.nome}
+                                  {c.indicadoPor && <div style={{ fontSize: 10.5, color: 'var(--text-soft, #9ca3af)', fontWeight: 400 }}>indicado por {c.indicadoPor}</div>}
                                 </td>
-                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{c.email}</td>
+                                <td style={{ padding: '11px 14px' }}>
+                                  <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 20, background: c.tipo === 'medico' ? 'var(--surface-hover)' : '#eff6ff', color: c.tipo === 'medico' ? 'var(--text-secondary, #374151)' : '#1d4ed8' }}>
+                                    {c.tipo === 'medico' ? 'Médico' : 'Paciente'}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                  {c.whatsapp && <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#16a34a', textDecoration: 'none' }}>{c.whatsapp}</a>}
+                                </td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{c.email || '-'}</td>
                                 <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{c.cidade ? `${c.cidade}/${c.estado || ''}` : '-'}</td>
                                 <td style={{ padding: '11px 14px', color: '#16a34a', fontWeight: 800 }}>R$ {totalGasto.toFixed(2)}</td>
                                 <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={produtosComprados.join(', ')}>
                                   {produtosComprados.length > 0 ? produtosComprados.join(', ') : '-'}
                                 </td>
+                                <td style={{ padding: '11px 14px' }}>
+                                  {c.pendencias.length === 0 ? (
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>OK Completo</span>
+                                  ) : (
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626' }} title={c.pendencias.join(', ')}>Faltando: {c.pendencias.join(', ')}</span>
+                                  )}
+                                </td>
                                 <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
                                   {ultimoPedido ? new Date(ultimoPedido.created_at).toLocaleDateString('pt-BR') : '-'}
                                 </td>
-                                <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)' }}>{consultor || <span style={{ color: 'var(--text-soft, #9ca3af)' }}>-</span>}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)' }}>{c.consultorNome || <span style={{ color: 'var(--text-soft, #9ca3af)' }}>-</span>}</td>
                               </tr>
                             );
                           })}
@@ -2833,522 +3211,6 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* ======== ABA INDICAÇÕES ======== */}
-          {aba === 'indicacoes' && (() => {
-            const indicacoesPacientes = indicacoes.filter(i => i.tipo !== 'medico');
-            return (
-            <div>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 6, marginTop: 0 }}>
-                Indicações <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({indicacoesPacientes.length})</span>
-              </h2>
-              <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, marginBottom: 20 }}>
-                Pacientes cadastrados pelo link de indicação de um médico aprovado, com vínculo automático.
-              </p>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-                <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
-                  placeholder="Buscar por médico indicador ou paciente indicado..."
-                  style={{ ...inputStyle, maxWidth: 420, marginBottom: 0 }} />
-                <ToggleListaKanban kanban={verIndicacoesKanban} onChange={setVerIndicacoesKanban} />
-              </div>
-
-              {/* Filtros */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-                {(['todos', 'em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(val => {
-                  const corSemantica = val === 'pago' ? '#15803d' : val === 'cancelado' ? '#dc2626' : null;
-                  const label = val === 'todos' ? 'Todos' : PIPELINE_STATUS_LABEL[val];
-                  const n = val === 'todos' ? indicacoesPacientes.length : indicacoesPacientes.filter(i => i.status === val).length;
-                  const ativo = filtroIndicacao === val;
-                  return (
-                    <button key={val} onClick={() => setFiltroIndicacao(val)}
-                      style={{
-                        background: ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--surface)',
-                        color: ativo ? (corSemantica ? '#fff' : 'var(--btn-primary-text)') : 'var(--text-secondary, #374151)',
-                        border: `1px solid ${ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--border)'}`,
-                        padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: ativo ? 700 : 400, fontFamily: 'inherit', fontSize: 13,
-                      }}>
-                      {label} ({n})
-                    </button>
-                  );
-                })}
-              </div>
-
-              {(() => {
-                const porFiltro = filtroIndicacao === 'todos' ? indicacoesPacientes : indicacoesPacientes.filter(i => i.status === filtroIndicacao);
-                const q = buscaIndicacao.trim().toLowerCase();
-                const indicacoesFiltradas = !q ? porFiltro : porFiltro.filter(i =>
-                  `${i.medico_nome} ${i.nome} ${i.sobrenome} ${i.email || ''}`.toLowerCase().includes(q));
-
-                const porMedico = new Map<string, number>();
-                indicacoesFiltradas.forEach(i => porMedico.set(i.medico_nome, (porMedico.get(i.medico_nome) || 0) + 1));
-                const ranking = [...porMedico.entries()].sort((a, b) => b[1] - a[1]);
-                const maxIndic = Math.max(...ranking.map(([, n]) => n), 1);
-
-                const comComissao = indicacoesPacientes.filter(i => i.comissao_paga);
-                const totalComissoes = comComissao.reduce((s, i) => s + (i.comissao_valor || 0), 0);
-
-                return (
-                  <>
-                    {ranking.length > 0 && (
-                      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Indicações por Médico</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                          {ranking.map(([medico, n]) => (
-                            <div key={medico}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                                <span style={{ color: 'var(--text-secondary, #374151)', fontWeight: 600 }}>{medico}</span>
-                                <span style={{ color: 'var(--text)', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
-                              </div>
-                              <div style={{ background: 'var(--surface-hover)', borderRadius: 4, height: 6 }}>
-                                <div style={{ background: 'var(--btn-primary-bg)', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: comComissao.length > 0 ? 16 : 0 }}>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Comissões Pagas</div>
-                          <div style={{ fontSize: 11, color: 'var(--text-soft, #9ca3af)', marginTop: 2 }}>Lançada quando uma indicação chega em &quot;Pago&quot; e você informa o valor no botão + Comissão</div>
-                        </div>
-                        <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {totalComissoes.toFixed(2)}</div>
-                      </div>
-                      {comComissao.length > 0 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 16 }}>
-                          {comComissao.map(i => (
-                            <div key={i.id} onClick={() => setEditandoIndicacao(i)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '8px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
-                              <span style={{ color: 'var(--text-secondary, #374151)' }}>{i.medico_nome} <span style={{ color: 'var(--text-soft, #9ca3af)' }}>· indicou {i.nome} {i.sobrenome}</span></span>
-                              <span style={{ color: '#16a34a', fontWeight: 700 }}>R$ {(i.comissao_valor || 0).toFixed(2)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {loadingIndicacoes ? (
-                      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
-                    ) : indicacoesFiltradas.length === 0 ? (
-                      <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
-                        {indicacoesPacientes.length === 0
-                          ? <>Nenhuma indicação ainda. O botão &quot;Copiar Link de Indicação&quot; aparece na aba Leads para médicos aprovados.</>
-                          : <>Nenhuma indicação encontrada para essa busca.</>}
-                      </div>
-                    ) : verIndicacoesKanban ? (
-                      <KanbanBoard>
-                        {(['em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(etapa => {
-                          const itens = indicacoesFiltradas.filter(i => i.status === etapa);
-                          const cor = PIPELINE_STATUS_COLOR[etapa]?.text || 'var(--text-secondary, #374151)';
-                          return (
-                            <KanbanColuna key={etapa} titulo={PIPELINE_STATUS_LABEL[etapa]} cor={cor} total={itens.length}>
-                              {itens.map(i => (
-                                <KanbanCard key={i.id} onClick={() => setEditandoIndicacao(i)}>
-                                  <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
-                                  <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
-                                  {i.whatsapp && (
-                                    <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
-                                  )}
-                                  <div onClick={e => e.stopPropagation()}>
-                                    <select value={etapa} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                                      style={{ width: '100%', marginTop: 7, border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
-                                      <option value="em_atendimento">Em Atendimento</option>
-                                      <option value="negociacao">Negociação</option>
-                                      <option value="pago">Pago</option>
-                                      <option value="cancelado">Cancelado</option>
-                                    </select>
-                                    <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga} totalBase={totalBaseFor(i.id)}
-                                      mostrar={etapa === 'pago'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
-                                      input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
-                                  </div>
-                                </KanbanCard>
-                              ))}
-                            </KanbanColuna>
-                          );
-                        })}
-                      </KanbanBoard>
-                    ) : (
-                      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-                        <div className="admin-table-scroll">
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                          <thead>
-                            <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
-                              {['Paciente', 'WhatsApp', 'E-mail', 'Endereço', 'Médico Indicador', 'Status', 'Data', 'Ações'].map(h => (
-                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {indicacoesFiltradas.map((i, idx) => (
-                              <tr key={i.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
-                                <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--text)' }}>{i.nome} {i.sobrenome}</td>
-                                <td style={{ padding: '11px 14px' }}>
-                                  {i.whatsapp && (
-                                    <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
-                                      style={{ color: '#128C46', textDecoration: 'none', fontWeight: 600 }}>{i.whatsapp}</a>
-                                  )}
-                                </td>
-                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{i.email || '—'}</td>
-                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.endereco}</td>
-                                <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 700 }}>{i.medico_nome}</td>
-                                <td style={{ padding: '11px 14px' }}>
-                                  <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                                    style={{ background: (PIPELINE_STATUS_COLOR[i.status] || { bg: 'var(--surface)' }).bg, color: (PIPELINE_STATUS_COLOR[i.status] || { text: 'var(--text)' }).text, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
-                                    <option value="em_atendimento">Em Atendimento</option>
-                                    <option value="negociacao">Negociação</option>
-                                    <option value="pago">Pago</option>
-                                    <option value="cancelado">Cancelado</option>
-                                  </select>
-                                  <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga} totalBase={totalBaseFor(i.id)}
-                                    mostrar={i.status === 'pago'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
-                                    input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
-                                </td>
-                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
-                                  {new Date(i.created_at).toLocaleDateString('pt-BR')}
-                                </td>
-                                <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                                  <div style={{ display: 'flex', gap: 6 }}>
-                                    {i.whatsapp && (
-                                      <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
-                                        style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
-                                        WhatsApp
-                                      </a>
-                                    )}
-                                    {isSuperadmin && (
-                                      <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
-                                        style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
-                                        Excluir
-                                      </button>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
-            );
-          })()}
-
-          {/* ======== ABA INDICAÇÕES MÉDICAS ======== */}
-          {aba === 'indicacoes-medicas' && (() => {
-            const indicacoesMedicas = indicacoes.filter(i => i.tipo === 'medico');
-            const q = buscaIndicacao.trim().toLowerCase();
-            const filtradas = !q ? indicacoesMedicas : indicacoesMedicas.filter(i =>
-              `${i.medico_nome} ${i.nome} ${i.sobrenome} ${i.email || ''} ${i.crm || ''}`.toLowerCase().includes(q));
-
-            const porMedico = new Map<string, number>();
-            filtradas.forEach(i => porMedico.set(i.medico_nome, (porMedico.get(i.medico_nome) || 0) + 1));
-            const ranking = [...porMedico.entries()].sort((a, b) => b[1] - a[1]);
-            const maxIndic = Math.max(...ranking.map(([, n]) => n), 1);
-
-            return (
-              <div>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 6, marginTop: 0 }}>
-                  Indicações Médicas <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({indicacoesMedicas.length})</span>
-                </h2>
-                <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, marginBottom: 20 }}>
-                  Médicos indicados por outros médicos já aprovados, pelo card &quot;Indicar Médico&quot; na tela inicial.
-                </p>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-                  <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
-                    placeholder="Buscar por médico indicador, indicado ou CRM..."
-                    style={{ ...inputStyle, maxWidth: 420, marginBottom: 0 }} />
-                  <ToggleListaKanban kanban={verIndicacoesMedicasKanban} onChange={setVerIndicacoesMedicasKanban} />
-                </div>
-
-                {ranking.length > 0 && (
-                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Indicações Médicas por Médico</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {ranking.map(([medico, n]) => (
-                        <div key={medico}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                            <span style={{ color: 'var(--text-secondary, #374151)', fontWeight: 600 }}>{medico}</span>
-                            <span style={{ color: 'var(--text-secondary, #374151)', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
-                          </div>
-                          <div style={{ background: 'var(--surface-hover)', borderRadius: 4, height: 6 }}>
-                            <div style={{ background: 'var(--btn-primary-bg)', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {(() => {
-                  const comComissao = indicacoesMedicas.filter(i => i.comissao_paga);
-                  const totalComissoes = comComissao.reduce((s, i) => s + (i.comissao_valor || 0), 0);
-                  return (
-                    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: comComissao.length > 0 ? 16 : 0 }}>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Comissões Pagas</div>
-                          <div style={{ fontSize: 11, color: 'var(--text-soft, #9ca3af)', marginTop: 2 }}>Lançada quando uma indicação chega em &quot;Convertido&quot; e você informa o valor no botão + Comissão</div>
-                        </div>
-                        <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {totalComissoes.toFixed(2)}</div>
-                      </div>
-                      {comComissao.length > 0 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 16 }}>
-                          {comComissao.map(i => (
-                            <div key={i.id} onClick={() => setEditandoIndicacao(i)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '8px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
-                              <span style={{ color: 'var(--text-secondary, #374151)' }}>{i.medico_nome} <span style={{ color: 'var(--text-soft, #9ca3af)' }}>· indicou {i.nome} {i.sobrenome}</span></span>
-                              <span style={{ color: '#16a34a', fontWeight: 700 }}>R$ {(i.comissao_valor || 0).toFixed(2)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {loadingIndicacoes ? (
-                  <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
-                ) : filtradas.length === 0 ? (
-                  <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
-                    {indicacoesMedicas.length === 0
-                      ? <>Nenhuma indicação médica ainda. O card &quot;Indicar Médico&quot; aparece na tela inicial para médicos aprovados.</>
-                      : <>Nenhuma indicação encontrada para essa busca.</>}
-                  </div>
-                ) : verIndicacoesMedicasKanban ? (
-                  <KanbanBoard>
-                    {(['novo', 'contatado', 'convertido', 'reprovado'] as const).map(etapa => {
-                      const itens = filtradas.filter(i => i.status === etapa);
-                      const cor = INDICACAO_MEDICA_STATUS_COLOR[etapa]?.text || 'var(--text-secondary, #374151)';
-                      return (
-                        <KanbanColuna key={etapa} titulo={INDICACAO_MEDICA_STATUS_LABEL[etapa]} cor={cor} total={itens.length}>
-                          {itens.map(i => (
-                            <KanbanCard key={i.id} onClick={() => setEditandoIndicacao(i)}>
-                              <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-secondary, #374151)', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
-                              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
-                              {i.crm && <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>CRM {i.crm}</div>}
-                              {i.whatsapp && (
-                                <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
-                              )}
-                              <div onClick={e => e.stopPropagation()}>
-                                <select value={etapa} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                                  style={{ width: '100%', marginTop: 7, border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
-                                  <option value="novo">Novo</option>
-                                  <option value="contatado">Contatado</option>
-                                  <option value="convertido">Convertido</option>
-                                  <option value="reprovado">Reprovado</option>
-                                </select>
-                                <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga} totalBase={totalBaseFor(i.id)}
-                                  mostrar={etapa === 'convertido'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
-                                  input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
-                              </div>
-                            </KanbanCard>
-                          ))}
-                        </KanbanColuna>
-                      );
-                    })}
-                  </KanbanBoard>
-                ) : (
-                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-                    <div className="admin-table-scroll">
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
-                          {['Médico Indicador', 'Médico Indicado', 'CRM', 'WhatsApp', 'E-mail', 'Endereço', 'Status', 'Data', 'Ações'].map(h => (
-                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filtradas.map((i, idx) => (
-                          <tr key={i.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
-                            <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', fontWeight: 700 }}>{i.medico_nome}</td>
-                            <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--text)' }}>{i.nome} {i.sobrenome}</td>
-                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{i.crm || '—'}</td>
-                            <td style={{ padding: '11px 14px' }}>
-                              {i.whatsapp && (
-                                <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
-                                  style={{ color: '#128C46', textDecoration: 'none', fontWeight: 600 }}>{i.whatsapp}</a>
-                              )}
-                            </td>
-                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{i.email || '—'}</td>
-                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.endereco}</td>
-                            <td style={{ padding: '11px 14px' }}>
-                              <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                                style={{ background: (INDICACAO_MEDICA_STATUS_COLOR[i.status] || { bg: 'var(--surface)', text: 'var(--text)' }).bg, color: (INDICACAO_MEDICA_STATUS_COLOR[i.status] || { bg: 'var(--surface)', text: 'var(--text)' }).text, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
-                                <option value="novo">Novo</option>
-                                <option value="contatado">Contatado</option>
-                                <option value="convertido">Convertido</option>
-                                <option value="reprovado">Reprovado</option>
-                              </select>
-                              <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga} totalBase={totalBaseFor(i.id)}
-                                mostrar={i.status === 'convertido'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
-                                input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
-                            </td>
-                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
-                              {new Date(i.created_at).toLocaleDateString('pt-BR')}
-                            </td>
-                            <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                              <div style={{ display: 'flex', gap: 6 }}>
-                                {i.whatsapp && (
-                                  <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
-                                    style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
-                                    WhatsApp
-                                  </a>
-                                )}
-                                {i.status !== 'reprovado' && (
-                                  <button onClick={() => atualizarStatusIndicacao(i, 'reprovado')}
-                                    style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', fontWeight: 600 }}>
-                                    Reprovar
-                                  </button>
-                                )}
-                                {isSuperadmin && (
-                                  <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
-                                    style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
-                                    Excluir
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* ======== ABA PEDIDOS ======== */}
-          {aba === 'pedidos' && (() => {
-            const pedidosCounts = {
-              todos: pedidos.length,
-              em_atendimento: pedidos.filter(p => p.status === 'em_atendimento').length,
-              negociacao: pedidos.filter(p => p.status === 'negociacao').length,
-              pago: pedidos.filter(p => p.status === 'pago').length,
-              cancelado: pedidos.filter(p => p.status === 'cancelado').length,
-            };
-            const pedidosFiltrados = filtroPedido === 'todos' ? pedidos : pedidos.filter(p => p.status === filtroPedido);
-
-            return (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: 0 }}>
-                  Pedidos <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 14, fontWeight: 400 }}>({pedidos.length})</span>
-                </h2>
-                <button onClick={() => setNovoPedidoAberto(true)}
-                  style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 16px', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
-                  + Novo Pedido
-                </button>
-              </div>
-              <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, marginBottom: 20 }}>
-                Todos os pedidos feitos na loja pelos médicos aprovados. Você pode alterar o status ou excluir pedidos de teste.
-              </p>
-
-              {/* Filtros */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-                {(['todos', 'em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(val => {
-                  const corSemantica = val === 'pago' ? '#15803d' : val === 'cancelado' ? '#dc2626' : null;
-                  const label = val === 'todos' ? 'Todos' : PIPELINE_STATUS_LABEL[val];
-                  const ativo = filtroPedido === val;
-                  return (
-                    <button key={val} onClick={() => setFiltroPedido(val)}
-                      style={{
-                        background: ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--surface)',
-                        color: ativo ? (corSemantica ? '#fff' : 'var(--btn-primary-text)') : 'var(--text-secondary, #374151)',
-                        border: `1px solid ${ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--border)'}`,
-                        padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: ativo ? 700 : 400, fontFamily: 'inherit', fontSize: 13,
-                      }}>
-                      {label} ({pedidosCounts[val]})
-                    </button>
-                  );
-                })}
-              </div>
-
-              {pedidosFiltrados.length === 0 ? (
-                <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
-                  Nenhum pedido encontrado para esse filtro.
-                </div>
-              ) : (
-                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-                  <div className="admin-table-scroll">
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
-                        {['Cliente', 'Produto(s)', 'Valor', 'Status', 'Data', 'Ações'].map(h => (
-                          <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pedidosFiltrados.map((p, idx) => {
-                        const cc = PIPELINE_STATUS_COLOR[p.status] || { bg: 'var(--surface-hover)', text: 'var(--text-secondary, #374151)' };
-                        return (
-                        <tr key={p.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
-                          <td style={{ padding: '11px 14px' }}>
-                            <div style={{ fontWeight: 700, color: 'var(--text)' }}>{p.indicacao_id ? p.paciente_nome : p.cadastro_nome}</div>
-                            {p.indicacao_id ? (
-                              <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>indicado por {p.cadastro_nome}</div>
-                            ) : (
-                              <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>{p.cadastro_email}</div>
-                            )}
-                          </td>
-                          <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', maxWidth: 220, fontSize: 12 }}>
-                            {p.itens && p.itens.length > 0 ? p.itens.map(it => `${it.nome} x${it.quantidade}`).join(', ') : p.produto_nome}
-                          </td>
-                          <td style={{ padding: '11px 14px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                              <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>R$</span>
-                              <input type="number" step="0.01" min="0" defaultValue={p.preco} key={`${p.id}-${p.preco}`}
-                                onBlur={e => {
-                                  const v = parseFloat(e.target.value);
-                                  if (!isNaN(v) && v !== p.preco) atualizarValorPedido(p.id, v);
-                                }}
-                                style={{ width: 88, border: '1px solid var(--border)', borderRadius: 5, padding: '4px 6px', fontSize: 13, fontWeight: 700, color: '#16a34a', fontFamily: 'inherit', background: 'var(--surface)' }} />
-                            </div>
-                          </td>
-                          <td style={{ padding: '11px 14px' }}>
-                            <select value={p.status} onChange={e => atualizarStatusPedido(p.id, e.target.value)}
-                              style={{ background: cc.bg, color: cc.text, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
-                              <option value="em_atendimento">Em Atendimento</option>
-                              <option value="negociacao">Negociação</option>
-                              <option value="pago">Pago</option>
-                              <option value="cancelado">Cancelado</option>
-                            </select>
-                          </td>
-                          <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
-                            {new Date(p.created_at).toLocaleDateString('pt-BR')}
-                          </td>
-                          <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              {p.cadastro_whatsapp && (
-                                <a href={`https://wa.me/55${p.cadastro_whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
-                                  style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
-                                  WhatsApp
-                                </a>
-                              )}
-                              {isSuperadmin && (
-                                <button onClick={() => excluirPedido(p.id, p.cadastro_nome)}
-                                  style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
-                                  Excluir
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                  </div>
-                </div>
-              )}
-
               {/* Modal: novo pedido */}
               {novoPedidoAberto && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 700, overflowY: 'auto', padding: '24px 16px' }}>
@@ -3503,9 +3365,6 @@ export default function AdminPage() {
                   </div>
                 </div>
               )}
-            </div>
-            );
-          })()}
 
           {/* ======== ABA CONFIGURA!"ES ======== */}
           {aba === 'config' && (

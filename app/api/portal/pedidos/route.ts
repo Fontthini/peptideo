@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mem_buscarMembroPorToken, mem_listarPedidosPorVendedor, mem_listarPedidos, mem_atualizarPedido, mem_registrarLog, mem_buscarId, mem_criarPedido, mem_criarDespesa, mem_deletarDespesa, mem_atualizarFunil, mem_listarIndicacoes } from '@/lib/db-memory';
+import { mem_buscarMembroPorToken, mem_listarPedidosPorVendedor, mem_listarPedidos, mem_atualizarPedido, mem_registrarLog, mem_buscarId, mem_criarPedido, mem_listarIndicacoes } from '@/lib/db-memory';
 import { reloadFromSupabase, ensureCadastros, ensureIndicacoes } from '@/lib/ensure-equipe';
+import { aplicarPedidoPago, reverterPedidoPago } from '@/lib/pedido-side-effects';
 
 const STATUS_VALIDOS = ['em_atendimento', 'negociacao', 'pago', 'cancelado'];
 
@@ -78,16 +79,7 @@ export async function POST(req: NextRequest) {
   mem_registrarLog(ator, 'Criou pedido manualmente (portal)', `${nomeCliente} — ${p.produto_nome} — R$ ${p.preco.toFixed(2)}`);
 
   if (p.status === 'pago') {
-    const d = mem_criarDespesa({
-      tipo: 'entrada', categoria: 'PEDIDO PAGO',
-      descricao: `Pedido pago — ${nomeCliente} (${p.produto_nome})`,
-      valor: p.preco, data: new Date().toISOString().slice(0, 10),
-    });
-    mem_registrarLog(ator, 'Lançou entrada automática (pedido pago)', `${d.categoria} — ${d.descricao} — R$ ${d.valor.toFixed(2)}`);
-    if (cadastro.funil_status !== 'cliente') {
-      mem_atualizarFunil(cadastro.id, 'cliente');
-      mem_registrarLog(ator, 'Lead avançou automaticamente no funil', `${p.cadastro_nome} → cliente`);
-    }
+    await aplicarPedidoPago(p, ator);
   }
 
   return NextResponse.json(p, { status: 201 });
@@ -111,24 +103,10 @@ export async function PATCH(req: NextRequest) {
   // Mesmo fluxo automatico do admin: ao marcar como pago, lanca entrada no
   // Financeiro e avanca o lead pra "cliente"; ao sair de pago, desfaz a entrada.
   if (pedido.status === 'pago' && statusAnterior !== 'pago') {
-    const d = mem_criarDespesa({
-      tipo: 'entrada', categoria: 'PEDIDO PAGO',
-      descricao: `Pedido pago — ${pedido.cadastro_nome} (${pedido.produto_nome})`,
-      valor: pedido.preco, data: new Date().toISOString().slice(0, 10),
-    });
-    mem_atualizarPedido(pedido.id, { despesa_id: d.id });
-    mem_registrarLog(ator, 'Lançou entrada automática (pedido pago)', `${d.categoria} — ${d.descricao} — R$ ${d.valor.toFixed(2)}`);
-
-    const cadastro = mem_buscarId(pedido.cadastro_id);
-    if (cadastro && cadastro.funil_status !== 'cliente') {
-      mem_atualizarFunil(pedido.cadastro_id, 'cliente');
-      mem_registrarLog(ator, 'Lead avançou automaticamente no funil', `${pedido.cadastro_nome} → cliente`);
-    }
+    await aplicarPedidoPago(pedido, ator);
   }
   if (statusAnterior === 'pago' && pedido.status !== 'pago' && pedido.despesa_id) {
-    mem_deletarDespesa(pedido.despesa_id);
-    mem_registrarLog(ator, 'Removeu entrada automática (pedido não é mais pago)', `${pedido.cadastro_nome} — ${pedido.produto_nome} — R$ ${pedido.preco.toFixed(2)}`);
-    mem_atualizarPedido(pedido.id, { despesa_id: null });
+    reverterPedidoPago(pedido, ator);
   }
 
   return NextResponse.json(pedido);

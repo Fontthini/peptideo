@@ -89,6 +89,11 @@ export async function sbSaveCadastro(c: Cadastro) {
     cidade: c.cidade || null, estado: c.estado || null, especialidade: c.especialidade || null,
     cpf: c.cpf || null, produtos_interesse: c.produtos_interesse || [],
     funil_status: c.funil_status || 'novo', motivo_perda: c.motivo_perda || null,
+    indicado_por_medico_id: c.indicado_por_medico_id || null,
+    indicado_por_medico_nome: c.indicado_por_medico_nome || null,
+    rg: c.rg || null, documentos: c.documentos || [],
+    comissao_valor: c.comissao_valor ?? null, comissao_paga: c.comissao_paga || false,
+    comissao_despesa_id: c.comissao_despesa_id ?? null, categoria: c.categoria || 'normal',
   });
   if (error) throw new Error(`sbSaveCadastro: ${error.message} (${error.code})`);
 }
@@ -301,6 +306,10 @@ export async function sbSaveIndicacao(i: Indicacao) {
     tipo: i.tipo || 'paciente', crm: i.crm || '',
     comissao_valor: i.comissao_valor ?? null, comissao_paga: i.comissao_paga || false,
     comissao_despesa_id: i.comissao_despesa_id ?? null,
+    cpf: i.cpf || null, rg: i.rg || null, cidade: i.cidade || null, estado: i.estado || null,
+    receita: i.receita || null, documentos: i.documentos || [],
+    comprovante_pagamento: i.comprovante_pagamento || null, desconto: i.desconto || 0,
+    categoria: i.categoria || 'normal', migrado_para_cadastro_id: i.migrado_para_cadastro_id || null,
   });
   if (error) throw new Error(`sbSaveIndicacao: ${error.message} (${error.code})`);
 }

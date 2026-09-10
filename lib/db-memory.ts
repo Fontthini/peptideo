@@ -57,6 +57,15 @@ export type Cadastro = {
   produtos_interesse?: string[];
   funil_status?: 'novo' | 'primeiro_contato' | 'aguardando_resposta' | 'interessado' | 'link_pix_enviado' | 'cliente' | 'perdido';
   motivo_perda?: string | null;
+  // Pivot: cadastro unificado — médico indicado por outro médico (opcional).
+  indicado_por_medico_id?: string | null;
+  indicado_por_medico_nome?: string | null;
+  rg?: string | null;
+  documentos?: string[];
+  comissao_valor?: number | null;
+  comissao_paga?: boolean;
+  comissao_despesa_id?: string | null;
+  categoria?: 'normal' | 'cortesia';
 };
 
 export type ProdutoMemory = {
@@ -206,6 +215,19 @@ export type Indicacao = {
   comissao_valor?: number | null;
   comissao_paga?: boolean;
   comissao_despesa_id?: string | null;
+  // Pivot: cadastro unificado — dados/anexos coletados no cadastro do paciente.
+  cpf?: string | null;
+  rg?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  receita?: string | null;
+  documentos?: string[];
+  comprovante_pagamento?: string | null;
+  desconto?: number;
+  categoria?: 'normal' | 'cortesia';
+  // Marca de migração: aponta pro Cadastro criado/casado quando esta
+  // indicação era tipo='medico' e foi absorvida pelo pivot (Fase 2/3).
+  migrado_para_cadastro_id?: string | null;
 };
 
 export type PedidoItem = { nome: string; preco: number; quantidade: number };
@@ -314,7 +336,7 @@ export function mem_adicionarObs(cadastroId: string, obs: string): Cadastro | nu
   return c;
 }
 
-export function mem_editarCadastro(id: string, data: Partial<Pick<Cadastro, 'nome' | 'sobrenome' | 'email' | 'whatsapp' | 'endereco' | 'crm' | 'onde_conheceu' | 'cidade' | 'estado' | 'especialidade' | 'cpf' | 'produtos_interesse'>>): Cadastro | null {
+export function mem_editarCadastro(id: string, data: Partial<Pick<Cadastro, 'nome' | 'sobrenome' | 'email' | 'whatsapp' | 'endereco' | 'crm' | 'onde_conheceu' | 'cidade' | 'estado' | 'especialidade' | 'cpf' | 'produtos_interesse' | 'rg' | 'documentos' | 'indicado_por_medico_id' | 'indicado_por_medico_nome' | 'comissao_valor' | 'comissao_paga' | 'comissao_despesa_id' | 'categoria'>>): Cadastro | null {
   const c = getStore().find(c => c.id === id);
   if (!c) return null;
   const campos = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
