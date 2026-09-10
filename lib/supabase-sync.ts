@@ -431,11 +431,22 @@ export async function reloadPedidos() {
   try {
     const { data, error } = await supabase.from('pedidos').select('*').order('created_at', { ascending: false });
     if (error) { console.error('[SUPABASE] Erro ao recarregar pedidos:', error.message); return; }
-    const cadastros = global.__cadastros__ as Cadastro[] | undefined;
+    // Numa instância fria da Vercel, __cadastros__ pode ainda não ter sido
+    // carregado nesta memória (cada instância tem a sua) — sem isso, o
+    // pedido perde o nome/e-mail do médico e some do "Pedidos Recentes" e
+    // de "Top Médicos" no dashboard. Busca de novo se estiver vazio, igual
+    // já era feito aqui pra indicações.
+    let cadastros = global.__cadastros__ as Cadastro[] | undefined;
+    if (!cadastros || cadastros.length === 0) {
+      const { data: cadData } = await supabase.from('cadastros').select('*');
+      cadastros = (cadData || []) as Cadastro[];
+      if (cadastros.length > 0) global.__cadastros__ = cadastros;
+    }
     let indicacoes = global.__indicacoes__ as Indicacao[] | undefined;
     if (!indicacoes || indicacoes.length === 0) {
       const { data: indData } = await supabase.from('indicacoes').select('*');
       indicacoes = (indData || []) as Indicacao[];
+      if (indicacoes.length > 0) global.__indicacoes__ = indicacoes;
     }
     if (data) global.__pedidos__ = data.map(p => juntarPedidoComCadastro(p as Record<string, unknown>, cadastros, indicacoes)) as Pedido[];
   } catch (err) { console.error('[SUPABASE] Erro ao recarregar pedidos:', err); }
