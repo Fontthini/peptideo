@@ -5,6 +5,7 @@ export type DashCadastro = {
   id: string; nome: string; sobrenome: string; status: string; onde_conheceu: string | null;
   crm?: string | null; created_at: string; updated_at?: string; vendedor_id?: string | null;
   last_seen_loja?: string | null; last_seen_blog?: string | null;
+  indicado_por_medico_id?: string | null; comissao_valor?: number | null; comissao_paga?: boolean;
 };
 export type DashPedidoItem = { nome: string; preco: number; quantidade: number };
 export type DashPedido = { id: string; cadastro_id?: string; cadastro_nome: string; cadastro_email: string; indicacao_id?: string | null; paciente_nome?: string; produto_nome: string; preco: number; itens?: DashPedidoItem[]; status: string; created_at: string; };
@@ -107,9 +108,16 @@ export function DashboardOverview({
   const totalSaidas = despesas.filter(d => d.tipo === 'saida').reduce((s, d) => s + d.valor, 0);
   const saldo = totalEntradas - totalSaidas;
 
+  // Comissão vem de duas origens: indicação de paciente (Indicacao) e médico
+  // que indicou outro médico (Cadastro.indicado_por_medico_id) — precisa
+  // somar as duas, senão o cashback de médico-para-médico some do painel.
   const comissoesPagas = indicacoes.filter(i => i.comissao_paga);
-  const totalComissoesPagas = comissoesPagas.reduce((s, i) => s + (i.comissao_valor || 0), 0);
-  const comissoesPendentes = indicacoes.filter(i => !i.comissao_paga && (i.status === 'pago' || i.status === 'convertido')).length;
+  const cadastrosComComissaoPaga = cadastros.filter(c => c.indicado_por_medico_id && c.comissao_paga);
+  const totalComissoesPagas = comissoesPagas.reduce((s, i) => s + (i.comissao_valor || 0), 0)
+    + cadastrosComComissaoPaga.reduce((s, c) => s + (c.comissao_valor || 0), 0);
+  const cadastrosComPedidoProprioPago = new Set(pedidosPagos.filter(p => !p.indicacao_id && p.cadastro_id).map(p => p.cadastro_id));
+  const comissoesPendentes = indicacoes.filter(i => !i.comissao_paga && (i.status === 'pago' || i.status === 'convertido')).length
+    + cadastros.filter(c => c.indicado_por_medico_id && !c.comissao_paga && cadastrosComPedidoProprioPago.has(c.id)).length;
 
   const vendidoPorNome = new Map<string, number>();
   pedidosPagos.forEach(p => {

@@ -707,6 +707,28 @@ export default function AdminPage() {
     } else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao lançar comissão')); }
   };
 
+  // Comissão de "médico indicou médico" — mesmo mecanismo do totalBaseFor/
+  // lancarComissao acima, só que a base é o que o PRÓPRIO médico indicado
+  // comprou (pedidos dele sem indicacao_id, que são as compras dele mesmo).
+  const [comissaoCadastroPromptId, setComissaoCadastroPromptId] = useState<string | null>(null);
+  const [comissaoCadastroInput, setComissaoCadastroInput] = useState('');
+
+  const totalBaseForCadastro = (cadastroId: string) =>
+    pedidos.filter(p => p.cadastro_id === cadastroId && !p.indicacao_id && p.status === 'pago').reduce((s, p) => s + p.preco, 0);
+
+  const lancarComissaoCadastro = async (id: string, valor: number) => {
+    if (!valor || valor <= 0) { showMsg('R Informe um valor válido'); return; }
+    const r = await fetch('/api/admin/cadastros/comissao', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
+      body: JSON.stringify({ id, comissao_valor: valor }),
+    });
+    if (r.ok) {
+      showMsg('OK: Comissão salva no Financeiro!');
+      setCadastros(prev => prev.map(x => x.id === id ? { ...x, comissao_valor: valor, comissao_paga: true } : x));
+      setComissaoCadastroPromptId(null); setComissaoCadastroInput('');
+    } else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao lançar comissão')); }
+  };
+
   const excluirIndicacao = async (id: string, nome: string) => {
     if (!confirm(`Excluir permanentemente a indicação de ${nome}?`)) return;
     const r = await fetch('/api/admin/indicacoes', {
@@ -1325,6 +1347,21 @@ export default function AdminPage() {
                 ))}
               </div>
 
+              {/* Comissões (cashback) de médico que indicou médico */}
+              {(() => {
+                const medicosComComissao = cadastros.filter(c => c.indicado_por_medico_id && c.comissao_paga);
+                const totalComissoesMedicos = medicosComComissao.reduce((s, c) => s + (c.comissao_valor || 0), 0);
+                if (medicosComComissao.length === 0) return null;
+                return (
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Comissões (Cashback) Pagas — médico indicou médico</div>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {totalComissoesMedicos.toFixed(2)}</div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Filtros */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                 {[['todos', 'Todos', ''], ['pendente', 'Pendentes', ''], ['aprovado', 'Aprovados', '#15803d'], ['rejeitado', 'Rejeitados', '#dc2626']].map(([val, label, cor]) => (
@@ -1403,7 +1440,12 @@ export default function AdminPage() {
                               <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: whatsDup ? 'var(--text-secondary, #374151)' : '#16a34a', textDecoration: 'none', fontWeight: whatsDup ? 700 : 400 }}>{c.whatsapp}</a>
                             </td>
                             <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{c.crm || '-'}</td>
-                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{c.indicado_por_medico_nome || '-'}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
+                              {c.indicado_por_medico_nome || '-'}
+                              <ComissaoWidget id={c.id} comissaoValor={c.comissao_valor} comissaoPaga={c.comissao_paga} mostrar={!!c.indicado_por_medico_id}
+                                totalBase={totalBaseForCadastro(c.id)} promptId={comissaoCadastroPromptId} setPromptId={setComissaoCadastroPromptId}
+                                input={comissaoCadastroInput} setInput={setComissaoCadastroInput} onConfirmar={lancarComissaoCadastro} />
+                            </td>
                             <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{c.onde_conheceu || '-'}</td>
                             <td style={{ padding: '11px 14px', minWidth: 160 }} onClick={e => e.stopPropagation()}>
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
@@ -4088,12 +4130,31 @@ export default function AdminPage() {
               (!relFiltroMedico || p.cadastro_id === relFiltroMedico)
             );
 
-            const comissoesPeriodo = indicacoes
-              .filter(i => i.comissao_paga && (!relFiltroMedico || i.medico_id === relFiltroMedico))
+            // Comissão tem duas origens: indicação de paciente (Indicacao) e
+            // médico que indicou outro médico (Cadastro.indicado_por_medico_id
+            // — a mesma comissão que aparece na tabela de médicos). Junta as
+            // duas num formato comum pra alimentar os relatórios abaixo.
+            // tipo='medico' aqui é indicação legada já migrada pra Cadastro
+            // (fica só de histórico) — excluída pra não contar em dobro.
+            const comissoesDeIndicacoes = indicacoes
+              .filter(i => i.tipo !== 'medico' && i.comissao_paga && (!relFiltroMedico || i.medico_id === relFiltroMedico))
               .map(i => {
                 const desp = i.comissao_despesa_id ? despesaPorId.get(i.comissao_despesa_id) : undefined;
-                return { ...i, _data: desp?.data || i.created_at.slice(0, 10) };
-              })
+                return {
+                  id: i.id, _data: desp?.data || i.created_at.slice(0, 10), medico_id: i.medico_id, medico_nome: i.medico_nome,
+                  nome: i.nome, sobrenome: i.sobrenome, tipoIndicado: 'Paciente' as const, comissao_valor: i.comissao_valor,
+                };
+              });
+            const comissoesDeCadastros = cadastros
+              .filter(c => c.indicado_por_medico_id && c.comissao_paga && (!relFiltroMedico || c.indicado_por_medico_id === relFiltroMedico))
+              .map(c => {
+                const desp = c.comissao_despesa_id ? despesaPorId.get(c.comissao_despesa_id) : undefined;
+                return {
+                  id: c.id, _data: desp?.data || c.created_at.slice(0, 10), medico_id: c.indicado_por_medico_id as string, medico_nome: c.indicado_por_medico_nome || '',
+                  nome: c.nome, sobrenome: c.sobrenome, tipoIndicado: 'Médico Indicado' as const, comissao_valor: c.comissao_valor,
+                };
+              });
+            const comissoesPeriodo = [...comissoesDeIndicacoes, ...comissoesDeCadastros]
               .filter(i => dentroPeriodo(i._data, relFiltroInicio, relFiltroFim))
               .sort((a, b) => b._data.localeCompare(a._data));
 
@@ -4239,7 +4300,7 @@ export default function AdminPage() {
                         agrupadoPorMedico.map(m => [m.nome, m.qtdProprio, m.totalProprio.toFixed(2), m.qtdIndicado, m.totalIndicado.toFixed(2), m.comissao.toFixed(2)]));
                     } else if (relatorioTipo === 'comissoes') {
                       baixarCSV('comissoes-atribuidas.csv', ['Data', 'Médico Indicador', 'Indicado', 'Tipo', 'Valor'],
-                        comissoesPeriodo.map(i => [formatData(i._data), i.medico_nome, `${i.nome} ${i.sobrenome || ''}`.trim(), i.tipo === 'medico' ? 'Médico Indicado' : 'Paciente', (i.comissao_valor || 0).toFixed(2)]));
+                        comissoesPeriodo.map(i => [formatData(i._data), i.medico_nome, `${i.nome} ${i.sobrenome || ''}`.trim(), i.tipoIndicado, (i.comissao_valor || 0).toFixed(2)]));
                     } else {
                       baixarCSV('entradas-e-saidas.csv', ['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor'],
                         despesasPeriodo.map(d => [formatData(d.data), d.tipo === 'entrada' ? 'Entrada' : 'Saída', d.categoria, d.descricao, d.valor.toFixed(2)]));
@@ -4356,8 +4417,8 @@ export default function AdminPage() {
                                 <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600 }}>{i.medico_nome}</td>
                                 <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)' }}>{i.nome} {i.sobrenome || ''}</td>
                                 <td style={{ padding: '11px 14px' }}>
-                                  <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: i.tipo === 'medico' ? '#f0fdf4' : 'var(--surface-hover)', color: i.tipo === 'medico' ? '#16a34a' : 'var(--text-secondary, #374151)' }}>
-                                    {i.tipo === 'medico' ? 'Médico Indicado' : 'Paciente'}
+                                  <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: i.tipoIndicado === 'Médico Indicado' ? '#f0fdf4' : 'var(--surface-hover)', color: i.tipoIndicado === 'Médico Indicado' ? '#16a34a' : 'var(--text-secondary, #374151)' }}>
+                                    {i.tipoIndicado}
                                   </span>
                                 </td>
                                 <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>R$ {(i.comissao_valor || 0).toFixed(2)}</td>
