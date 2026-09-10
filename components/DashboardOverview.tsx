@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { estaOnline, HBarChart, LeadsChart30d, FaturamentoChart30d } from './DashboardCharts';
+import { brl } from '@/lib/format';
 
 export type DashCadastro = {
   id: string; nome: string; sobrenome: string; status: string; onde_conheceu: string | null;
@@ -299,10 +300,10 @@ export function DashboardOverview({
       <div>
         <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Visão do Negócio <span style={{ fontWeight: 400, color: 'var(--text-muted, #6b7280)', fontSize: 12.5 }}>— {PERIODO_LABEL[periodo]}</span></div>
         <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 20 }}>
-          <KpiCard size={22} label="Faturamento Total" value={`R$ ${valorVendido.toFixed(2)}`} />
-          <KpiCard size={22} label="Faturamento (30D)" value={`R$ ${faturamento30d.toFixed(2)}`} />
-          <KpiCard size={22} label="Saldo Financeiro" value={`R$ ${saldo.toFixed(2)}`} color={saldo >= 0 ? undefined : '#dc2626'} />
-          <KpiCard size={22} label="Comissões Pagas" value={`R$ ${totalComissoesPagas.toFixed(2)}`} />
+          <KpiCard size={22} label="Faturamento Total" value={`R$ ${brl(valorVendido)}`} />
+          <KpiCard size={22} label="Faturamento (30D)" value={`R$ ${brl(faturamento30d)}`} />
+          <KpiCard size={22} label="Saldo Financeiro" value={`R$ ${brl(saldo)}`} color={saldo >= 0 ? undefined : '#dc2626'} />
+          <KpiCard size={22} label="Comissões Pagas" value={`R$ ${brl(totalComissoesPagas)}`} />
           <KpiCard size={22} label="Comissões Pendentes" value={comissoesPendentes} />
           <KpiCard size={22} label="Alertas de Estoque" value={estoqueEsgotadoCount}
             color={estoqueEsgotadoCount > 0 ? '#dc2626' : undefined}
@@ -324,7 +325,7 @@ export function DashboardOverview({
                     <div key={m.nome + i}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
                         <span style={{ color: 'var(--text-secondary, #374151)', fontWeight: 600 }}>{m.nome}</span>
-                        <span style={{ color: '#16a34a', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>R$ {m.total.toFixed(2)}</span>
+                        <span style={{ color: '#16a34a', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>R$ {brl(m.total)}</span>
                       </div>
                       <div style={{ background: 'var(--surface-hover)', borderRadius: 8, height: 8, overflow: 'hidden' }}>
                         <div style={{ background: '#16a34a', borderRadius: 8, height: '100%', width: `${(m.total / max) * 100}%` }} />
@@ -484,9 +485,9 @@ export function DashboardOverview({
         <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Pedidos</div>
         <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
           <KpiCard size={22} label="Total Pedidos" value={totalPedidos} />
-          <KpiCard size={22} label="Valor Total" value={`R$ ${valorTotalPedidos.toFixed(2)}`} />
+          <KpiCard size={22} label="Valor Total" value={`R$ ${brl(valorTotalPedidos)}`} />
           <KpiCard size={22} label="Pagos" value={pedidosVendidos} color="#16a34a" />
-          <KpiCard size={22} label="Valor Pago" value={`R$ ${valorVendido.toFixed(2)}`} color="#16a34a" />
+          <KpiCard size={22} label="Valor Pago" value={`R$ ${brl(valorVendido)}`} color="#16a34a" />
         </div>
       </div>
 
@@ -515,7 +516,7 @@ export function DashboardOverview({
                       <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>{p.indicacao_id ? `indicado por ${p.cadastro_nome}` : p.cadastro_email}</div>
                     </td>
                     <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)' }}>{p.produto_nome}</td>
-                    <td style={{ padding: '10px 14px', fontWeight: 700, color: '#16a34a' }}>R$ {p.preco.toFixed(2)}</td>
+                    <td style={{ padding: '10px 14px', fontWeight: 700, color: '#16a34a' }}>R$ {brl(p.preco)}</td>
                     <td style={{ padding: '10px 14px' }}>
                       <span style={{ padding: '3px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: cc.bg, color: cc.text }}>
                         {PIPELINE_STATUS_LABEL[p.status] || p.status}

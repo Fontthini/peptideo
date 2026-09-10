@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { DashboardOverview, type DashProduto, type DashConfig } from '@/components/DashboardOverview';
 import { HBarChart } from '@/components/DashboardCharts';
 import { corDaEtiqueta } from '@/lib/etiquetas';
+import { brl } from '@/lib/format';
 
 type Cadastro = {
   id: string; nome: string; sobrenome: string; email: string; whatsapp: string;
@@ -15,6 +16,9 @@ type Cadastro = {
   tags?: string[];
   funil_status?: string | null; motivo_perda?: string | null;
   produtos_interesse?: string[];
+  indicado_por_medico_id?: string | null; indicado_por_medico_nome?: string | null;
+  comissao_valor?: number | null; comissao_paga?: boolean; comissao_despesa_id?: string | null;
+  categoria?: 'normal' | 'cortesia'; documentos?: string[];
 };
 
 const FUNIL_ETAPAS = ['novo', 'primeiro_contato', 'aguardando_resposta', 'interessado', 'link_pix_enviado', 'cliente', 'perdido'] as const;
@@ -71,6 +75,7 @@ type Indicacao = {
   nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string;
   status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string;
   obs?: string; comissao_valor?: number | null; comissao_paga?: boolean; comissao_despesa_id?: string | null;
+  documentos?: string[];
 };
 
 // Status compartilhado entre Pedidos e Indicações de pacientes (mesmo pipeline de venda).
@@ -144,11 +149,11 @@ function ComissaoWidget({ id, comissaoValor, comissaoPaga, mostrar, totalBase, p
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }} onClick={e => e.stopPropagation()}>
         <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>
-          OK Comissão: {totalBase > 0 ? `${((comissaoValor || 0) / totalBase * 100).toFixed(2)}%` : `R$ ${(comissaoValor || 0).toFixed(2)}`}
+          OK Comissão: {totalBase > 0 ? `${brl(((comissaoValor || 0) / totalBase * 100))}%` : `R$ ${brl((comissaoValor || 0))}`}
         </div>
         <button onClick={() => {
           setPromptId(id);
-          setInput(totalBase > 0 ? ((comissaoValor || 0) / totalBase * 100).toFixed(2) : String(comissaoValor || ''));
+          setInput(totalBase > 0 ? brl(((comissaoValor || 0) / totalBase * 100)) : String(comissaoValor || ''));
         }} style={{ background: 'none', border: 'none', color: 'var(--text-muted, #6b7280)', textDecoration: 'underline', cursor: 'pointer', fontSize: 10.5, fontFamily: 'inherit' }}>Editar</button>
       </div>
     );
@@ -159,12 +164,12 @@ function ComissaoWidget({ id, comissaoValor, comissaoPaga, mostrar, totalBase, p
       const valorCalculado = totalBase * pct / 100;
       return (
         <div style={{ marginTop: 4 }} onClick={e => e.stopPropagation()}>
-          <div style={{ fontSize: 10, color: 'var(--text-muted, #6b7280)' }}>Total: R$ {totalBase.toFixed(2)}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted, #6b7280)' }}>Total: R$ {brl(totalBase)}</div>
           <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginTop: 2 }}>
             <input autoFocus type="number" min="0" step="0.1" value={input} onChange={e => setInput(e.target.value)}
               placeholder="%" style={{ width: 50, border: '1px solid var(--border)', borderRadius: 6, padding: '3px 6px', fontSize: 11, fontFamily: 'inherit' }} />
             <span style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>%</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>= R$ {valorCalculado.toFixed(2)}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>= R$ {brl(valorCalculado)}</span>
           </div>
           <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
             <button onClick={() => onConfirmar(id, valorCalculado)} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
@@ -290,8 +295,8 @@ function EstoqueRow({ produto, vendido, onSalvar }: {
       <td style={{ padding: '10px 14px' }}>
         <input type="number" min="0" step="0.01" value={custo} onChange={e => setCusto(e.target.value)} style={numInputStyle} />
       </td>
-      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>R$ {produto.preco.toFixed(2)}</td>
-      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>R$ {valorEstoque.toFixed(2)}</td>
+      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>R$ {brl(produto.preco)}</td>
+      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>R$ {brl(valorEstoque)}</td>
       <td style={{ padding: '10px 14px' }}>
         <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: status === 'esgotado' ? '#fef2f2' : status === 'nao_configurado' ? 'var(--surface-hover)' : '#f0fdf4', color: status === 'esgotado' ? '#dc2626' : status === 'nao_configurado' ? 'var(--text-muted, #6b7280)' : '#16a34a' }}>
           {status === 'esgotado' ? 'Esgotado' : status === 'nao_configurado' ? 'Não configurado' : 'OK'}
@@ -310,12 +315,14 @@ function EstoqueRow({ produto, vendido, onSalvar }: {
   );
 }
 
-const ABA_NAV: { key: string; icon: string; label: string; color: string; gerenteOnly?: boolean }[] = [
+const ABA_NAV: { key: string; icon: string; label: string; color: string; gerenteOnly?: boolean; vendedorOnly?: boolean }[] = [
   { key: 'dashboard', icon: '#', label: 'Dashboard', color: 'var(--text)', gerenteOnly: true },
   { key: 'leads', icon: 'L', label: 'C. Médicos', color: '#16a34a' },
-  { key: 'pedidos', icon: 'P', label: 'Pedidos', color: 'var(--text)' },
-  { key: 'indicacoes', icon: 'I', label: 'Indicações', color: 'var(--text)' },
-  { key: 'indicacoes-medicas', icon: 'M', label: 'Indicações Médicas', color: 'var(--text-secondary, #374151)', gerenteOnly: true },
+  { key: 'clientes', icon: 'C', label: 'C. Clientes', color: 'var(--text)', gerenteOnly: true },
+  // "Pedidos" só continua como aba própria pro vendedor — ele não tem
+  // Dashboard nem Relatórios (gerenteOnly) pra ver pedido em outro lugar, e
+  // o botão "+ Pedido" nas linhas de médico/paciente é só do gerente.
+  { key: 'pedidos', icon: 'P', label: 'Pedidos', color: 'var(--text)', vendedorOnly: true },
   { key: 'financeiro', icon: '$', label: 'Financeiro', color: 'var(--text-secondary, #374151)', gerenteOnly: true },
   { key: 'estoque', icon: 'E', label: 'Estoque', color: 'var(--text)', gerenteOnly: true },
   { key: 'relatorios', icon: 'i', label: 'Relatórios', color: 'var(--text-secondary, #374151)', gerenteOnly: true },
@@ -325,7 +332,7 @@ const ABA_NAV: { key: string; icon: string; label: string; color: string; gerent
 ];
 
 function SideNav({ aba, handlers, gerenteOnly }: { aba: string; handlers: Record<string, () => void>; gerenteOnly?: boolean }) {
-  const itens = ABA_NAV.filter(i => !i.gerenteOnly || gerenteOnly);
+  const itens = ABA_NAV.filter(i => (!i.gerenteOnly || gerenteOnly) && (!i.vendedorOnly || !gerenteOnly));
   return (
     <aside className="portal-sidenav" style={{ flexShrink: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 10, alignSelf: 'flex-start', display: 'flex' }}>
       {itens.map(item => {
@@ -664,9 +671,16 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
   const [selectedLead, setSelectedLead] = useState<Cadastro | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [indicacoes, setIndicacoes] = useState<Indicacao[]>([]);
-  const [aba, setAba] = useState<'leads' | 'pedidos' | 'indicacoes'>('leads');
+  const [aba, setAba] = useState<'leads' | 'pedidos'>('leads');
   const [loadingPedido, setLoadingPedido] = useState('');
   const [msg, setMsg] = useState('');
+  const [tipoCadastroView, setTipoCadastroView] = useState<'medico' | 'paciente'>('medico');
+
+  useEffect(() => {
+    fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } })
+      .then(r => r.ok ? r.json() : null).then(d => { if (d) setIndicacoes(d); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const meusLeads = lista.filter(l => l.vendedor_id === membro.id);
   const semVendedor = lista.filter(l => !l.vendedor_id && l.status === 'pendente');
@@ -683,12 +697,6 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
     const r = await fetch('/api/portal/pedidos', { headers: { 'x-member-token': token } });
     if (r.ok) setPedidos(await r.json());
     setAba('pedidos');
-  }
-
-  async function carregarIndicacoes() {
-    const r = await fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } });
-    if (r.ok) setIndicacoes(await r.json());
-    setAba('indicacoes');
   }
 
   async function marcarPedido(id: string, status: string) {
@@ -730,7 +738,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
         />
       )}
 
-      <SideNav aba={aba} handlers={{ leads: () => setAba('leads'), pedidos: carregarPedidos, indicacoes: carregarIndicacoes }} />
+      <SideNav aba={aba} handlers={{ leads: () => setAba('leads'), pedidos: carregarPedidos }} />
 
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* KPIs */}
@@ -779,7 +787,7 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
                     <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', maxWidth: 200 }}>
                       {p.itens ? p.itens.map(i => `${i.nome} x${i.quantidade}`).join(', ') : p.produto_nome}
                     </td>
-                    <td style={{ padding: '10px 14px', fontWeight: 700, color: '#16a34a' }}>R$ {p.preco.toFixed(2)}</td>
+                    <td style={{ padding: '10px 14px', fontWeight: 700, color: '#16a34a' }}>R$ {brl(p.preco)}</td>
                     <td style={{ padding: '10px 14px' }}>
                       <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: cc.bg, color: cc.text }}>
                         {PEDIDO_STATUS_LABEL[p.status] || p.status}
@@ -804,112 +812,132 @@ function VendedorView({ membro, leads: leadsInit, equipe, token }: Props) {
         </div>
       )}
 
-      {/* ABA INDICACOES */}
-      {aba === 'indicacoes' && (
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Pacientes Indicados pelos meus Médicos</div>
-          {indicacoes.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhuma indicação ainda. Copie o link de indicação de um médico aprovado para começar.</div>}
-          <div className="portal-table-scroll">
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
-                {['Paciente', 'Contato', 'Médico Indicador', 'Data'].map(h => (
-                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {indicacoes.map(i => (
-                <tr key={i.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '10px 14px' }}>
-                    <div style={{ fontWeight: 600, color: 'var(--text)' }}>{i.nome} {i.sobrenome}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>{i.email || '—'}</div>
-                  </td>
-                  <td style={{ padding: '10px 14px' }}>
-                    {i.whatsapp && (
-                      <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
-                        style={{ fontSize: 12, color: '#128C46', textDecoration: 'none', fontWeight: 600 }}>
-                        {i.whatsapp}
-                      </a>
-                    )}
-                  </td>
-                  <td style={{ padding: '10px 14px', color: 'var(--text)', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
-                  <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>{formatDate(i.created_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        </div>
-      )}
-
-      {/* ABA LEADS */}
+      {/* ABA LEADS — alterna Médicos/Pacientes, absorvendo a antiga aba
+          "Indicações" (mesmo pivot do admin, só que sem criar/editar/
+          comissão, que continuam exclusivos do gerente). */}
       {aba === 'leads' && (
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {[['meus', `Meus (${meusLeads.length})`], ['livres', `Livres (${semVendedor.length})`], ['analise', `Em Analise (${emAnalise.length})`], ['aprovados', 'Aprovados']].map(([v, l]) => (
-              <button key={v} onClick={() => setFiltro(v)}
-                style={{ padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: filtro === v ? 700 : 500, background: filtro === v ? 'var(--btn-primary-bg)' : 'var(--surface-hover)', color: filtro === v ? 'var(--btn-primary-text)' : 'var(--text-secondary, #374151)', fontFamily: 'inherit' }}>
-                {l}
+        <div>
+          <div style={{ display: 'inline-flex', background: 'var(--surface-hover)', borderRadius: 8, padding: 3, gap: 2, marginBottom: 14 }}>
+            {(['medico', 'paciente'] as const).map(t => (
+              <button key={t} type="button" onClick={() => setTipoCadastroView(t)}
+                style={{ padding: '7px 18px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', background: tipoCadastroView === t ? 'var(--btn-primary-bg)' : 'transparent', color: tipoCadastroView === t ? 'var(--btn-primary-text)' : 'var(--text-muted, #6b7280)' }}>
+                {t === 'medico' ? `Médicos (${lista.length})` : `Pacientes (${indicacoes.filter(i => i.tipo !== 'medico').length})`}
               </button>
             ))}
           </div>
-          <div className="portal-table-scroll">
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
-                {['Paciente', 'Status', 'Contato', 'Data', 'Acoes'].map(h => (
-                  <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {visivel.length === 0 && (
-                <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum lead neste filtro.</td></tr>
-              )}
-              {visivel.map(l => (
-                <tr key={l.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
-                  onClick={() => setSelectedLead(l)}>
-                  <td style={{ padding: '11px 14px' }}>
-                    <div style={{ fontWeight: 700, color: 'var(--text)' }}>{l.nome} {l.sobrenome}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>{l.email}</div>
-                    {l.obs && <div style={{ fontSize: 11, color: 'var(--text)', marginTop: 2 }}>📝 Com anotacao</div>}
-                    <TagsLead tags={l.tags} />
-                  </td>
-                  <td style={{ padding: '11px 14px' }}>
-                    <Badge status={l.status} map={STATUS_COLOR} />
-                    {l.solicitacao && (
-                      <div style={{ marginTop: 4 }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, background: l.solicitacao === 'aprovar' ? '#dcfce7' : '#fef2f2', color: l.solicitacao === 'aprovar' ? '#15803d' : '#dc2626', padding: '2px 7px', borderRadius: 10 }}>
-                          Sol. {l.solicitacao === 'aprovar' ? 'Aprov.' : 'Rejei.'}
-                        </span>
-                      </div>
-                    )}
-                  </td>
-                  <td style={{ padding: '11px 14px' }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary, #374151)' }}>{l.whatsapp}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>{l.crm || 'Sem CRM'}</div>
-                  </td>
-                  <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>{formatDate(l.created_at)}</td>
-                  <td style={{ padding: '11px 14px' }} onClick={e => e.stopPropagation()}>
-                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                      {!l.vendedor_id && l.status === 'pendente' && (
-                        <button onClick={() => assumir(l.id)}
-                          style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 10px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}>
-                          Assumir
-                        </button>
-                      )}
-                      <button onClick={() => setSelectedLead(l)}
-                        style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 10px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit' }}>
-                        Ver Detalhes
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+
+          {tipoCadastroView === 'medico' && (
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {[['meus', `Meus (${meusLeads.length})`], ['livres', `Livres (${semVendedor.length})`], ['analise', `Em Analise (${emAnalise.length})`], ['aprovados', 'Aprovados']].map(([v, l]) => (
+                <button key={v} onClick={() => setFiltro(v)}
+                  style={{ padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: filtro === v ? 700 : 500, background: filtro === v ? 'var(--btn-primary-bg)' : 'var(--surface-hover)', color: filtro === v ? 'var(--btn-primary-text)' : 'var(--text-secondary, #374151)', fontFamily: 'inherit' }}>
+                  {l}
+                </button>
               ))}
-            </tbody>
-          </table>
+            </div>
+            <div className="portal-table-scroll">
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
+                  {['Paciente', 'Status', 'Contato', 'Indicado por', 'Data', 'Acoes'].map(h => (
+                    <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {visivel.length === 0 && (
+                  <tr><td colSpan={6} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum lead neste filtro.</td></tr>
+                )}
+                {visivel.map(l => (
+                  <tr key={l.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                    onClick={() => setSelectedLead(l)}>
+                    <td style={{ padding: '11px 14px' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--text)' }}>{l.nome} {l.sobrenome}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>{l.email}</div>
+                      {l.obs && <div style={{ fontSize: 11, color: 'var(--text)', marginTop: 2 }}>📝 Com anotacao</div>}
+                      <TagsLead tags={l.tags} />
+                    </td>
+                    <td style={{ padding: '11px 14px' }}>
+                      <Badge status={l.status} map={STATUS_COLOR} />
+                      {l.solicitacao && (
+                        <div style={{ marginTop: 4 }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, background: l.solicitacao === 'aprovar' ? '#dcfce7' : '#fef2f2', color: l.solicitacao === 'aprovar' ? '#15803d' : '#dc2626', padding: '2px 7px', borderRadius: 10 }}>
+                            Sol. {l.solicitacao === 'aprovar' ? 'Aprov.' : 'Rejei.'}
+                          </span>
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: '11px 14px' }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary, #374151)' }}>{l.whatsapp}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>{l.crm || 'Sem CRM'}</div>
+                    </td>
+                    <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>{l.indicado_por_medico_nome || '-'}</td>
+                    <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>{formatDate(l.created_at)}</td>
+                    <td style={{ padding: '11px 14px' }} onClick={e => e.stopPropagation()}>
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                        {!l.vendedor_id && l.status === 'pendente' && (
+                          <button onClick={() => assumir(l.id)}
+                            style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 10px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}>
+                            Assumir
+                          </button>
+                        )}
+                        <button onClick={() => setSelectedLead(l)}
+                          style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 10px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit' }}>
+                          Ver Detalhes
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            </div>
           </div>
+          )}
+
+          {tipoCadastroView === 'paciente' && (
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Pacientes Indicados pelos Médicos</div>
+            {indicacoes.filter(i => i.tipo !== 'medico').length === 0 && <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhuma indicação ainda. Copie o link de indicação de um médico aprovado para começar.</div>}
+            <div className="portal-table-scroll">
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
+                  {['Paciente', 'Contato', 'Médico Indicador', 'Status', 'Data'].map(h => (
+                    <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {indicacoes.filter(i => i.tipo !== 'medico').map(i => (
+                  <tr key={i.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '10px 14px' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{i.nome} {i.sobrenome}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>{i.email || '—'}</div>
+                    </td>
+                    <td style={{ padding: '10px 14px' }}>
+                      {i.whatsapp && (
+                        <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                          style={{ fontSize: 12, color: '#128C46', textDecoration: 'none', fontWeight: 600 }}>
+                          {i.whatsapp}
+                        </a>
+                      )}
+                    </td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text)', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
+                    <td style={{ padding: '10px 14px' }}>
+                      <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: (PIPELINE_STATUS_COLOR[i.status] || {}).bg, color: (PIPELINE_STATUS_COLOR[i.status] || {}).text }}>
+                        {PIPELINE_STATUS_LABEL[i.status] || i.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>{formatDate(i.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            </div>
+          </div>
+          )}
         </div>
       )}
       </div>
@@ -926,7 +954,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
   const [selectedLead, setSelectedLead] = useState<Cadastro | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [indicacoes, setIndicacoes] = useState<Indicacao[]>([]);
-  const [aba, setAba] = useState<'dashboard' | 'leads' | 'pedidos' | 'indicacoes' | 'indicacoes-medicas' | 'financeiro' | 'estoque' | 'relatorios' | 'mentoria' | 'blog' | 'rastreio'>('dashboard');
+  const [aba, setAba] = useState<'dashboard' | 'leads' | 'clientes' | 'financeiro' | 'estoque' | 'relatorios' | 'mentoria' | 'blog' | 'rastreio'>('dashboard');
   const [buscaMedico, setBuscaMedico] = useState('');
   const [verLeadsKanban, setVerLeadsKanban] = useState(true);
   const [editandoProdutoCardId, setEditandoProdutoCardId] = useState<string | null>(null);
@@ -945,12 +973,37 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
   const [salvandoIndicacao, setSalvandoIndicacao] = useState(false);
   const [msgIndicacao, setMsgIndicacao] = useState('');
   const [filtroEtiqueta, setFiltroEtiqueta] = useState('todas');
+  const [buscaCliente, setBuscaCliente] = useState('');
+  // Pivot: cadastro unificado — a aba "C. Médicos" alterna entre a lista de
+  // médicos (Cadastro) e a de pacientes (Indicacao), absorvendo as antigas
+  // abas "Indicações" e "Indicações Médicas" (espelha o admin).
+  const [tipoCadastroView, setTipoCadastroView] = useState<'medico' | 'paciente'>('medico');
   const [novoCadastroTipo, setNovoCadastroTipo] = useState<'escolher' | 'medico' | 'paciente' | null>(null);
-  const [novoMedico, setNovoMedico] = useState({ nome: '', sobrenome: '', email: '', whatsapp: '', endereco: '', crm: '', onde_conheceu: '' });
-  const [novoPaciente, setNovoPaciente] = useState({ medico_id: '', nome: '', sobrenome: '', whatsapp: '', email: '', endereco: '' });
+  const [wizardStep, setWizardStep] = useState(0);
+  const NOVO_MEDICO_INICIAL = {
+    indicado_por_medico_id: '', nome: '', sobrenome: '', email: '', whatsapp: '', endereco: '', crm: '', onde_conheceu: '',
+    cpf: '', rg: '', cidade: '', estado: '', documentos: [] as string[],
+    produto_id: '', quantidade: '1', desconto: '0', comprovante_pagamento: '', cashback_percentual: '0',
+  };
+  const NOVO_PACIENTE_INICIAL = {
+    medico_id: '', receita: '',
+    nome: '', sobrenome: '', whatsapp: '', email: '', endereco: '', cpf: '', rg: '', cidade: '', estado: '',
+    produto_id: '', quantidade: '1', desconto: '0', comprovante_pagamento: '', documentos: [] as string[], cashback_percentual: '0',
+  };
+  const [novoMedico, setNovoMedico] = useState(NOVO_MEDICO_INICIAL);
+  const [novoPaciente, setNovoPaciente] = useState(NOVO_PACIENTE_INICIAL);
   const [buscaMedicoIndicador, setBuscaMedicoIndicador] = useState('');
   const [salvandoNovoCadastro, setSalvandoNovoCadastro] = useState(false);
   const [msgNovoCadastro, setMsgNovoCadastro] = useState('');
+  const [uploadandoWizard, setUploadandoWizard] = useState<string | null>(null);
+  const [comissaoCadastroPromptId, setComissaoCadastroPromptId] = useState<string | null>(null);
+  const [comissaoCadastroInput, setComissaoCadastroInput] = useState('');
+
+  // Mesma sequência combinada do wizard do admin: quem indicou → receita (só
+  // paciente) → dados gerais → produto/pedido+desconto → comprovante →
+  // documentos → cashback %.
+  const PACIENTE_STEPS = ['indicador', 'receita', 'dados', 'produto', 'comprovante', 'documentos', 'cashback'] as const;
+  const MEDICO_STEPS = ['indicador', 'dados', 'produto', 'comprovante', 'documentos', 'cashback'] as const;
 
   const [produtosCatalogo, setProdutosCatalogo] = useState<Produto[]>([]);
   const [loadingPedidoStatus, setLoadingPedidoStatus] = useState('');
@@ -961,6 +1014,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
   const [relFiltroMedico, setRelFiltroMedico] = useState('');
   const [relAgrupamento, setRelAgrupamento] = useState<'dia' | 'mes'>('dia');
   const [relFiltroTipoFin, setRelFiltroTipoFin] = useState<'todos' | 'entrada' | 'saida'>('todos');
+  const [relFiltroCategoria, setRelFiltroCategoria] = useState('');
 
   useEffect(() => {
     fetch('/api/portal/produtos', { headers: { 'x-member-token': token } })
@@ -984,10 +1038,20 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
 
   const fecharNovoCadastro = () => {
     setNovoCadastroTipo(null);
-    setNovoMedico({ nome: '', sobrenome: '', email: '', whatsapp: '', endereco: '', crm: '', onde_conheceu: '' });
-    setNovoPaciente({ medico_id: '', nome: '', sobrenome: '', whatsapp: '', email: '', endereco: '' });
+    setWizardStep(0);
+    setNovoMedico(NOVO_MEDICO_INICIAL);
+    setNovoPaciente(NOVO_PACIENTE_INICIAL);
     setBuscaMedicoIndicador('');
     setMsgNovoCadastro('');
+  };
+
+  const recarregarPedidosEDespesasSilencioso = async () => {
+    const [rp, rd] = await Promise.all([
+      fetch('/api/portal/pedidos', { headers: { 'x-member-token': token } }),
+      fetch('/api/portal/despesas', { headers: { 'x-member-token': token } }),
+    ]);
+    if (rp.ok) setPedidos(await rp.json());
+    if (rd.ok) setDespesas(await rd.json());
   };
 
   const criarMedicoManual = async (e: React.FormEvent) => {
@@ -1003,6 +1067,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
       const c = await r.json();
       setLista(prev => [c, ...prev]);
       fecharNovoCadastro();
+      recarregarPedidosEDespesasSilencioso();
     } else {
       const d = await r.json().catch(() => ({}));
       setMsgNovoCadastro(d.error || 'Erro ao cadastrar médico');
@@ -1011,21 +1076,50 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
 
   const criarPacienteManual = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!novoPaciente.medico_id) { setMsgNovoCadastro('Busque o médico indicador e clique no nome dele na lista antes de cadastrar'); return; }
     setSalvandoNovoCadastro(true);
     setMsgNovoCadastro('');
-    const r = await fetch('/api/portal/indicacoes', {
+    const r = await fetch('/api/portal/pacientes/completo', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
       body: JSON.stringify(novoPaciente),
     });
     setSalvandoNovoCadastro(false);
     if (r.ok) {
-      const i = await r.json();
-      setIndicacoes(prev => [i, ...prev]);
+      const d = await r.json();
+      setIndicacoes(prev => [d.indicacao, ...prev]);
       fecharNovoCadastro();
+      recarregarPedidosEDespesasSilencioso();
     } else {
       const d = await r.json().catch(() => ({}));
       setMsgNovoCadastro(d.error || 'Erro ao cadastrar paciente');
     }
+  };
+
+  const uploadWizardFile = async (field: string, file: File, onUrl: (url: string) => void) => {
+    setUploadandoWizard(field);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await fetch('/api/portal/upload', { method: 'POST', headers: { 'x-member-token': token }, body: fd });
+      const d = await r.json();
+      if (r.ok) onUrl(d.url);
+      else setMsgNovoCadastro(d.error || 'Erro ao enviar arquivo');
+    } finally { setUploadandoWizard(null); }
+  };
+
+  const totalBaseForCadastro = (cadastroId: string) =>
+    pedidos.filter(p => p.cadastro_id === cadastroId && !p.indicacao_id && p.status === 'pago').reduce((s, p) => s + p.preco, 0);
+
+  const lancarComissaoCadastro = async (id: string, valor: number) => {
+    if (!valor || valor <= 0) { setMsgNovoCadastro('Informe um valor válido'); return; }
+    const r = await fetch('/api/portal/cadastros/comissao', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
+      body: JSON.stringify({ id, comissao_valor: valor }),
+    });
+    if (r.ok) {
+      setLista(prev => prev.map(x => x.id === id ? { ...x, comissao_valor: valor, comissao_paga: true } : x));
+      setComissaoCadastroPromptId(null); setComissaoCadastroInput('');
+    } else { const d = await r.json().catch(() => ({})); setMsgNovoCadastro(d.error || 'Erro ao lançar comissão'); }
   };
 
   const [despesas, setDespesas] = useState<Despesa[]>([]);
@@ -1137,29 +1231,12 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
       body: JSON.stringify(body),
     });
     setSalvandoPedido(false);
-    if (r.ok) { fecharNovoPedido(); carregarPedidos(); }
-    else { const d = await r.json().catch(() => ({})); setMsgPedido(d.error || 'Erro ao criar pedido'); }
-  };
-
-  async function carregarPedidos() {
-    const r = await fetch('/api/portal/pedidos', { headers: { 'x-member-token': token } });
-    if (r.ok) setPedidos(await r.json());
-    if (produtosCatalogo.length === 0) {
-      const rp = await fetch('/api/portal/produtos', { headers: { 'x-member-token': token } });
-      if (rp.ok) setProdutosCatalogo(await rp.json());
-    }
-    setAba('pedidos');
-  }
-
-  async function carregarIndicacoes(destino: 'indicacoes' | 'indicacoes-medicas' = 'indicacoes') {
-    const r = await fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } });
-    if (r.ok) setIndicacoes(await r.json());
-    if (pedidos.length === 0) {
+    if (r.ok) {
+      fecharNovoPedido();
       const rp = await fetch('/api/portal/pedidos', { headers: { 'x-member-token': token } });
       if (rp.ok) setPedidos(await rp.json());
-    }
-    setAba(destino);
-  }
+    } else { const d = await r.json().catch(() => ({})); setMsgPedido(d.error || 'Erro ao criar pedido'); }
+  };
 
   const atualizarStatusIndicacao = async (i: Indicacao, status: string) => {
     setIndicacoes(prev => prev.map(x => x.id === i.id ? { ...x, status } : x));
@@ -1167,7 +1244,11 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
       method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
       body: JSON.stringify({ ...i, status }),
     });
-    if (!r.ok) { const d = await r.json().catch(() => ({})); setMsgIndicacao(d.error || 'Erro ao atualizar'); carregarIndicacoes(aba === 'indicacoes-medicas' ? 'indicacoes-medicas' : 'indicacoes'); }
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({})); setMsgIndicacao(d.error || 'Erro ao atualizar');
+      const ri = await fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } });
+      if (ri.ok) setIndicacoes(await ri.json());
+    }
   };
 
   const salvarEdicaoIndicacao = async () => {
@@ -1426,10 +1507,28 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
 
       <SideNav aba={aba} gerenteOnly handlers={{
         dashboard: carregarDashboard,
-        leads: () => setAba('leads'),
-        pedidos: carregarPedidos,
-        indicacoes: () => carregarIndicacoes('indicacoes'),
-        'indicacoes-medicas': () => carregarIndicacoes('indicacoes-medicas'),
+        leads: async () => {
+          setAba('leads');
+          if (indicacoes.length === 0) {
+            const r = await fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } });
+            if (r.ok) setIndicacoes(await r.json());
+          }
+          if (pedidos.length === 0) {
+            const r = await fetch('/api/portal/pedidos', { headers: { 'x-member-token': token } });
+            if (r.ok) setPedidos(await r.json());
+          }
+        },
+        clientes: async () => {
+          setAba('clientes');
+          if (indicacoes.length === 0) {
+            const r = await fetch('/api/portal/indicacoes', { headers: { 'x-member-token': token } });
+            if (r.ok) setIndicacoes(await r.json());
+          }
+          if (pedidos.length === 0) {
+            const r = await fetch('/api/portal/pedidos', { headers: { 'x-member-token': token } });
+            if (r.ok) setPedidos(await r.json());
+          }
+        },
         financeiro: carregarFinanceiro,
         estoque: async () => {
           setAba('estoque');
@@ -1470,7 +1569,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
 
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* KPIs */}
-      {!['dashboard', 'financeiro', 'estoque', 'relatorios', 'mentoria', 'blog', 'rastreio'].includes(aba) && (
+      {!['dashboard', 'clientes', 'financeiro', 'estoque', 'relatorios', 'mentoria', 'blog', 'rastreio'].includes(aba) && (
         <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
           <StatCard label="Total Leads" value={lista.length} />
           <StatCard label="Pendentes" value={pendentes.length} color="var(--text-muted, #6b7280)" />
@@ -1495,115 +1594,9 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
         )
       )}
 
-      {/* ABA PEDIDOS */}
-      {aba === 'pedidos' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Pedidos</div>
-            <button onClick={() => setNovoPedidoAberto(true)}
-              style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
-              + Novo Pedido
-            </button>
-          </div>
-          <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
-            <StatCard label="Total Pedidos" value={totalPedidos} />
-            <StatCard label="Valor Total" value={`R$ ${valorPedidos.toFixed(2)}`} color="var(--text-muted, #6b7280)" />
-            <StatCard label="Pagos" value={pedidosVendidos.length} color="#16a34a" />
-            <StatCard label="Valor Pago" value={`R$ ${pedidosVendidos.reduce((s,p) => s+p.preco,0).toFixed(2)}`} color="#16a34a" />
-          </div>
-
-          {/* Performance vendedores com pedidos */}
-          {perf.length > 0 && (
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-              <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Performance por Vendedor</div>
-              <div className="portal-table-scroll">
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
-                    {['Vendedor', 'Leads', 'Aprovados', 'Pedidos Pagos', 'Valor Pago'].map(h => (
-                      <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {perf.map(v => (
-                    <tr key={v.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text)' }}>{v.nome}</td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)' }}>{v.leads}</td>
-                      <td style={{ padding: '10px 14px', color: '#15803d', fontWeight: 700 }}>{v.aprovados}</td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text)', fontWeight: 700 }}>{v.pedidosVendidos}</td>
-                      <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 800 }}>R$ {v.valorVendido.toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-            </div>
-          )}
-
-          {/* Tabela pedidos */}
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Todos os Pedidos</div>
-            {pedidos.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum pedido ainda.</div>}
-            <div className="portal-table-scroll">
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
-                  {['Cliente', 'Produto(s)', 'Valor', 'Vendedor', 'Status', 'Data'].map(h => (
-                    <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {pedidos.map(p => {
-                  const cc = PEDIDO_STATUS_COLOR[p.status] || { bg: 'var(--surface-hover)', text: 'var(--text-secondary, #374151)' };
-                  const vendNome = equipe.find(e => e.id === p.vendedor_id)?.nome;
-                  return (
-                    <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '10px 14px' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--text)' }}>{p.indicacao_id ? p.paciente_nome : p.cadastro_nome}</div>
-                        {p.indicacao_id && <div style={{ fontSize: 10.5, color: 'var(--text-muted, #6b7280)' }}>indicado por {p.cadastro_nome}</div>}
-                        {p.cadastro_whatsapp && (
-                          <a href={`https://wa.me/55${p.cadastro_whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
-                            style={{ fontSize: 11, color: '#128C46', textDecoration: 'none' }}>{p.cadastro_whatsapp}</a>
-                        )}
-                      </td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', maxWidth: 200, fontSize: 12 }}>
-                        {p.itens ? p.itens.map(i => `${i.nome} x${i.quantidade}`).join(', ') : p.produto_nome}
-                      </td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                          <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>R$</span>
-                          <input type="number" step="0.01" min="0" defaultValue={p.preco} key={`${p.id}-${p.preco}`}
-                            onBlur={e => {
-                              const v = parseFloat(e.target.value);
-                              if (!isNaN(v) && v !== p.preco) atualizarValorPedido(p.id, v);
-                            }}
-                            style={{ width: 88, border: '1px solid var(--border)', borderRadius: 5, padding: '4px 6px', fontSize: 13, fontWeight: 700, color: '#16a34a', fontFamily: 'inherit', background: 'var(--surface)' }} />
-                        </div>
-                      </td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontSize: 12 }}>{vendNome || '—'}</td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <select value={p.status} disabled={loadingPedidoStatus === p.id} onChange={e => marcarPedidoStatus(p.id, e.target.value)}
-                          style={{ background: cc.bg, color: cc.text, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
-                          <option value="em_atendimento">Em Atendimento</option>
-                          <option value="negociacao">Negociação</option>
-                          <option value="pago">Pago</option>
-                          <option value="cancelado">Cancelado</option>
-                        </select>
-                      </td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>{formatDate(p.created_at)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL NOVO PEDIDO */}
+      {/* MODAL NOVO PEDIDO — usado pelo botão "+ Pedido" nas linhas de
+          médicos/pacientes da aba C. Médicos (a aba própria de Pedidos foi
+          removida, igual no admin) */}
       {novoPedidoAberto && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 900, padding: 16 }}>
           <div style={{ background: 'var(--surface)', borderRadius: 12, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
@@ -1740,7 +1733,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
 
               <div style={{ textAlign: 'right', fontSize: 13, color: 'var(--text-secondary, #374151)' }}>
                 Total: <strong style={{ color: '#16a34a', fontSize: 16 }}>
-                  R$ {novoPedidoItens.reduce((s, it) => s + (parseFloat(it.preco) || 0) * (parseInt(it.quantidade, 10) || 1), 0).toFixed(2)}
+                  R$ {brl(novoPedidoItens.reduce((s, it) => s + (parseFloat(it.preco) || 0) * (parseInt(it.quantidade, 10) || 1), 0))}
                 </strong>
               </div>
 
@@ -1758,376 +1751,6 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
           </div>
         </div>
       )}
-
-      {/* ABA INDICACOES */}
-      {aba === 'indicacoes' && (() => {
-        const indicacoesPacientes = indicacoes.filter(i => i.tipo !== 'medico');
-        return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
-              placeholder="Buscar por médico indicador ou paciente indicado..."
-              style={{ maxWidth: 380, flex: 1, border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', color: 'var(--text)', background: 'var(--surface)', boxSizing: 'border-box' }} />
-            <ToggleListaKanban kanban={verIndicacoesKanban} onChange={setVerIndicacoesKanban} />
-          </div>
-          {msgIndicacao && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#dc2626' }}>{msgIndicacao}</div>}
-
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {(['todos', 'em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(val => {
-              const corSemantica = val === 'pago' ? '#15803d' : val === 'cancelado' ? '#dc2626' : null;
-              const label = val === 'todos' ? 'Todos' : PIPELINE_STATUS_LABEL[val];
-              const n = val === 'todos' ? indicacoesPacientes.length : indicacoesPacientes.filter(i => i.status === val).length;
-              const ativo = filtroIndicacao === val;
-              return (
-                <button key={val} onClick={() => setFiltroIndicacao(val)}
-                  style={{
-                    background: ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--surface)',
-                    color: ativo ? (corSemantica ? '#fff' : 'var(--btn-primary-text)') : 'var(--text-secondary, #374151)',
-                    border: `1px solid ${ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--border)'}`,
-                    padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: ativo ? 700 : 400, fontFamily: 'inherit', fontSize: 13,
-                  }}>
-                  {label} ({n})
-                </button>
-              );
-            })}
-          </div>
-
-          {(() => {
-            const porFiltro = filtroIndicacao === 'todos' ? indicacoesPacientes : indicacoesPacientes.filter(i => i.status === filtroIndicacao);
-            const q = buscaIndicacao.trim().toLowerCase();
-            const indicacoesFiltradas = !q ? porFiltro : porFiltro.filter(i =>
-              `${i.medico_nome} ${i.nome} ${i.sobrenome} ${i.email || ''}`.toLowerCase().includes(q));
-
-            const porMedico = new Map<string, number>();
-            indicacoesFiltradas.forEach(i => porMedico.set(i.medico_nome, (porMedico.get(i.medico_nome) || 0) + 1));
-            const ranking = [...porMedico.entries()].sort((a, b) => b[1] - a[1]);
-            const maxIndic = Math.max(...ranking.map(([, n]) => n), 1);
-
-            const comComissao = indicacoesPacientes.filter(i => i.comissao_paga);
-            const totalComissoes = comComissao.reduce((s, i) => s + (i.comissao_valor || 0), 0);
-
-            return (
-              <>
-                {ranking.length > 0 && (
-                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Indicações por Médico</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {ranking.map(([medico, n]) => (
-                        <div key={medico}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                            <span style={{ color: 'var(--text-secondary, #374151)', fontWeight: 600 }}>{medico}</span>
-                            <span style={{ color: 'var(--text)', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
-                          </div>
-                          <div style={{ background: 'var(--surface-hover)', borderRadius: 4, height: 6 }}>
-                            <div style={{ background: 'var(--btn-primary-bg)', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: comComissao.length > 0 ? 16 : 0 }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Comissões Pagas</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-soft, #9ca3af)', marginTop: 2 }}>Lançada quando uma indicação chega em &quot;Pago&quot; e você informa o valor no botão + Comissão</div>
-                    </div>
-                    <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {totalComissoes.toFixed(2)}</div>
-                  </div>
-                  {comComissao.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 16 }}>
-                      {comComissao.map(i => (
-                        <div key={i.id} onClick={() => setEditandoIndicacao(i)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '8px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
-                          <span style={{ color: 'var(--text-secondary, #374151)' }}>{i.medico_nome} <span style={{ color: 'var(--text-soft, #9ca3af)' }}>· indicou {i.nome} {i.sobrenome}</span></span>
-                          <span style={{ color: '#16a34a', fontWeight: 700 }}>R$ {(i.comissao_valor || 0).toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {indicacoesFiltradas.length === 0 ? (
-                  <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
-                    {indicacoesPacientes.length === 0 ? 'Nenhuma indicação ainda.' : 'Nenhuma indicação encontrada para essa busca.'}
-                  </div>
-                ) : verIndicacoesKanban ? (
-                  <KanbanBoard>
-                    {(['em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(etapa => {
-                      const itens = indicacoesFiltradas.filter(i => i.status === etapa);
-                      const cor = PIPELINE_STATUS_COLOR[etapa]?.text || '#374151';
-                      return (
-                        <KanbanColuna key={etapa} titulo={PIPELINE_STATUS_LABEL[etapa]} cor={cor} total={itens.length}>
-                          {itens.map(i => (
-                            <KanbanCard key={i.id} onClick={() => setEditandoIndicacao(i)}>
-                              <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
-                              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
-                              {i.whatsapp && (
-                                <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
-                              )}
-                              <div onClick={e => e.stopPropagation()}>
-                                <select value={etapa} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                                  style={{ width: '100%', marginTop: 7, border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
-                                  <option value="em_atendimento">Em Atendimento</option>
-                                  <option value="negociacao">Negociação</option>
-                                  <option value="pago">Pago</option>
-                                  <option value="cancelado">Cancelado</option>
-                                </select>
-                                <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga} totalBase={totalBaseFor(i.id)}
-                                  mostrar={etapa === 'pago'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
-                                  input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
-                              </div>
-                            </KanbanCard>
-                          ))}
-                        </KanbanColuna>
-                      );
-                    })}
-                  </KanbanBoard>
-                ) : (
-                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-                    <div className="portal-table-scroll">
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                      <thead>
-                        <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
-                          {['Paciente', 'Contato', 'Médico Indicador', 'Status', 'Data', 'Ações'].map(h => (
-                            <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {indicacoesFiltradas.map(i => (
-                          <tr key={i.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                            <td style={{ padding: '10px 14px' }}>
-                              <div style={{ fontWeight: 600, color: 'var(--text)' }}>{i.nome} {i.sobrenome}</div>
-                              <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>{i.email || '—'}</div>
-                            </td>
-                            <td style={{ padding: '10px 14px' }}>
-                              {i.whatsapp && (
-                                <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
-                                  style={{ fontSize: 12, color: '#128C46', textDecoration: 'none', fontWeight: 600 }}>
-                                  {i.whatsapp}
-                                </a>
-                              )}
-                            </td>
-                            <td style={{ padding: '10px 14px', color: 'var(--text)', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
-                            <td style={{ padding: '10px 14px' }}>
-                              <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                                style={{ background: (PIPELINE_STATUS_COLOR[i.status] || { bg: '#fff' }).bg, color: (PIPELINE_STATUS_COLOR[i.status] || { text: '#111827' }).text, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
-                                <option value="em_atendimento">Em Atendimento</option>
-                                <option value="negociacao">Negociação</option>
-                                <option value="pago">Pago</option>
-                                <option value="cancelado">Cancelado</option>
-                              </select>
-                              <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga} totalBase={totalBaseFor(i.id)}
-                                mostrar={i.status === 'pago'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
-                                input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
-                            </td>
-                            <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>{formatDate(i.created_at)}</td>
-                            <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
-                              <div style={{ display: 'flex', gap: 6 }}>
-                                {i.whatsapp && (
-                                  <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
-                                    style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
-                                    WhatsApp
-                                  </a>
-                                )}
-                                {membro.cargo === 'superadmin' && (
-                                  <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
-                                    style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
-                                    Excluir
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    </div>
-                  </div>
-                )}
-              </>
-            );
-          })()}
-        </div>
-        );
-      })()}
-
-      {/* ABA INDICACOES MEDICAS */}
-      {aba === 'indicacoes-medicas' && (() => {
-        const indicacoesMedicas = indicacoes.filter(i => i.tipo === 'medico');
-        const q = buscaIndicacao.trim().toLowerCase();
-        const filtradas = !q ? indicacoesMedicas : indicacoesMedicas.filter(i =>
-          `${i.medico_nome} ${i.nome} ${i.sobrenome} ${i.email || ''} ${i.crm || ''}`.toLowerCase().includes(q));
-
-        const porMedico = new Map<string, number>();
-        filtradas.forEach(i => porMedico.set(i.medico_nome, (porMedico.get(i.medico_nome) || 0) + 1));
-        const ranking = [...porMedico.entries()].sort((a, b) => b[1] - a[1]);
-        const maxIndic = Math.max(...ranking.map(([, n]) => n), 1);
-
-        const comComissao = indicacoesMedicas.filter(i => i.comissao_paga);
-        const totalComissoes = comComissao.reduce((s, i) => s + (i.comissao_valor || 0), 0);
-
-        return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
-              placeholder="Buscar por médico indicador, indicado ou CRM..."
-              style={{ maxWidth: 380, flex: 1, border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', color: 'var(--text)', background: 'var(--surface)', boxSizing: 'border-box' }} />
-            <ToggleListaKanban kanban={verIndicacoesMedicasKanban} onChange={setVerIndicacoesMedicasKanban} />
-          </div>
-          {msgIndicacao && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#dc2626' }}>{msgIndicacao}</div>}
-
-          {ranking.length > 0 && (
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Indicações Médicas por Médico</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {ranking.map(([medico, n]) => (
-                  <div key={medico}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                      <span style={{ color: 'var(--text-secondary, #374151)', fontWeight: 600 }}>{medico}</span>
-                      <span style={{ color: 'var(--text-secondary, #374151)', fontWeight: 700 }}>{n} indicaç{n === 1 ? 'ão' : 'ões'}</span>
-                    </div>
-                    <div style={{ background: 'var(--surface-hover)', borderRadius: 4, height: 6 }}>
-                      <div style={{ background: 'var(--btn-primary-bg)', borderRadius: 4, height: '100%', width: `${(n / maxIndic) * 100}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: comComissao.length > 0 ? 16 : 0 }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Comissões Pagas</div>
-                <div style={{ fontSize: 11, color: 'var(--text-soft, #9ca3af)', marginTop: 2 }}>Lançada quando uma indicação chega em &quot;Convertido&quot; e você informa o valor no botão + Comissão</div>
-              </div>
-              <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {totalComissoes.toFixed(2)}</div>
-            </div>
-            {comComissao.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 16 }}>
-                {comComissao.map(i => (
-                  <div key={i.id} onClick={() => setEditandoIndicacao(i)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '8px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
-                    <span style={{ color: 'var(--text-secondary, #374151)' }}>{i.medico_nome} <span style={{ color: 'var(--text-soft, #9ca3af)' }}>· indicou {i.nome} {i.sobrenome}</span></span>
-                    <span style={{ color: '#16a34a', fontWeight: 700 }}>R$ {(i.comissao_valor || 0).toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {filtradas.length === 0 ? (
-            <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
-              {indicacoesMedicas.length === 0 ? 'Nenhuma indicação médica ainda.' : 'Nenhuma indicação encontrada para essa busca.'}
-            </div>
-          ) : verIndicacoesMedicasKanban ? (
-            <KanbanBoard>
-              {(['novo', 'contatado', 'convertido', 'reprovado'] as const).map(etapa => {
-                const itens = filtradas.filter(i => i.status === etapa);
-                const cor = INDICACAO_MEDICA_STATUS_COLOR[etapa]?.text || '#374151';
-                return (
-                  <KanbanColuna key={etapa} titulo={INDICACAO_MEDICA_STATUS_LABEL[etapa]} cor={cor} total={itens.length}>
-                    {itens.map(i => (
-                      <KanbanCard key={i.id} onClick={() => setEditandoIndicacao(i)}>
-                        <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-secondary, #374151)', textTransform: 'uppercase', letterSpacing: 0.3 }}>Indicado por {i.medico_nome}</div>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', marginTop: 2 }}>{i.nome} {i.sobrenome}</div>
-                        {i.crm && <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>CRM {i.crm}</div>}
-                        {i.whatsapp && (
-                          <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none', display: 'block', marginTop: 2 }}>{i.whatsapp}</a>
-                        )}
-                        <div onClick={e => e.stopPropagation()}>
-                          <select value={etapa} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                            style={{ width: '100%', marginTop: 7, border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
-                            <option value="novo">Novo</option>
-                            <option value="contatado">Contatado</option>
-                            <option value="convertido">Convertido</option>
-                            <option value="reprovado">Reprovado</option>
-                          </select>
-                          <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga} totalBase={totalBaseFor(i.id)}
-                            mostrar={etapa === 'convertido'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
-                            input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
-                        </div>
-                      </KanbanCard>
-                    ))}
-                  </KanbanColuna>
-                );
-              })}
-            </KanbanBoard>
-          ) : (
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-              <div className="portal-table-scroll">
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
-                    {['Médico Indicado', 'CRM', 'Contato', 'Médico Indicador', 'Status', 'Data', 'Ações'].map(h => (
-                      <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtradas.map(i => (
-                    <tr key={i.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '10px 14px' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--text)' }}>{i.nome} {i.sobrenome}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted, #6b7280)' }}>{i.email || '—'}</div>
-                      </td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)' }}>{i.crm || '—'}</td>
-                      <td style={{ padding: '10px 14px' }}>
-                        {i.whatsapp && (
-                          <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
-                            style={{ fontSize: 12, color: '#128C46', textDecoration: 'none', fontWeight: 600 }}>
-                            {i.whatsapp}
-                          </a>
-                        )}
-                      </td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontWeight: 700, fontSize: 12 }}>{i.medico_nome}</td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                          style={{ background: (INDICACAO_MEDICA_STATUS_COLOR[i.status] || { bg: '#fff' }).bg, color: (INDICACAO_MEDICA_STATUS_COLOR[i.status] || { text: '#111827' }).text, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
-                          <option value="novo">Novo</option>
-                          <option value="contatado">Contatado</option>
-                          <option value="convertido">Convertido</option>
-                          <option value="reprovado">Reprovado</option>
-                        </select>
-                        <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga} totalBase={totalBaseFor(i.id)}
-                          mostrar={i.status === 'convertido'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
-                          input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
-                      </td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>{formatDate(i.created_at)}</td>
-                      <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          {i.whatsapp && (
-                            <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
-                              style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
-                              WhatsApp
-                            </a>
-                          )}
-                          {i.status !== 'reprovado' && (
-                            <button onClick={() => atualizarStatusIndicacao(i, 'reprovado')}
-                              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', fontWeight: 600 }}>
-                              Reprovar
-                            </button>
-                          )}
-                          {membro.cargo === 'superadmin' && (
-                            <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
-                              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
-                              Excluir
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-            </div>
-          )}
-        </div>
-        );
-      })()}
-
       {/* ABA FINANCEIRO (gerente pode criar/editar, nao pode excluir) */}
       {aba === 'financeiro' && (() => {
         const totalEntradas = despesas.filter(d => d.tipo === 'entrada').reduce((s, d) => s + d.valor, 0);
@@ -2141,9 +1764,9 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
-              <StatCard label="Total Entradas" value={`R$ ${totalEntradas.toFixed(2)}`} color="#16a34a" />
-              <StatCard label="Total Saídas" value={`R$ ${totalSaidas.toFixed(2)}`} color="#dc2626" />
-              <StatCard label="Saldo" value={`R$ ${saldo.toFixed(2)}`} color={saldo >= 0 ? undefined : '#dc2626'} />
+              <StatCard label="Total Entradas" value={`R$ ${brl(totalEntradas)}`} color="#16a34a" />
+              <StatCard label="Total Saídas" value={`R$ ${brl(totalSaidas)}`} color="#dc2626" />
+              <StatCard label="Saldo" value={`R$ ${brl(saldo)}`} color={saldo >= 0 ? undefined : '#dc2626'} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
@@ -2185,7 +1808,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                           </td>
                           <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)' }}>{d.categoria}</td>
                           <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)' }}>{d.descricao}</td>
-                          <td style={{ padding: '10px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626' }}>R$ {d.valor.toFixed(2)}</td>
+                          <td style={{ padding: '10px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626' }}>R$ {brl(d.valor)}</td>
                           <td style={{ padding: '10px 14px' }}>
                             <button onClick={() => setEditandoDespesa(d)}
                               style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
@@ -2320,7 +1943,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                 <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Peças em Estoque</div>
               </div>
               <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
-                <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {valorEstoqueTotal.toFixed(2)}</div>
+                <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {brl(valorEstoqueTotal)}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Valor de Estoque</div>
               </div>
               <div style={{ background: esgotadoCount > 0 ? '#dc26260d' : 'var(--surface-hover)', border: `1px solid ${esgotadoCount > 0 ? '#dc262633' : 'var(--border)'}`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${esgotadoCount > 0 ? '#dc2626' : 'var(--text-soft, #9ca3af)'}` }}>
@@ -2389,17 +2012,35 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
           (!relFiltroMedico || p.cadastro_id === relFiltroMedico)
         );
 
-        const comissoesPeriodo = indicacoes
-          .filter(i => i.comissao_paga && (!relFiltroMedico || i.medico_id === relFiltroMedico))
+        // Comissão tem duas origens: indicação de paciente (Indicacao) e
+        // médico que indicou outro médico (Cadastro.indicado_por_medico_id).
+        // tipo='medico' aqui é indicação legada já migrada pra Cadastro
+        // (fica só de histórico) — excluída pra não contar em dobro.
+        const comissoesDeIndicacoes = indicacoes
+          .filter(i => i.tipo !== 'medico' && i.comissao_paga && (!relFiltroMedico || i.medico_id === relFiltroMedico))
           .map(i => {
             const desp = i.comissao_despesa_id ? despesaPorId.get(i.comissao_despesa_id) : undefined;
-            return { ...i, _data: desp?.data || i.created_at.slice(0, 10) };
-          })
+            return {
+              id: i.id, _data: desp?.data || i.created_at.slice(0, 10), medico_id: i.medico_id, medico_nome: i.medico_nome,
+              nome: i.nome, sobrenome: i.sobrenome, tipoIndicado: 'Paciente' as const, comissao_valor: i.comissao_valor,
+            };
+          });
+        const comissoesDeCadastros = lista
+          .filter(c => c.indicado_por_medico_id && c.comissao_paga && (!relFiltroMedico || c.indicado_por_medico_id === relFiltroMedico))
+          .map(c => {
+            const desp = c.comissao_despesa_id ? despesaPorId.get(c.comissao_despesa_id) : undefined;
+            return {
+              id: c.id, _data: desp?.data || c.created_at.slice(0, 10), medico_id: c.indicado_por_medico_id as string, medico_nome: c.indicado_por_medico_nome || '',
+              nome: c.nome, sobrenome: c.sobrenome, tipoIndicado: 'Médico Indicado' as const, comissao_valor: c.comissao_valor,
+            };
+          });
+        const comissoesPeriodo = [...comissoesDeIndicacoes, ...comissoesDeCadastros]
           .filter(i => dentroPeriodo(i._data, relFiltroInicio, relFiltroFim))
           .sort((a, b) => b._data.localeCompare(a._data));
 
+        const categoriasPresentes = [...new Set(despesas.map(d => d.categoria))].sort((a, b) => a.localeCompare(b));
         const despesasPeriodo = despesas
-          .filter(d => dentroPeriodo(d.data, relFiltroInicio, relFiltroFim) && (relFiltroTipoFin === 'todos' || d.tipo === relFiltroTipoFin))
+          .filter(d => dentroPeriodo(d.data, relFiltroInicio, relFiltroFim) && (relFiltroTipoFin === 'todos' || d.tipo === relFiltroTipoFin) && (!relFiltroCategoria || d.categoria === relFiltroCategoria))
           .sort((a, b) => b.data.localeCompare(a.data));
 
         const totalFaturamento = pedidosPeriodo.reduce((s, p) => s + p.preco, 0);
@@ -2439,7 +2080,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
           ? formatData(key)
           : new Date(key + '-01T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-        const limparFiltros = () => { setRelFiltroInicio(''); setRelFiltroFim(''); setRelFiltroMedico(''); setRelFiltroTipoFin('todos'); };
+        const limparFiltros = () => { setRelFiltroInicio(''); setRelFiltroFim(''); setRelFiltroMedico(''); setRelFiltroTipoFin('todos'); setRelFiltroCategoria(''); };
 
         const pills: { key: typeof relatorioTipo; label: string }[] = [
           { key: 'faturamento', label: 'Faturamento' },
@@ -2509,15 +2150,25 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                 </div>
               )}
               {relatorioTipo === 'financeiro' && (
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>TIPO</div>
-                  <select value={relFiltroTipoFin} onChange={e => setRelFiltroTipoFin(e.target.value as 'todos' | 'entrada' | 'saida')}
-                    style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' }}>
-                    <option value="todos">Todos</option>
-                    <option value="entrada">Entrada</option>
-                    <option value="saida">Saída</option>
-                  </select>
-                </div>
+                <>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>TIPO</div>
+                    <select value={relFiltroTipoFin} onChange={e => setRelFiltroTipoFin(e.target.value as 'todos' | 'entrada' | 'saida')}
+                      style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' }}>
+                      <option value="todos">Todos</option>
+                      <option value="entrada">Entrada</option>
+                      <option value="saida">Saída</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>CATEGORIA</div>
+                    <select value={relFiltroCategoria} onChange={e => setRelFiltroCategoria(e.target.value)}
+                      style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', maxWidth: 200, background: 'var(--surface)', color: 'var(--text)' }}>
+                      <option value="">Todas as categorias</option>
+                      {categoriasPresentes.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </>
               )}
               <button onClick={limparFiltros}
                 style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
@@ -2531,16 +2182,16 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
               <button onClick={() => {
                 if (relatorioTipo === 'faturamento') {
                   baixarCSV('faturamento.csv', ['Período', 'Nº Pedidos', 'Faturamento'],
-                    agrupadoFaturamento.map(([k, v]) => [formatPeriodoKey(k), v.qtd, v.total.toFixed(2)]));
+                    agrupadoFaturamento.map(([k, v]) => [formatPeriodoKey(k), v.qtd, brl(v.total)]));
                 } else if (relatorioTipo === 'medicos') {
                   baixarCSV('faturamento-por-medico.csv', ['Médico', 'Pedidos Próprios', 'Faturamento Próprio', 'Pedidos de Indicados', 'Faturamento de Indicados', 'Comissões Pagas'],
-                    agrupadoPorMedico.map(m => [m.nome, m.qtdProprio, m.totalProprio.toFixed(2), m.qtdIndicado, m.totalIndicado.toFixed(2), m.comissao.toFixed(2)]));
+                    agrupadoPorMedico.map(m => [m.nome, m.qtdProprio, brl(m.totalProprio), m.qtdIndicado, brl(m.totalIndicado), brl(m.comissao)]));
                 } else if (relatorioTipo === 'comissoes') {
                   baixarCSV('comissoes-atribuidas.csv', ['Data', 'Médico Indicador', 'Indicado', 'Tipo', 'Valor'],
-                    comissoesPeriodo.map(i => [formatData(i._data), i.medico_nome, `${i.nome} ${i.sobrenome || ''}`.trim(), i.tipo === 'medico' ? 'Médico Indicado' : 'Paciente', (i.comissao_valor || 0).toFixed(2)]));
+                    comissoesPeriodo.map(i => [formatData(i._data), i.medico_nome, `${i.nome} ${i.sobrenome || ''}`.trim(), i.tipoIndicado, brl((i.comissao_valor || 0))]));
                 } else {
                   baixarCSV('entradas-e-saidas.csv', ['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor'],
-                    despesasPeriodo.map(d => [formatData(d.data), d.tipo === 'entrada' ? 'Entrada' : 'Saída', d.categoria, d.descricao, d.valor.toFixed(2)]));
+                    despesasPeriodo.map(d => [formatData(d.data), d.tipo === 'entrada' ? 'Entrada' : 'Saída', d.categoria, d.descricao, brl(d.valor)]));
                 }
               }} style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>
                 Baixar CSV
@@ -2551,7 +2202,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
               <>
                 <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
                   <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalFaturamento.toFixed(2)}</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {brl(totalFaturamento)}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Faturamento Total</div>
                   </div>
                   <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid var(--text-soft, #9ca3af)' }}>
@@ -2559,7 +2210,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Pedidos Pagos</div>
                   </div>
                   <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid var(--text-soft, #9ca3af)' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>R$ {ticketMedio.toFixed(2)}</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>R$ {brl(ticketMedio)}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Ticket Médio</div>
                   </div>
                 </div>
@@ -2580,7 +2231,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                           <tr key={k} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
                             <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', textTransform: 'capitalize' }}>{formatPeriodoKey(k)}</td>
                             <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{v.qtd}</td>
-                            <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>R$ {v.total.toFixed(2)}</td>
+                            <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>R$ {brl(v.total)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -2608,10 +2259,10 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                         <tr key={m.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
                           <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600 }}>{m.nome}</td>
                           <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{m.qtdProprio || '-'}</td>
-                          <td style={{ padding: '11px 14px', fontWeight: 700, color: m.totalProprio > 0 ? '#16a34a' : 'var(--text-soft, #9ca3af)', fontVariantNumeric: 'tabular-nums' }}>{m.totalProprio > 0 ? `R$ ${m.totalProprio.toFixed(2)}` : '-'}</td>
+                          <td style={{ padding: '11px 14px', fontWeight: 700, color: m.totalProprio > 0 ? '#16a34a' : 'var(--text-soft, #9ca3af)', fontVariantNumeric: 'tabular-nums' }}>{m.totalProprio > 0 ? `R$ ${brl(m.totalProprio)}` : '-'}</td>
                           <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{m.qtdIndicado || '-'}</td>
-                          <td style={{ padding: '11px 14px', fontWeight: 700, color: m.totalIndicado > 0 ? '#16a34a' : 'var(--text-soft, #9ca3af)', fontVariantNumeric: 'tabular-nums' }}>{m.totalIndicado > 0 ? `R$ ${m.totalIndicado.toFixed(2)}` : '-'}</td>
-                          <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>{m.comissao > 0 ? `R$ ${m.comissao.toFixed(2)}` : '-'}</td>
+                          <td style={{ padding: '11px 14px', fontWeight: 700, color: m.totalIndicado > 0 ? '#16a34a' : 'var(--text-soft, #9ca3af)', fontVariantNumeric: 'tabular-nums' }}>{m.totalIndicado > 0 ? `R$ ${brl(m.totalIndicado)}` : '-'}</td>
+                          <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>{m.comissao > 0 ? `R$ ${brl(m.comissao)}` : '-'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2624,7 +2275,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
               <>
                 <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
                   <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalComissoes.toFixed(2)}</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {brl(totalComissoes)}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total em Comissões</div>
                   </div>
                   <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid var(--text-soft, #9ca3af)' }}>
@@ -2651,11 +2302,11 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                             <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600 }}>{i.medico_nome}</td>
                             <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)' }}>{i.nome} {i.sobrenome || ''}</td>
                             <td style={{ padding: '11px 14px' }}>
-                              <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: i.tipo === 'medico' ? '#f0fdf4' : 'var(--surface-hover)', color: i.tipo === 'medico' ? '#16a34a' : 'var(--text-secondary, #374151)' }}>
-                                {i.tipo === 'medico' ? 'Médico Indicado' : 'Paciente'}
+                              <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: i.tipoIndicado === 'Médico Indicado' ? '#f0fdf4' : 'var(--surface-hover)', color: i.tipoIndicado === 'Médico Indicado' ? '#16a34a' : 'var(--text-secondary, #374151)' }}>
+                                {i.tipoIndicado}
                               </span>
                             </td>
-                            <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>R$ {(i.comissao_valor || 0).toFixed(2)}</td>
+                            <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>R$ {brl((i.comissao_valor || 0))}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -2669,15 +2320,15 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
               <>
                 <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
                   <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalEntradasFin.toFixed(2)}</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {brl(totalEntradasFin)}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total Entradas</div>
                   </div>
                   <div style={{ background: '#dc26260d', border: '1px solid #dc262633', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #dc2626' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#dc2626' }}>R$ {totalSaidasFin.toFixed(2)}</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#dc2626' }}>R$ {brl(totalSaidasFin)}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total Saídas</div>
                   </div>
                   <div style={{ background: totalEntradasFin - totalSaidasFin >= 0 ? 'var(--surface-hover)' : '#dc26260d', border: `1px solid ${totalEntradasFin - totalSaidasFin >= 0 ? 'var(--border)' : '#dc262633'}`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${totalEntradasFin - totalSaidasFin >= 0 ? 'var(--text-soft, #9ca3af)' : '#dc2626'}` }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: totalEntradasFin - totalSaidasFin >= 0 ? 'var(--text)' : '#dc2626' }}>R$ {(totalEntradasFin - totalSaidasFin).toFixed(2)}</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: totalEntradasFin - totalSaidasFin >= 0 ? 'var(--text)' : '#dc2626' }}>R$ {brl((totalEntradasFin - totalSaidasFin))}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Saldo</div>
                   </div>
                 </div>
@@ -2704,7 +2355,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                             </td>
                             <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap' }}>{d.categoria}</td>
                             <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{d.descricao}</td>
-                            <td style={{ padding: '11px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626', fontVariantNumeric: 'tabular-nums' }}>R$ {d.valor.toFixed(2)}</td>
+                            <td style={{ padding: '11px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626', fontVariantNumeric: 'tabular-nums' }}>R$ {brl(d.valor)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -3024,7 +2675,15 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
       {/* ABA LEADS */}
       {aba === 'leads' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'inline-flex', background: 'var(--surface-hover)', borderRadius: 8, padding: 3, gap: 2 }}>
+              {(['medico', 'paciente'] as const).map(t => (
+                <button key={t} type="button" onClick={() => setTipoCadastroView(t)}
+                  style={{ padding: '7px 18px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', background: tipoCadastroView === t ? 'var(--btn-primary-bg)' : 'transparent', color: tipoCadastroView === t ? 'var(--btn-primary-text)' : 'var(--text-muted, #6b7280)' }}>
+                  {t === 'medico' ? `Médicos (${lista.length})` : `Pacientes (${totalPacientes})`}
+                </button>
+              ))}
+            </div>
             <button onClick={() => setNovoCadastroTipo('escolher')}
               style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 16px', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
               + Cadastro Novo
@@ -3037,6 +2696,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
             <StatCard label="Pacientes" value={totalPacientes} />
           </div>
 
+          {tipoCadastroView === 'medico' && (<>
           {perf.length > 0 && (
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
               <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Performance Vendedores</div>
@@ -3082,7 +2742,6 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                 <input value={buscaMedico} onChange={e => setBuscaMedico(e.target.value)}
                   placeholder="Buscar médico por nome, e-mail, WhatsApp ou CRM..."
                   style={{ flex: 1, maxWidth: 380, border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', color: 'var(--text)', background: 'var(--surface)', boxSizing: 'border-box' }} />
-                <ToggleListaKanban kanban={verLeadsKanban} onChange={setVerLeadsKanban} />
               </div>
               {todasEtiquetas.length > 0 && (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -3105,102 +2764,17 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
               )}
             </div>
 
-            {verLeadsKanban ? (
-              <div style={{ padding: 16 }}>
-                <datalist id="produtos-catalogo-kanban-portal">
-                  {produtosCatalogo.map(p => <option key={p.id} value={p.nome} />)}
-                </datalist>
-                <KanbanBoard>
-                  {FUNIL_ETAPAS.map(etapa => {
-                    const itens = visivel.filter(c => (c.funil_status || 'novo') === etapa);
-                    return (
-                      <KanbanColuna key={etapa} titulo={FUNIL_LABEL[etapa]} cor={FUNIL_COLOR[etapa]} total={itens.length}>
-                        {itens.map(c => (
-                          <KanbanCard key={c.id} onClick={() => setSelectedLead(c)}>
-                            <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>{c.nome} {c.sobrenome}</div>
-                            <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11.5, color: '#16a34a', textDecoration: 'none' }}>{c.whatsapp}</a>
-                            <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 5, alignItems: 'center' }}>
-                              {(c.produtos_interesse || []).map(p => (
-                                <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 700, background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', padding: '1px 6px', borderRadius: 10 }}>
-                                  {p}
-                                  <button onClick={() => atualizarProdutosInteresseLead(c.id, (c.produtos_interesse || []).filter(x => x !== p))}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary, #374151)', fontSize: 11, lineHeight: 1, padding: 0, fontWeight: 900 }}>×</button>
-                                </span>
-                              ))}
-                              {editandoProdutoCardId === c.id ? (
-                                <input autoFocus value={novoProdutoCardInput} onChange={e => setNovoProdutoCardInput(e.target.value)}
-                                  list="produtos-catalogo-kanban-portal"
-                                  onBlur={() => { setEditandoProdutoCardId(null); setNovoProdutoCardInput(''); }}
-                                  onKeyDown={e => {
-                                    if (e.key === 'Enter') {
-                                      const v = novoProdutoCardInput.trim();
-                                      if (v && !(c.produtos_interesse || []).includes(v)) atualizarProdutosInteresseLead(c.id, [...(c.produtos_interesse || []), v]);
-                                      setNovoProdutoCardInput(''); setEditandoProdutoCardId(null);
-                                    } else if (e.key === 'Escape') { setNovoProdutoCardInput(''); setEditandoProdutoCardId(null); }
-                                  }}
-                                  placeholder="produto..." style={{ width: 70, border: '1px solid var(--border)', borderRadius: 10, padding: '1px 6px', fontSize: 9.5, fontFamily: 'inherit' }} />
-                              ) : (
-                                <button onClick={() => setEditandoProdutoCardId(c.id)}
-                                  style={{ background: 'var(--surface-hover)', color: 'var(--text-muted, #6b7280)', border: '1px dashed var(--border)', padding: '1px 6px', borderRadius: 10, fontSize: 9.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                                  + produto
-                                </button>
-                              )}
-                            </div>
-                            {(c.tags || []).length > 0 && (
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
-                                {(c.tags || []).map(t => {
-                                  const cor = corDaEtiqueta(t);
-                                  return <span key={t} style={{ fontSize: 9.5, fontWeight: 700, background: `${cor}1a`, color: cor, padding: '1px 6px', borderRadius: 10 }}>{t}</span>;
-                                })}
-                              </div>
-                            )}
-                            <div onClick={e => e.stopPropagation()}>
-                              <select value={c.vendedor_id || ''} onChange={e => e.target.value && transferirConsultor(c.id, e.target.value)}
-                                style={{ width: '100%', marginTop: 6, border: '1px solid var(--border)', borderRadius: 6, padding: '3px 6px', fontSize: 10.5, fontFamily: 'inherit', color: 'var(--text-secondary, #374151)', cursor: 'pointer' }}>
-                                <option value="">Sem consultor</option>
-                                {equipe.filter(m => m.cargo === 'vendedor' && m.ativo).map(m => (
-                                  <option key={m.id} value={m.id}>{m.nome}</option>
-                                ))}
-                              </select>
-                              <select value={etapa} onChange={e => {
-                                  const v = e.target.value;
-                                  if (v === 'perdido') { setPerdaPromptId(c.id); setMotivoPerdaInput(''); }
-                                  else atualizarFunilLead(c.id, v);
-                                }}
-                                style={{ width: '100%', marginTop: 5, border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
-                                {FUNIL_ETAPAS.map(e => <option key={e} value={e}>{FUNIL_LABEL[e]}</option>)}
-                              </select>
-                              {perdaPromptId === c.id && (
-                                <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
-                                  <select autoFocus value={motivoPerdaInput} onChange={e => setMotivoPerdaInput(e.target.value)}
-                                    style={{ flex: 1, border: '1px solid var(--border)', borderRadius: 6, padding: '3px 4px', fontSize: 10.5, fontFamily: 'inherit' }}>
-                                    <option value="">Motivo...</option>
-                                    {MOTIVOS_PERDA.map(m => <option key={m} value={m}>{m}</option>)}
-                                  </select>
-                                  <button onClick={() => { atualizarFunilLead(c.id, 'perdido', motivoPerdaInput); setPerdaPromptId(null); setMotivoPerdaInput(''); }}
-                                    style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 7px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
-                                </div>
-                              )}
-                            </div>
-                          </KanbanCard>
-                        ))}
-                      </KanbanColuna>
-                    );
-                  })}
-                </KanbanBoard>
-              </div>
-            ) : (
             <div className="portal-table-scroll">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
-                  {['Paciente', 'Status', 'Vendedor', 'Solicitacao', 'Data'].map(h => (
+                  {['Paciente', 'Status', 'Vendedor', 'Indicado por', 'Solicitacao', 'Data', 'Ações'].map(h => (
                     <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {visivel.length === 0 && <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum lead.</td></tr>}
+                {visivel.length === 0 && <tr><td colSpan={7} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum lead.</td></tr>}
                 {visivel.map(l => {
                   const vendNome = equipe.find(e => e.id === l.vendedor_id)?.nome;
                   return (
@@ -3221,6 +2795,12 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                           ))}
                         </select>
                       </td>
+                      <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }} onClick={e => e.stopPropagation()}>
+                        {l.indicado_por_medico_nome || '-'}
+                        <ComissaoWidget id={l.id} comissaoValor={l.comissao_valor} comissaoPaga={l.comissao_paga} mostrar={!!l.indicado_por_medico_id}
+                          totalBase={totalBaseForCadastro(l.id)} promptId={comissaoCadastroPromptId} setPromptId={setComissaoCadastroPromptId}
+                          input={comissaoCadastroInput} setInput={setComissaoCadastroInput} onConfirmar={lancarComissaoCadastro} />
+                      </td>
                       <td style={{ padding: '11px 14px' }}>
                         {l.solicitacao ? (
                           <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: l.solicitacao === 'aprovar' ? '#dcfce7' : '#fef2f2', color: l.solicitacao === 'aprovar' ? '#15803d' : '#dc2626' }}>
@@ -3229,175 +2809,632 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                         ) : <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 12, fontWeight: 600 }}>—</span>}
                       </td>
                       <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', fontSize: 12 }}>{formatDate(l.created_at)}</td>
+                      <td style={{ padding: '11px 14px' }} onClick={e => e.stopPropagation()}>
+                        {l.status === 'aprovado' && (
+                          <button onClick={() => { setNovoPedidoTipoCliente('medico'); setNovoPedidoMedicoId(l.id); setNovoPedidoAberto(true); }}
+                            style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 10px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}>
+                            + Pedido
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
             </div>
-            )}
           </div>
+          </>)}
 
-          {/* Modal: novo cadastro (médico ou paciente) */}
-          {novoCadastroTipo && (
-            <div style={{ position: 'fixed', inset: 0, zIndex: 700, overflowY: 'auto', padding: '24px 16px' }}>
-              <div onClick={fecharNovoCadastro} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
-              <div style={{ position: 'relative', maxWidth: 520, margin: '0 auto', background: 'var(--surface)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
-                <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text)' }}>
-                    {novoCadastroTipo === 'escolher' ? 'Cadastro Novo' : novoCadastroTipo === 'medico' ? 'Cadastrar Médico' : 'Cadastrar Paciente'}
-                  </div>
-                  <button onClick={fecharNovoCadastro} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--text-muted, #6b7280)' }}>×</button>
+          {tipoCadastroView === 'paciente' && (() => {
+            const indicacoesPacientes = indicacoes.filter(i => i.tipo !== 'medico');
+            const porFiltro = filtroIndicacao === 'todos' ? indicacoesPacientes : indicacoesPacientes.filter(i => i.status === filtroIndicacao);
+            const q = buscaIndicacao.trim().toLowerCase();
+            const indicacoesFiltradas = !q ? porFiltro : porFiltro.filter(i =>
+              `${i.medico_nome} ${i.nome} ${i.sobrenome} ${i.email || ''}`.toLowerCase().includes(q));
+            return (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+                  <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
+                    placeholder="Buscar por médico indicador ou paciente indicado..."
+                    style={{ flex: 1, maxWidth: 420, border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', color: 'var(--text)', background: 'var(--surface)', boxSizing: 'border-box' }} />
                 </div>
-
-                {msgNovoCadastro && (
-                  <div style={{ margin: '16px 24px 0', background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: 8, padding: '10px 14px', fontSize: 13 }}>
-                    {msgNovoCadastro}
-                  </div>
-                )}
-
-                {novoCadastroTipo === 'escolher' && (
-                  <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <button onClick={() => setNovoCadastroTipo('medico')}
-                      style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                      <span style={{ fontSize: 24 }}>🩺</span>
-                      <span>
-                        <div style={{ fontWeight: 800, color: 'var(--text-secondary, #374151)', fontSize: 14 }}>Cadastrar Médico</div>
-                        <div style={{ color: 'var(--text-muted, #6b7280)', fontSize: 12, marginTop: 2 }}>Registrar um novo profissional diretamente</div>
-                      </span>
-                    </button>
-                    <button onClick={() => setNovoCadastroTipo('paciente')}
-                      style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                      <span style={{ fontSize: 24 }}>🧑</span>
-                      <span>
-                        <div style={{ fontWeight: 800, color: 'var(--text-secondary, #374151)', fontSize: 14 }}>Cadastrar Paciente</div>
-                        <div style={{ color: 'var(--text-muted, #6b7280)', fontSize: 12, marginTop: 2 }}>Registrar um paciente indicado por um médico</div>
-                      </span>
-                    </button>
-                  </div>
-                )}
-
-                {novoCadastroTipo === 'medico' && (
-                  <form onSubmit={criarMedicoManual} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
-                      <div>
-                        <label style={labelStyle}>Nome *</label>
-                        <input value={novoMedico.nome} onChange={e => setNovoMedico(p => ({ ...p, nome: e.target.value }))} required style={inputStyle} />
-                      </div>
-                      <div>
-                        <label style={labelStyle}>Sobrenome</label>
-                        <input value={novoMedico.sobrenome} onChange={e => setNovoMedico(p => ({ ...p, sobrenome: e.target.value }))} style={inputStyle} />
-                      </div>
-                    </div>
-                    <div>
-                      <label style={labelStyle}>E-mail *</label>
-                      <input type="email" value={novoMedico.email} onChange={e => setNovoMedico(p => ({ ...p, email: e.target.value }))} required style={inputStyle} />
-                    </div>
-                    <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
-                      <div>
-                        <label style={labelStyle}>WhatsApp *</label>
-                        <input value={novoMedico.whatsapp} onChange={e => setNovoMedico(p => ({ ...p, whatsapp: e.target.value }))} required style={inputStyle} />
-                      </div>
-                      <div>
-                        <label style={labelStyle}>CRM</label>
-                        <input value={novoMedico.crm} onChange={e => setNovoMedico(p => ({ ...p, crm: e.target.value }))} style={inputStyle} />
-                      </div>
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Endereço</label>
-                      <input value={novoMedico.endereco} onChange={e => setNovoMedico(p => ({ ...p, endereco: e.target.value }))} style={inputStyle} />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Onde Conheceu</label>
-                      <select value={novoMedico.onde_conheceu} onChange={e => setNovoMedico(p => ({ ...p, onde_conheceu: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
-                        <option value="">Selecione...</option>
-                        {['Convidado pela PeptideZ Health', 'Pós Graduação LR', 'Indicação de Médico', 'Mentoria ICS', 'Blog da PeptideZ Health', 'Outro'].map(o => (
-                          <option key={o} value={o}>{o}</option>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                  {(['todos', 'em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(val => {
+                    const corSemantica = val === 'pago' ? '#15803d' : val === 'cancelado' ? '#dc2626' : null;
+                    const label = val === 'todos' ? 'Todos' : PIPELINE_STATUS_LABEL[val];
+                    const n = val === 'todos' ? indicacoesPacientes.length : indicacoesPacientes.filter(i => i.status === val).length;
+                    const ativo = filtroIndicacao === val;
+                    return (
+                      <button key={val} onClick={() => setFiltroIndicacao(val)}
+                        style={{
+                          background: ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--surface)',
+                          color: ativo ? (corSemantica ? '#fff' : 'var(--btn-primary-text)') : 'var(--text-secondary, #374151)',
+                          border: `1px solid ${ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--border)'}`,
+                          padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: ativo ? 700 : 400, fontFamily: 'inherit', fontSize: 13,
+                        }}>
+                        {label} ({n})
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                  {indicacoesFiltradas.length === 0 ? (
+                    <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum paciente encontrado</div>
+                  ) : (
+                    <div className="portal-table-scroll">
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
+                          {['Paciente', 'Médico Indicador', 'WhatsApp', 'Status', 'Comissão', 'Data', 'Ações'].map(h => (
+                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {indicacoesFiltradas.map((i, idx) => (
+                          <tr key={i.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                            <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600 }}>{i.nome} {i.sobrenome}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)' }}>{i.medico_nome}</td>
+                            <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                              {i.whatsapp && <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#16a34a', textDecoration: 'none' }}>{i.whatsapp}</a>}
+                            </td>
+                            <td style={{ padding: '11px 14px' }}>
+                              <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
+                                style={{ background: (PIPELINE_STATUS_COLOR[i.status] || {}).bg, color: (PIPELINE_STATUS_COLOR[i.status] || {}).text, border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                <option value="em_atendimento">Em Atendimento</option>
+                                <option value="negociacao">Negociação</option>
+                                <option value="pago">Pago</option>
+                                <option value="cancelado">Cancelado</option>
+                              </select>
+                              <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga} totalBase={totalBaseFor(i.id)}
+                                mostrar={i.status === 'pago'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
+                                input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
+                            </td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>{formatDate(i.created_at)}</td>
+                            <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+              <div style={{ display: 'flex', gap: 6 }}>
+                                <button onClick={() => { setNovoPedidoTipoCliente('paciente'); setNovoPedidoIndicacaoId(i.id); setNovoPedidoAberto(true); }}
+                                  style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                                  + Pedido
+                                </button>
+                                <button onClick={() => setEditandoIndicacao(i)} style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>Editar</button>
+                                <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome || ''}`.trim())} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 13 }} title="Excluir">×</button>
+                              </div>
+                            </td>
+                          </tr>
                         ))}
-                      </select>
+                      </tbody>
+                    </table>
                     </div>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button type="button" onClick={() => setNovoCadastroTipo('escolher')} style={{ background: 'var(--surface)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
-                        Voltar
-                      </button>
-                      <button type="submit" disabled={salvandoNovoCadastro} style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoNovoCadastro ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoNovoCadastro ? 0.6 : 1 }}>
-                        {salvandoNovoCadastro ? 'Salvando...' : 'Cadastrar Médico'}
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                {novoCadastroTipo === 'paciente' && (
-                  <form onSubmit={criarPacienteManual} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div>
-                      <label style={labelStyle}>Médico Indicador *</label>
-                      {novoPaciente.medico_id ? (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>
-                            {lista.find(c => c.id === novoPaciente.medico_id)?.nome} {lista.find(c => c.id === novoPaciente.medico_id)?.sobrenome}
-                          </span>
-                          <button type="button" onClick={() => setNovoPaciente(p => ({ ...p, medico_id: '' }))} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Trocar</button>
-                        </div>
-                      ) : (
-                        <>
-                          <input value={buscaMedicoIndicador} onChange={e => setBuscaMedicoIndicador(e.target.value)}
-                            placeholder="Buscar médico aprovado por nome..." style={inputStyle} />
-                          {buscaMedicoIndicador.trim().length >= 2 && (
-                            <div style={{ marginTop: 6, border: '1px solid var(--border)', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
-                              {lista.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoIndicador.trim().toLowerCase())).slice(0, 8).map(c => (
-                                <div key={c.id} onClick={() => { setNovoPaciente(p => ({ ...p, medico_id: c.id })); setBuscaMedicoIndicador(''); }}
-                                  style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--border)' }}>
-                                  <span style={{ fontWeight: 700, color: 'var(--text)' }}>{c.nome} {c.sobrenome}</span>
-                                  {c.crm && <span style={{ color: 'var(--text-muted, #6b7280)' }}> · {c.crm}</span>}
-                                </div>
-                              ))}
-                              {lista.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoIndicador.trim().toLowerCase())).length === 0 && (
-                                <div style={{ padding: '9px 12px', fontSize: 12, color: 'var(--text-muted, #6b7280)' }}>Nenhum médico aprovado encontrado.</div>
-                              )}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                    <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
-                      <div>
-                        <label style={labelStyle}>Nome *</label>
-                        <input value={novoPaciente.nome} onChange={e => setNovoPaciente(p => ({ ...p, nome: e.target.value }))} required style={inputStyle} />
-                      </div>
-                      <div>
-                        <label style={labelStyle}>Sobrenome</label>
-                        <input value={novoPaciente.sobrenome} onChange={e => setNovoPaciente(p => ({ ...p, sobrenome: e.target.value }))} style={inputStyle} />
-                      </div>
-                    </div>
-                    <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
-                      <div>
-                        <label style={labelStyle}>WhatsApp *</label>
-                        <input value={novoPaciente.whatsapp} onChange={e => setNovoPaciente(p => ({ ...p, whatsapp: e.target.value }))} required style={inputStyle} />
-                      </div>
-                      <div>
-                        <label style={labelStyle}>E-mail</label>
-                        <input type="email" value={novoPaciente.email} onChange={e => setNovoPaciente(p => ({ ...p, email: e.target.value }))} style={inputStyle} />
-                      </div>
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Endereço</label>
-                      <input value={novoPaciente.endereco} onChange={e => setNovoPaciente(p => ({ ...p, endereco: e.target.value }))} style={inputStyle} />
-                    </div>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button type="button" onClick={() => setNovoCadastroTipo('escolher')} style={{ background: 'var(--surface)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
-                        Voltar
-                      </button>
-                      <button type="submit" disabled={salvandoNovoCadastro || !novoPaciente.medico_id} style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: (salvandoNovoCadastro || !novoPaciente.medico_id) ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: (salvandoNovoCadastro || !novoPaciente.medico_id) ? 0.6 : 1 }}>
-                        {salvandoNovoCadastro ? 'Salvando...' : 'Cadastrar Paciente'}
-                      </button>
-                    </div>
-                  </form>
-                )}
+                  )}
+                </div>
+                {msgIndicacao && <div style={{ marginTop: 10, color: '#dc2626', fontSize: 12.5 }}>{msgIndicacao}</div>}
               </div>
-            </div>
-          )}
+            );
+          })()}
+
+              {/* Modal: novo cadastro (médico ou paciente) — wizard multi-etapa */}
+              {novoCadastroTipo && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 700, overflowY: 'auto', padding: '24px 16px' }}>
+                  <div onClick={fecharNovoCadastro} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
+                  <div style={{ position: 'relative', maxWidth: 560, margin: '0 auto', background: 'var(--surface)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
+                    <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text)' }}>
+                        {novoCadastroTipo === 'escolher' ? 'Cadastro Novo' : novoCadastroTipo === 'medico' ? 'Cadastrar Médico' : 'Cadastrar Paciente'}
+                      </div>
+                      <button onClick={fecharNovoCadastro} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--text-muted, #6b7280)' }}>×</button>
+                    </div>
+
+                    {novoCadastroTipo === 'escolher' && (
+                      <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <button onClick={() => { setNovoCadastroTipo('medico'); setWizardStep(0); }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                          <span style={{ fontSize: 24 }}>🩺</span>
+                          <span>
+                            <div style={{ fontWeight: 800, color: 'var(--text-secondary, #374151)', fontSize: 14 }}>Cadastrar Médico</div>
+                            <div style={{ color: 'var(--text-muted, #6b7280)', fontSize: 12, marginTop: 2 }}>Registrar um novo profissional diretamente</div>
+                          </span>
+                        </button>
+                        <button onClick={() => { setNovoCadastroTipo('paciente'); setWizardStep(0); }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                          <span style={{ fontSize: 24 }}>🧑</span>
+                          <span>
+                            <div style={{ fontWeight: 800, color: 'var(--text-secondary, #374151)', fontSize: 14 }}>Cadastrar Paciente</div>
+                            <div style={{ color: 'var(--text-muted, #6b7280)', fontSize: 12, marginTop: 2 }}>Registrar um paciente indicado por um médico</div>
+                          </span>
+                        </button>
+                      </div>
+                    )}
+
+                    {novoCadastroTipo === 'medico' && (() => {
+                      const steps = MEDICO_STEPS;
+                      const stepKey = steps[wizardStep];
+                      const produtoSel = produtosCatalogo.find(p => p.id === novoMedico.produto_id);
+                      const precoTotal = produtoSel ? produtoSel.preco * (parseInt(novoMedico.quantidade, 10) || 1) : 0;
+                      const descontoValor = Math.min(Math.max(0, parseFloat(novoMedico.desconto) || 0), precoTotal);
+                      const valorPago = Math.max(0, precoTotal - descontoValor);
+                      const cashbackPct = Math.min(Math.max(0, parseFloat(novoMedico.cashback_percentual) || 0), 100);
+                      const comissaoCalc = valorPago * cashbackPct / 100;
+                      const seraCortesia = precoTotal > 0 && valorPago === 0 && cashbackPct === 0;
+                      const indicador = lista.find(c => c.id === novoMedico.indicado_por_medico_id);
+                      const podeAvancar = stepKey === 'dados' ? !!novoMedico.nome.trim() && !!novoMedico.email.trim() && !!novoMedico.whatsapp.trim() : true;
+
+                      return (
+                        <form onSubmit={criarMedicoManual} style={{ display: 'flex', flexDirection: 'column' }}>
+                          <div style={{ display: 'flex', gap: 4, padding: '14px 24px 0' }}>
+                            {steps.map((s, i) => <div key={s} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= wizardStep ? 'var(--btn-primary-bg)' : 'var(--surface-hover)' }} />)}
+                          </div>
+                          <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14, minHeight: 240 }}>
+
+                            {stepKey === 'indicador' && (
+                              <div>
+                                <label style={labelStyle}>Quem indicou este médico (opcional)</label>
+                                {novoMedico.indicado_por_medico_id ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>{indicador?.nome} {indicador?.sobrenome}</span>
+                                    <button type="button" onClick={() => setNovoMedico(p => ({ ...p, indicado_por_medico_id: '' }))} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Trocar</button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <input value={buscaMedicoIndicador} onChange={e => setBuscaMedicoIndicador(e.target.value)} placeholder="Buscar médico aprovado por nome..." style={inputStyle} />
+                                    {buscaMedicoIndicador.trim().length >= 2 && (
+                                      <div style={{ marginTop: 6, border: '1px solid var(--border)', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
+                                        {lista.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoIndicador.trim().toLowerCase())).slice(0, 8).map(c => (
+                                          <div key={c.id} onClick={() => { setNovoMedico(p => ({ ...p, indicado_por_medico_id: c.id })); setBuscaMedicoIndicador(''); }} style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--border)' }}>
+                                            <span style={{ fontWeight: 700, color: 'var(--text)' }}>{c.nome} {c.sobrenome}</span>
+                                            {c.crm && <span style={{ color: 'var(--text-muted, #6b7280)' }}> · {c.crm}</span>}
+                                          </div>
+                                        ))}
+                                        {lista.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoIndicador.trim().toLowerCase())).length === 0 && (
+                                          <div style={{ padding: '9px 12px', fontSize: 12, color: 'var(--text-muted, #6b7280)' }}>Nenhum médico aprovado encontrado.</div>
+                                        )}
+                                      </div>
+                                    )}
+                                    <div style={{ fontSize: 11, color: 'var(--text-soft, #9ca3af)', marginTop: 6 }}>Se este médico entrou direto (sem indicação), pode deixar em branco e avançar.</div>
+                                  </>
+                                )}
+                              </div>
+                            )}
+
+                            {stepKey === 'dados' && (
+                              <>
+                                <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>Nome *</label><input value={novoMedico.nome} onChange={e => setNovoMedico(p => ({ ...p, nome: e.target.value }))} required style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>Sobrenome</label><input value={novoMedico.sobrenome} onChange={e => setNovoMedico(p => ({ ...p, sobrenome: e.target.value }))} style={inputStyle} /></div>
+                                </div>
+                                <div><label style={labelStyle}>E-mail *</label><input type="email" value={novoMedico.email} onChange={e => setNovoMedico(p => ({ ...p, email: e.target.value }))} required style={inputStyle} /></div>
+                                <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>WhatsApp *</label><input value={novoMedico.whatsapp} onChange={e => setNovoMedico(p => ({ ...p, whatsapp: e.target.value }))} required style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>CRM</label><input value={novoMedico.crm} onChange={e => setNovoMedico(p => ({ ...p, crm: e.target.value }))} style={inputStyle} /></div>
+                                </div>
+                                <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>CPF</label><input value={novoMedico.cpf} onChange={e => setNovoMedico(p => ({ ...p, cpf: e.target.value }))} style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>RG</label><input value={novoMedico.rg} onChange={e => setNovoMedico(p => ({ ...p, rg: e.target.value }))} style={inputStyle} /></div>
+                                </div>
+                                <div><label style={labelStyle}>Endereço</label><input value={novoMedico.endereco} onChange={e => setNovoMedico(p => ({ ...p, endereco: e.target.value }))} style={inputStyle} /></div>
+                                <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>Cidade</label><input value={novoMedico.cidade} onChange={e => setNovoMedico(p => ({ ...p, cidade: e.target.value }))} style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>Estado (UF)</label><input value={novoMedico.estado} onChange={e => setNovoMedico(p => ({ ...p, estado: e.target.value.toUpperCase().slice(0, 2) }))} maxLength={2} style={inputStyle} /></div>
+                                </div>
+                                <div>
+                                  <label style={labelStyle}>Onde Conheceu</label>
+                                  <select value={novoMedico.onde_conheceu} onChange={e => setNovoMedico(p => ({ ...p, onde_conheceu: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
+                                    <option value="">Selecione...</option>
+                                    {['Convidado pela PeptideZ Health', 'Pós Graduação LR', 'Indicação de Médico', 'Mentoria ICS', 'Blog da PeptideZ Health', 'Outro'].map(o => <option key={o} value={o}>{o}</option>)}
+                                  </select>
+                                </div>
+                              </>
+                            )}
+
+                            {stepKey === 'produto' && (
+                              <>
+                                <div>
+                                  <label style={labelStyle}>Produto (pedido do médico) — opcional</label>
+                                  <select value={novoMedico.produto_id} onChange={e => setNovoMedico(p => ({ ...p, produto_id: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
+                                    <option value="">Nenhum pedido agora</option>
+                                    {produtosCatalogo.map(p => <option key={p.id} value={p.id}>{p.nome} — R$ {brl(p.preco)}</option>)}
+                                  </select>
+                                </div>
+                                {novoMedico.produto_id && (
+                                  <>
+                                    <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                      <div><label style={labelStyle}>Quantidade</label><input type="number" min="1" value={novoMedico.quantidade} onChange={e => setNovoMedico(p => ({ ...p, quantidade: e.target.value }))} style={inputStyle} /></div>
+                                      <div><label style={labelStyle}>Desconto (R$)</label><input type="number" min="0" step="0.01" value={novoMedico.desconto} onChange={e => setNovoMedico(p => ({ ...p, desconto: e.target.value }))} style={inputStyle} /></div>
+                                    </div>
+                                    <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
+                                      <span style={{ color: 'var(--text-secondary, #374151)' }}>Valor do pedido</span>
+                                      <span style={{ color: '#16a34a' }}>R$ {brl(valorPago)}</span>
+                                    </div>
+                                  </>
+                                )}
+                              </>
+                            )}
+
+                            {stepKey === 'comprovante' && (
+                              <div>
+                                <label style={labelStyle}>Comprovante de Pagamento</label>
+                                {!novoMedico.produto_id ? (
+                                  <div style={{ fontSize: 12, color: 'var(--text-soft, #9ca3af)' }}>Sem pedido nesta etapa — não há pagamento a comprovar.</div>
+                                ) : novoMedico.comprovante_pagamento ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
+                                    <a href={novoMedico.comprovante_pagamento} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, color: '#15803d', fontWeight: 700 }}>Ver comprovante anexado</a>
+                                    <button type="button" onClick={() => setNovoMedico(p => ({ ...p, comprovante_pagamento: '' }))} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Remover</button>
+                                  </div>
+                                ) : (
+                                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--surface-hover)', border: '1px dashed var(--border)', borderRadius: 8, padding: '10px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary, #374151)' }}>
+                                    {uploadandoWizard === 'medico-comprovante' ? 'Enviando...' : 'Anexar comprovante'}
+                                    <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadWizardFile('medico-comprovante', f, url => setNovoMedico(p => ({ ...p, comprovante_pagamento: url }))); e.target.value = ''; }} />
+                                  </label>
+                                )}
+                                {!!novoMedico.produto_id && <div style={{ fontSize: 11, color: 'var(--text-soft, #9ca3af)', marginTop: 6 }}>Se anexar agora, o pedido já nasce como Pago e lança a entrada no Financeiro.</div>}
+                              </div>
+                            )}
+
+                            {stepKey === 'documentos' && (
+                              <div>
+                                <label style={labelStyle}>Documentos</label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                  {novoMedico.documentos.map((url, idx) => (
+                                    <div key={url} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-hover)', borderRadius: 8, padding: '7px 12px' }}>
+                                      <a href={url} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, color: 'var(--text-secondary, #374151)' }}>Documento {idx + 1}</a>
+                                      <button type="button" onClick={() => setNovoMedico(p => ({ ...p, documentos: p.documentos.filter((_, i) => i !== idx) }))} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+                                    </div>
+                                  ))}
+                                </div>
+                                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, background: 'var(--surface-hover)', border: '1px dashed var(--border)', borderRadius: 8, padding: '10px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary, #374151)' }}>
+                                  {uploadandoWizard === 'medico-documento' ? 'Enviando...' : '+ Anexar documento'}
+                                  <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadWizardFile('medico-documento', f, url => setNovoMedico(p => ({ ...p, documentos: [...p.documentos, url] }))); e.target.value = ''; }} />
+                                </label>
+                              </div>
+                            )}
+
+                            {stepKey === 'cashback' && (
+                              <div>
+                                <label style={labelStyle}>Cashback (%) para {indicador ? `${indicador.nome} ${indicador.sobrenome || ''}`.trim() : '—'}</label>
+                                {!novoMedico.indicado_por_medico_id ? (
+                                  <div style={{ fontSize: 12, color: 'var(--text-soft, #9ca3af)' }}>Sem indicador nesta etapa — não há a quem pagar cashback.</div>
+                                ) : !novoMedico.produto_id ? (
+                                  <div style={{ fontSize: 12, color: 'var(--text-soft, #9ca3af)' }}>Sem pedido nesta etapa — não há base para calcular cashback.</div>
+                                ) : (
+                                  <>
+                                    <input type="number" min="0" max="100" step="0.1" value={novoMedico.cashback_percentual} onChange={e => setNovoMedico(p => ({ ...p, cashback_percentual: e.target.value }))} style={inputStyle} />
+                                    <div style={{ marginTop: 8, fontSize: 12.5, color: '#16a34a', fontWeight: 700 }}>= R$ {brl(comissaoCalc)}</div>
+                                  </>
+                                )}
+                                {seraCortesia && (
+                                  <div style={{ marginTop: 10, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: '#92400e', fontWeight: 600 }}>
+                                    Sem valor pago e sem cashback — este pedido será registrado como Cortesia.
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10 }}>
+                            <button type="button" onClick={() => wizardStep === 0 ? (setNovoCadastroTipo('escolher')) : setWizardStep(s => s - 1)} style={{ background: 'var(--surface)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                              Voltar
+                            </button>
+                            {wizardStep < steps.length - 1 ? (
+                              <button type="button" disabled={!podeAvancar} onClick={() => setWizardStep(s => s + 1)} style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: podeAvancar ? 'pointer' : 'default', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: podeAvancar ? 1 : 0.5 }}>
+                                Avançar
+                              </button>
+                            ) : (
+                              <button type="submit" disabled={salvandoNovoCadastro} style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoNovoCadastro ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoNovoCadastro ? 0.6 : 1 }}>
+                                {salvandoNovoCadastro ? 'Salvando...' : 'Cadastrar Médico'}
+                              </button>
+                            )}
+                          </div>
+                        </form>
+                      );
+                    })()}
+
+                    {novoCadastroTipo === 'paciente' && (() => {
+                      const steps = PACIENTE_STEPS;
+                      const stepKey = steps[wizardStep];
+                      const produtoSel = produtosCatalogo.find(p => p.id === novoPaciente.produto_id);
+                      const precoTotal = produtoSel ? produtoSel.preco * (parseInt(novoPaciente.quantidade, 10) || 1) : 0;
+                      const descontoValor = Math.min(Math.max(0, parseFloat(novoPaciente.desconto) || 0), precoTotal);
+                      const valorPago = Math.max(0, precoTotal - descontoValor);
+                      const cashbackPct = Math.min(Math.max(0, parseFloat(novoPaciente.cashback_percentual) || 0), 100);
+                      const comissaoCalc = valorPago * cashbackPct / 100;
+                      const seraCortesia = precoTotal > 0 && valorPago === 0 && cashbackPct === 0;
+                      const medicoIndicador = lista.find(c => c.id === novoPaciente.medico_id);
+                      const podeAvancar =
+                        stepKey === 'indicador' ? !!novoPaciente.medico_id :
+                        stepKey === 'dados' ? !!novoPaciente.nome.trim() && !!novoPaciente.whatsapp.trim() :
+                        stepKey === 'produto' ? !!novoPaciente.produto_id :
+                        true;
+
+                      return (
+                        <form onSubmit={criarPacienteManual} style={{ display: 'flex', flexDirection: 'column' }}>
+                          <div style={{ display: 'flex', gap: 4, padding: '14px 24px 0' }}>
+                            {steps.map((s, i) => <div key={s} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= wizardStep ? 'var(--btn-primary-bg)' : 'var(--surface-hover)' }} />)}
+                          </div>
+                          <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14, minHeight: 240 }}>
+
+                            {stepKey === 'indicador' && (
+                              <div>
+                                <label style={labelStyle}>Quem indicou (médico) *</label>
+                                {novoPaciente.medico_id ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>{medicoIndicador?.nome} {medicoIndicador?.sobrenome}</span>
+                                    <button type="button" onClick={() => setNovoPaciente(p => ({ ...p, medico_id: '' }))} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Trocar</button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <input value={buscaMedicoIndicador} onChange={e => setBuscaMedicoIndicador(e.target.value)} placeholder="Buscar médico aprovado por nome..." style={inputStyle} />
+                                    <div style={{ fontSize: 11, color: 'var(--text-soft, #9ca3af)', marginTop: 4 }}>Clique no nome do médico na lista para selecionar.</div>
+                                    {buscaMedicoIndicador.trim().length >= 2 && (
+                                      <div style={{ marginTop: 6, border: '1px solid var(--border)', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
+                                        {lista.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoIndicador.trim().toLowerCase())).slice(0, 8).map(c => (
+                                          <div key={c.id} onClick={() => { setNovoPaciente(p => ({ ...p, medico_id: c.id })); setBuscaMedicoIndicador(''); }} style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--border)' }}>
+                                            <span style={{ fontWeight: 700, color: 'var(--text)' }}>{c.nome} {c.sobrenome}</span>
+                                            {c.crm && <span style={{ color: 'var(--text-muted, #6b7280)' }}> · {c.crm}</span>}
+                                          </div>
+                                        ))}
+                                        {lista.filter(c => c.status === 'aprovado' && `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(buscaMedicoIndicador.trim().toLowerCase())).length === 0 && (
+                                          <div style={{ padding: '9px 12px', fontSize: 12, color: 'var(--text-muted, #6b7280)' }}>Nenhum médico aprovado encontrado.</div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            )}
+
+                            {stepKey === 'receita' && (
+                              <div>
+                                <label style={labelStyle}>Receita Médica</label>
+                                {novoPaciente.receita ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
+                                    <a href={novoPaciente.receita} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, color: '#15803d', fontWeight: 700 }}>Ver receita anexada</a>
+                                    <button type="button" onClick={() => setNovoPaciente(p => ({ ...p, receita: '' }))} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Remover</button>
+                                  </div>
+                                ) : (
+                                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--surface-hover)', border: '1px dashed var(--border)', borderRadius: 8, padding: '10px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary, #374151)' }}>
+                                    {uploadandoWizard === 'paciente-receita' ? 'Enviando...' : 'Anexar receita'}
+                                    <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadWizardFile('paciente-receita', f, url => setNovoPaciente(p => ({ ...p, receita: url }))); e.target.value = ''; }} />
+                                  </label>
+                                )}
+                              </div>
+                            )}
+
+                            {stepKey === 'dados' && (
+                              <>
+                                <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>Nome *</label><input value={novoPaciente.nome} onChange={e => setNovoPaciente(p => ({ ...p, nome: e.target.value }))} required style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>Sobrenome</label><input value={novoPaciente.sobrenome} onChange={e => setNovoPaciente(p => ({ ...p, sobrenome: e.target.value }))} style={inputStyle} /></div>
+                                </div>
+                                <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>WhatsApp *</label><input value={novoPaciente.whatsapp} onChange={e => setNovoPaciente(p => ({ ...p, whatsapp: e.target.value }))} required style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>E-mail</label><input type="email" value={novoPaciente.email} onChange={e => setNovoPaciente(p => ({ ...p, email: e.target.value }))} style={inputStyle} /></div>
+                                </div>
+                                <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>CPF</label><input value={novoPaciente.cpf} onChange={e => setNovoPaciente(p => ({ ...p, cpf: e.target.value }))} style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>RG</label><input value={novoPaciente.rg} onChange={e => setNovoPaciente(p => ({ ...p, rg: e.target.value }))} style={inputStyle} /></div>
+                                </div>
+                                <div><label style={labelStyle}>Endereço</label><input value={novoPaciente.endereco} onChange={e => setNovoPaciente(p => ({ ...p, endereco: e.target.value }))} style={inputStyle} /></div>
+                                <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>Cidade</label><input value={novoPaciente.cidade} onChange={e => setNovoPaciente(p => ({ ...p, cidade: e.target.value }))} style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>Estado (UF)</label><input value={novoPaciente.estado} onChange={e => setNovoPaciente(p => ({ ...p, estado: e.target.value.toUpperCase().slice(0, 2) }))} maxLength={2} style={inputStyle} /></div>
+                                </div>
+                              </>
+                            )}
+
+                            {stepKey === 'produto' && (
+                              <>
+                                <div>
+                                  <label style={labelStyle}>Produto (pedido) *</label>
+                                  <select value={novoPaciente.produto_id} onChange={e => setNovoPaciente(p => ({ ...p, produto_id: e.target.value }))} required style={{ ...inputStyle, cursor: 'pointer' }}>
+                                    <option value="">Selecione o produto...</option>
+                                    {produtosCatalogo.map(p => <option key={p.id} value={p.id}>{p.nome} — R$ {brl(p.preco)}</option>)}
+                                  </select>
+                                </div>
+                                <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                                  <div><label style={labelStyle}>Quantidade</label><input type="number" min="1" value={novoPaciente.quantidade} onChange={e => setNovoPaciente(p => ({ ...p, quantidade: e.target.value }))} style={inputStyle} /></div>
+                                  <div><label style={labelStyle}>Desconto (R$)</label><input type="number" min="0" step="0.01" value={novoPaciente.desconto} onChange={e => setNovoPaciente(p => ({ ...p, desconto: e.target.value }))} style={inputStyle} /></div>
+                                </div>
+                                {novoPaciente.produto_id && (
+                                  <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
+                                    <span style={{ color: 'var(--text-secondary, #374151)' }}>Valor do pedido</span>
+                                    <span style={{ color: '#16a34a' }}>R$ {brl(valorPago)}</span>
+                                  </div>
+                                )}
+                              </>
+                            )}
+
+                            {stepKey === 'comprovante' && (
+                              <div>
+                                <label style={labelStyle}>Comprovante de Pagamento</label>
+                                {novoPaciente.comprovante_pagamento ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '9px 12px' }}>
+                                    <a href={novoPaciente.comprovante_pagamento} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, color: '#15803d', fontWeight: 700 }}>Ver comprovante anexado</a>
+                                    <button type="button" onClick={() => setNovoPaciente(p => ({ ...p, comprovante_pagamento: '' }))} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Remover</button>
+                                  </div>
+                                ) : (
+                                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--surface-hover)', border: '1px dashed var(--border)', borderRadius: 8, padding: '10px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary, #374151)' }}>
+                                    {uploadandoWizard === 'paciente-comprovante' ? 'Enviando...' : 'Anexar comprovante'}
+                                    <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadWizardFile('paciente-comprovante', f, url => setNovoPaciente(p => ({ ...p, comprovante_pagamento: url }))); e.target.value = ''; }} />
+                                  </label>
+                                )}
+                                <div style={{ fontSize: 11, color: 'var(--text-soft, #9ca3af)', marginTop: 6 }}>Se anexar agora, o pedido já nasce como Pago e lança a entrada no Financeiro.</div>
+                              </div>
+                            )}
+
+                            {stepKey === 'documentos' && (
+                              <div>
+                                <label style={labelStyle}>Documentos</label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                  {novoPaciente.documentos.map((url, idx) => (
+                                    <div key={url} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-hover)', borderRadius: 8, padding: '7px 12px' }}>
+                                      <a href={url} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, color: 'var(--text-secondary, #374151)' }}>Documento {idx + 1}</a>
+                                      <button type="button" onClick={() => setNovoPaciente(p => ({ ...p, documentos: p.documentos.filter((_, i) => i !== idx) }))} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+                                    </div>
+                                  ))}
+                                </div>
+                                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, background: 'var(--surface-hover)', border: '1px dashed var(--border)', borderRadius: 8, padding: '10px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary, #374151)' }}>
+                                  {uploadandoWizard === 'paciente-documento' ? 'Enviando...' : '+ Anexar documento'}
+                                  <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadWizardFile('paciente-documento', f, url => setNovoPaciente(p => ({ ...p, documentos: [...p.documentos, url] }))); e.target.value = ''; }} />
+                                </label>
+                              </div>
+                            )}
+
+                            {stepKey === 'cashback' && (
+                              <div>
+                                <label style={labelStyle}>Cashback (%) para {medicoIndicador ? `${medicoIndicador.nome} ${medicoIndicador.sobrenome || ''}`.trim() : 'o médico'}</label>
+                                <input type="number" min="0" max="100" step="0.1" value={novoPaciente.cashback_percentual} onChange={e => setNovoPaciente(p => ({ ...p, cashback_percentual: e.target.value }))} style={inputStyle} />
+                                <div style={{ marginTop: 8, fontSize: 12.5, color: '#16a34a', fontWeight: 700 }}>= R$ {brl(comissaoCalc)}</div>
+                                {seraCortesia && (
+                                  <div style={{ marginTop: 10, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: '#92400e', fontWeight: 600 }}>
+                                    Sem valor pago e sem cashback — este pedido será registrado como Cortesia.
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10 }}>
+                            <button type="button" onClick={() => wizardStep === 0 ? (setNovoCadastroTipo('escolher')) : setWizardStep(s => s - 1)} style={{ background: 'var(--surface)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '9px 18px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                              Voltar
+                            </button>
+                            {wizardStep < steps.length - 1 ? (
+                              <button type="button" disabled={!podeAvancar} onClick={() => setWizardStep(s => s + 1)} style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: podeAvancar ? 'pointer' : 'default', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: podeAvancar ? 1 : 0.5 }}>
+                                Avançar
+                              </button>
+                            ) : (
+                              <button type="submit" disabled={salvandoNovoCadastro} style={{ flex: 1, background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 20px', borderRadius: 6, cursor: salvandoNovoCadastro ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', opacity: salvandoNovoCadastro ? 0.6 : 1 }}>
+                                {salvandoNovoCadastro ? 'Salvando...' : 'Cadastrar Paciente'}
+                              </button>
+                            )}
+                          </div>
+                        </form>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
         </div>
       )}
+
+      {/* ABA CLIENTES — lista por PESSOA que efetivamente comprou (médico
+          pra si mesmo, ou paciente indicado), cada um com seu checklist do
+          que falta pra fechar o pedido (espelha o admin). */}
+      {aba === 'clientes' && (() => {
+        type ClienteLinha = {
+          key: string; tipo: 'medico' | 'paciente'; nome: string; whatsapp: string; email: string;
+          cidade?: string | null; estado?: string | null; indicadoPor?: string;
+          pedidosPessoa: Pedido[]; consultorNome?: string; pendencias: string[];
+        };
+
+        const medicosClientes: ClienteLinha[] = lista
+          .filter(c => pedidos.some(p => p.cadastro_id === c.id && !p.indicacao_id && p.status === 'pago'))
+          .map(c => {
+            const pendencias: string[] = [];
+            if (!(c.documentos || []).length) pendencias.push('Documentos');
+            return {
+              key: `medico-${c.id}`, tipo: 'medico', nome: `${c.nome} ${c.sobrenome || ''}`.trim(),
+              whatsapp: c.whatsapp, email: c.email, cidade: null, estado: null,
+              pedidosPessoa: pedidos.filter(p => p.cadastro_id === c.id && !p.indicacao_id),
+              consultorNome: equipe.find(m => m.id === c.vendedor_id)?.nome,
+              pendencias,
+            };
+          });
+
+        const pacientesClientes: ClienteLinha[] = indicacoes
+          .filter(i => i.tipo !== 'medico' && pedidos.some(p => p.indicacao_id === i.id && p.status === 'pago'))
+          .map(i => {
+            const pendencias: string[] = [];
+            if (!(i.documentos || []).length) pendencias.push('Documentos');
+            const medico = lista.find(c => c.id === i.medico_id);
+            return {
+              key: `paciente-${i.id}`, tipo: 'paciente', nome: `${i.nome} ${i.sobrenome || ''}`.trim(),
+              whatsapp: i.whatsapp, email: i.email, cidade: null, estado: null, indicadoPor: i.medico_nome,
+              pedidosPessoa: pedidos.filter(p => p.indicacao_id === i.id),
+              consultorNome: medico ? equipe.find(m => m.id === medico.vendedor_id)?.nome : undefined,
+              pendencias,
+            };
+          });
+
+        const todosClientes = [...medicosClientes, ...pacientesClientes];
+        const q = buscaCliente.trim().toLowerCase();
+        const clientesFiltrados = !q ? todosClientes : todosClientes.filter(c =>
+          `${c.nome} ${c.email} ${c.whatsapp}`.toLowerCase().includes(q));
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
+                C. Clientes <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400 }}>({todosClientes.length})</span>
+              </div>
+              <input value={buscaCliente} onChange={e => setBuscaCliente(e.target.value)}
+                placeholder="Buscar cliente por nome, e-mail ou WhatsApp..."
+                style={{ maxWidth: 380, border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', color: 'var(--text)', background: 'var(--surface)', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+              {clientesFiltrados.length === 0 ? (
+                <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>
+                  {todosClientes.length === 0 ? 'Nenhum cliente ainda. Uma pessoa vira cliente automaticamente quando um pedido dela é marcado como pago.' : 'Nenhum cliente encontrado para essa busca.'}
+                </div>
+              ) : (
+                <div className="portal-table-scroll">
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
+                        {['Nome', 'Tipo', 'WhatsApp', 'E-mail', 'Total Gasto', 'Produtos Comprados', 'Pendências', 'Último Pedido', 'Consultor'].map(h => (
+                          <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {clientesFiltrados.map((c, i) => {
+                        const pedidosPagos = c.pedidosPessoa.filter(p => p.status === 'pago');
+                        const totalGasto = pedidosPagos.reduce((s, p) => s + p.preco, 0);
+                        const produtosComprados = Array.from(new Set(pedidosPagos.map(p => p.produto_nome)));
+                        const ultimoPedido = c.pedidosPessoa.length > 0
+                          ? [...c.pedidosPessoa].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+                          : null;
+                        return (
+                          <tr key={c.key} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                            <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                              {c.nome}
+                              {c.indicadoPor && <div style={{ fontSize: 10.5, color: 'var(--text-soft, #9ca3af)', fontWeight: 400 }}>indicado por {c.indicadoPor}</div>}
+                            </td>
+                            <td style={{ padding: '11px 14px' }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 20, background: c.tipo === 'medico' ? 'var(--surface-hover)' : '#eff6ff', color: c.tipo === 'medico' ? 'var(--text-secondary, #374151)' : '#1d4ed8' }}>
+                                {c.tipo === 'medico' ? 'Médico' : 'Paciente'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                              {c.whatsapp && <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#16a34a', textDecoration: 'none' }}>{c.whatsapp}</a>}
+                            </td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{c.email || '-'}</td>
+                            <td style={{ padding: '11px 14px', color: '#16a34a', fontWeight: 800 }}>R$ {brl(totalGasto)}</td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={produtosComprados.join(', ')}>
+                              {produtosComprados.length > 0 ? produtosComprados.join(', ') : '-'}
+                            </td>
+                            <td style={{ padding: '11px 14px' }}>
+                              {c.pendencias.length === 0 ? (
+                                <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>OK Completo</span>
+                              ) : (
+                                <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626' }} title={c.pendencias.join(', ')}>Faltando: {c.pendencias.join(', ')}</span>
+                              )}
+                            </td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
+                              {ultimoPedido ? formatDate(ultimoPedido.created_at) : '-'}
+                            </td>
+                            <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)' }}>{c.consultorNome || <span style={{ color: 'var(--text-soft, #9ca3af)' }}>-</span>}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Modal: detalhe/edição de indicação (médica ou paciente) */}
       {editandoIndicacao && (() => {

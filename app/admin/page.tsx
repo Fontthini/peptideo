@@ -4,6 +4,7 @@ import { CATEGORIAS } from '@/lib/produtos';
 import { estaOnline, HBarChart, LeadsChart30d, FaturamentoChart30d, type HBarItem } from '@/components/DashboardCharts';
 import { DashboardOverview } from '@/components/DashboardOverview';
 import { corDaEtiqueta } from '@/lib/etiquetas';
+import { brl } from '@/lib/format';
 
 type Cadastro = {
   id: string; nome: string; sobrenome: string; email: string; whatsapp: string;
@@ -119,11 +120,11 @@ function ComissaoWidget({ id, comissaoValor, comissaoPaga, mostrar, totalBase, p
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }} onClick={e => e.stopPropagation()}>
         <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>
-          OK Comissão: {totalBase > 0 ? `${((comissaoValor || 0) / totalBase * 100).toFixed(2)}%` : `R$ ${(comissaoValor || 0).toFixed(2)}`}
+          OK Comissão: {totalBase > 0 ? `${brl(((comissaoValor || 0) / totalBase * 100))}%` : `R$ ${brl((comissaoValor || 0))}`}
         </div>
         <button onClick={() => {
           setPromptId(id);
-          setInput(totalBase > 0 ? ((comissaoValor || 0) / totalBase * 100).toFixed(2) : String(comissaoValor || ''));
+          setInput(totalBase > 0 ? brl(((comissaoValor || 0) / totalBase * 100)) : String(comissaoValor || ''));
         }} style={{ background: 'none', border: 'none', color: '#6b7280', textDecoration: 'underline', cursor: 'pointer', fontSize: 10.5, fontFamily: 'inherit' }}>Editar</button>
       </div>
     );
@@ -134,12 +135,12 @@ function ComissaoWidget({ id, comissaoValor, comissaoPaga, mostrar, totalBase, p
       const valorCalculado = totalBase * pct / 100;
       return (
         <div style={{ marginTop: 4 }} onClick={e => e.stopPropagation()}>
-          <div style={{ fontSize: 10, color: '#6b7280' }}>Total: R$ {totalBase.toFixed(2)}</div>
+          <div style={{ fontSize: 10, color: '#6b7280' }}>Total: R$ {brl(totalBase)}</div>
           <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginTop: 2 }}>
             <input autoFocus type="number" min="0" step="0.1" value={input} onChange={e => setInput(e.target.value)}
               placeholder="%" style={{ width: 50, border: '1px solid #d1d5db', borderRadius: 6, padding: '3px 6px', fontSize: 11, fontFamily: 'inherit' }} />
             <span style={{ fontSize: 11, color: '#6b7280' }}>%</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>= R$ {valorCalculado.toFixed(2)}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>= R$ {brl(valorCalculado)}</span>
           </div>
           <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
             <button onClick={() => onConfirmar(id, valorCalculado)} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
@@ -199,8 +200,8 @@ function EstoqueRow({ produto, vendido, onSalvar }: {
       <td style={{ padding: '10px 14px' }}>
         <input type="number" min="0" step="0.01" value={custo} onChange={e => setCusto(e.target.value)} style={numInputStyle} />
       </td>
-      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>R$ {produto.preco.toFixed(2)}</td>
-      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>R$ {valorEstoque.toFixed(2)}</td>
+      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>R$ {brl(produto.preco)}</td>
+      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>R$ {brl(valorEstoque)}</td>
       <td style={{ padding: '10px 14px' }}>
         <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: status === 'esgotado' ? '#fef2f2' : status === 'nao_configurado' ? 'var(--surface-hover)' : '#f0fdf4', color: status === 'esgotado' ? '#dc2626' : status === 'nao_configurado' ? 'var(--text-muted, #6b7280)' : '#16a34a' }}>
           {status === 'esgotado' ? 'Esgotado' : status === 'nao_configurado' ? 'Não configurado' : 'OK'}
@@ -1357,7 +1358,7 @@ export default function AdminPage() {
                   <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Comissões (Cashback) Pagas — médico indicou médico</div>
-                      <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {totalComissoesMedicos.toFixed(2)}</div>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {brl(totalComissoesMedicos)}</div>
                     </div>
                   </div>
                 );
@@ -1642,7 +1643,7 @@ export default function AdminPage() {
                       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Comissões (Cashback) Pagas</div>
-                          <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {totalComissoes.toFixed(2)}</div>
+                          <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {brl(totalComissoes)}</div>
                         </div>
                       </div>
                     )}
@@ -1998,7 +1999,7 @@ export default function AdminPage() {
                                   <label style={labelStyle}>Produto (pedido do médico) — opcional</label>
                                   <select value={novoMedico.produto_id} onChange={e => setNovoMedico(p => ({ ...p, produto_id: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
                                     <option value="">Nenhum pedido agora</option>
-                                    {produtos.map(p => <option key={p.id} value={p.id}>{p.nome} — R$ {p.preco.toFixed(2)}</option>)}
+                                    {produtos.map(p => <option key={p.id} value={p.id}>{p.nome} — R$ {brl(p.preco)}</option>)}
                                   </select>
                                 </div>
                                 {novoMedico.produto_id && (
@@ -2009,7 +2010,7 @@ export default function AdminPage() {
                                     </div>
                                     <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
                                       <span style={{ color: 'var(--text-secondary, #374151)' }}>Valor do pedido</span>
-                                      <span style={{ color: '#16a34a' }}>R$ {valorPago.toFixed(2)}</span>
+                                      <span style={{ color: '#16a34a' }}>R$ {brl(valorPago)}</span>
                                     </div>
                                   </>
                                 )}
@@ -2064,7 +2065,7 @@ export default function AdminPage() {
                                 ) : (
                                   <>
                                     <input type="number" min="0" max="100" step="0.1" value={novoMedico.cashback_percentual} onChange={e => setNovoMedico(p => ({ ...p, cashback_percentual: e.target.value }))} style={inputStyle} />
-                                    <div style={{ marginTop: 8, fontSize: 12.5, color: '#16a34a', fontWeight: 700 }}>= R$ {comissaoCalc.toFixed(2)}</div>
+                                    <div style={{ marginTop: 8, fontSize: 12.5, color: '#16a34a', fontWeight: 700 }}>= R$ {brl(comissaoCalc)}</div>
                                   </>
                                 )}
                                 {seraCortesia && (
@@ -2193,7 +2194,7 @@ export default function AdminPage() {
                                   <label style={labelStyle}>Produto (pedido) *</label>
                                   <select value={novoPaciente.produto_id} onChange={e => setNovoPaciente(p => ({ ...p, produto_id: e.target.value }))} required style={{ ...inputStyle, cursor: 'pointer' }}>
                                     <option value="">Selecione o produto...</option>
-                                    {produtos.map(p => <option key={p.id} value={p.id}>{p.nome} — R$ {p.preco.toFixed(2)}</option>)}
+                                    {produtos.map(p => <option key={p.id} value={p.id}>{p.nome} — R$ {brl(p.preco)}</option>)}
                                   </select>
                                 </div>
                                 <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
@@ -2203,7 +2204,7 @@ export default function AdminPage() {
                                 {novoPaciente.produto_id && (
                                   <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
                                     <span style={{ color: 'var(--text-secondary, #374151)' }}>Valor do pedido</span>
-                                    <span style={{ color: '#16a34a' }}>R$ {valorPago.toFixed(2)}</span>
+                                    <span style={{ color: '#16a34a' }}>R$ {brl(valorPago)}</span>
                                   </div>
                                 )}
                               </>
@@ -2249,7 +2250,7 @@ export default function AdminPage() {
                               <div>
                                 <label style={labelStyle}>Cashback (%) para {medicoIndicador ? `${medicoIndicador.nome} ${medicoIndicador.sobrenome || ''}`.trim() : 'o médico'}</label>
                                 <input type="number" min="0" max="100" step="0.1" value={novoPaciente.cashback_percentual} onChange={e => setNovoPaciente(p => ({ ...p, cashback_percentual: e.target.value }))} style={inputStyle} />
-                                <div style={{ marginTop: 8, fontSize: 12.5, color: '#16a34a', fontWeight: 700 }}>= R$ {comissaoCalc.toFixed(2)}</div>
+                                <div style={{ marginTop: 8, fontSize: 12.5, color: '#16a34a', fontWeight: 700 }}>= R$ {brl(comissaoCalc)}</div>
                                 {seraCortesia && (
                                   <div style={{ marginTop: 10, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: '#92400e', fontWeight: 600 }}>
                                     Sem valor pago e sem cashback — este pedido será registrado como Cortesia.
@@ -2376,7 +2377,7 @@ export default function AdminPage() {
                                 </td>
                                 <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{c.email || '-'}</td>
                                 <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{c.cidade ? `${c.cidade}/${c.estado || ''}` : '-'}</td>
-                                <td style={{ padding: '11px 14px', color: '#16a34a', fontWeight: 800 }}>R$ {totalGasto.toFixed(2)}</td>
+                                <td style={{ padding: '11px 14px', color: '#16a34a', fontWeight: 800 }}>R$ {brl(totalGasto)}</td>
                                 <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={produtosComprados.join(', ')}>
                                   {produtosComprados.length > 0 ? produtosComprados.join(', ') : '-'}
                                 </td>
@@ -3392,7 +3393,7 @@ export default function AdminPage() {
                       <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
                         <span style={{ color: 'var(--text-secondary, #374151)' }}>Total</span>
                         <span style={{ color: '#16a34a' }}>
-                          R$ {novoPedidoItens.reduce((s, it) => s + (parseFloat(it.preco) || 0) * (parseInt(it.quantidade, 10) || 1), 0).toFixed(2)}
+                          R$ {brl(novoPedidoItens.reduce((s, it) => s + (parseFloat(it.preco) || 0) * (parseInt(it.quantidade, 10) || 1), 0))}
                         </span>
                       </div>
 
@@ -3919,15 +3920,15 @@ export default function AdminPage() {
                 {/* KPIs */}
                 <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
                   <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalEntradas.toFixed(2)}</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {brl(totalEntradas)}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total Entradas</div>
                   </div>
                   <div style={{ background: '#dc26260d', border: '1px solid #dc262633', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #dc2626' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#dc2626' }}>R$ {totalSaidas.toFixed(2)}</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#dc2626' }}>R$ {brl(totalSaidas)}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total Saídas</div>
                   </div>
                   <div style={{ background: saldo >= 0 ? 'var(--surface-hover)' : '#dc26260d', border: `1px solid ${saldo >= 0 ? 'var(--border)' : '#dc262633'}`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${saldo >= 0 ? 'var(--text-soft, #9ca3af)' : '#dc2626'}` }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: saldo >= 0 ? 'var(--text)' : '#dc2626' }}>R$ {saldo.toFixed(2)}</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: saldo >= 0 ? 'var(--text)' : '#dc2626' }}>R$ {brl(saldo)}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Saldo</div>
                   </div>
                 </div>
@@ -3978,7 +3979,7 @@ export default function AdminPage() {
                                 <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap' }}>{d.categoria}</td>
                                 <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{d.descricao}</td>
                                 <td style={{ padding: '11px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                                  R$ {d.valor.toFixed(2)}
+                                  R$ {brl(d.valor)}
                                 </td>
                                 <td style={{ padding: '11px 14px' }}>
                                   {d.comprovante_url ? (
@@ -4306,16 +4307,16 @@ export default function AdminPage() {
                   <button onClick={() => {
                     if (relatorioTipo === 'faturamento') {
                       baixarCSV('faturamento.csv', ['Período', 'Nº Pedidos', 'Faturamento'],
-                        agrupadoFaturamento.map(([k, v]) => [formatPeriodoKey(k), v.qtd, v.total.toFixed(2)]));
+                        agrupadoFaturamento.map(([k, v]) => [formatPeriodoKey(k), v.qtd, brl(v.total)]));
                     } else if (relatorioTipo === 'medicos') {
                       baixarCSV('faturamento-por-medico.csv', ['Médico', 'Pedidos Próprios', 'Faturamento Próprio', 'Pedidos de Indicados', 'Faturamento de Indicados', 'Comissões Pagas'],
-                        agrupadoPorMedico.map(m => [m.nome, m.qtdProprio, m.totalProprio.toFixed(2), m.qtdIndicado, m.totalIndicado.toFixed(2), m.comissao.toFixed(2)]));
+                        agrupadoPorMedico.map(m => [m.nome, m.qtdProprio, brl(m.totalProprio), m.qtdIndicado, brl(m.totalIndicado), brl(m.comissao)]));
                     } else if (relatorioTipo === 'comissoes') {
                       baixarCSV('comissoes-atribuidas.csv', ['Data', 'Médico Indicador', 'Indicado', 'Tipo', 'Valor'],
-                        comissoesPeriodo.map(i => [formatData(i._data), i.medico_nome, `${i.nome} ${i.sobrenome || ''}`.trim(), i.tipoIndicado, (i.comissao_valor || 0).toFixed(2)]));
+                        comissoesPeriodo.map(i => [formatData(i._data), i.medico_nome, `${i.nome} ${i.sobrenome || ''}`.trim(), i.tipoIndicado, brl((i.comissao_valor || 0))]));
                     } else {
                       baixarCSV('entradas-e-saidas.csv', ['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor'],
-                        despesasPeriodo.map(d => [formatData(d.data), d.tipo === 'entrada' ? 'Entrada' : 'Saída', d.categoria, d.descricao, d.valor.toFixed(2)]));
+                        despesasPeriodo.map(d => [formatData(d.data), d.tipo === 'entrada' ? 'Entrada' : 'Saída', d.categoria, d.descricao, brl(d.valor)]));
                     }
                   }} style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>
                     Baixar CSV
@@ -4327,7 +4328,7 @@ export default function AdminPage() {
                   <>
                     <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
                       <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
-                        <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalFaturamento.toFixed(2)}</div>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {brl(totalFaturamento)}</div>
                         <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Faturamento Total</div>
                       </div>
                       <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
@@ -4335,7 +4336,7 @@ export default function AdminPage() {
                         <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Pedidos Pagos</div>
                       </div>
                       <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
-                        <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>R$ {ticketMedio.toFixed(2)}</div>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>R$ {brl(ticketMedio)}</div>
                         <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Ticket Médio</div>
                       </div>
                     </div>
@@ -4356,7 +4357,7 @@ export default function AdminPage() {
                               <tr key={k} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
                                 <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', textTransform: 'capitalize' }}>{formatPeriodoKey(k)}</td>
                                 <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{v.qtd}</td>
-                                <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>R$ {v.total.toFixed(2)}</td>
+                                <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>R$ {brl(v.total)}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -4385,10 +4386,10 @@ export default function AdminPage() {
                             <tr key={m.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
                               <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600 }}>{m.nome}</td>
                               <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{m.qtdProprio || '-'}</td>
-                              <td style={{ padding: '11px 14px', fontWeight: 700, color: m.totalProprio > 0 ? '#16a34a' : 'var(--text-soft, #9ca3af)', fontVariantNumeric: 'tabular-nums' }}>{m.totalProprio > 0 ? `R$ ${m.totalProprio.toFixed(2)}` : '-'}</td>
+                              <td style={{ padding: '11px 14px', fontWeight: 700, color: m.totalProprio > 0 ? '#16a34a' : 'var(--text-soft, #9ca3af)', fontVariantNumeric: 'tabular-nums' }}>{m.totalProprio > 0 ? `R$ ${brl(m.totalProprio)}` : '-'}</td>
                               <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{m.qtdIndicado || '-'}</td>
-                              <td style={{ padding: '11px 14px', fontWeight: 700, color: m.totalIndicado > 0 ? '#16a34a' : 'var(--text-soft, #9ca3af)', fontVariantNumeric: 'tabular-nums' }}>{m.totalIndicado > 0 ? `R$ ${m.totalIndicado.toFixed(2)}` : '-'}</td>
-                              <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>{m.comissao > 0 ? `R$ ${m.comissao.toFixed(2)}` : '-'}</td>
+                              <td style={{ padding: '11px 14px', fontWeight: 700, color: m.totalIndicado > 0 ? '#16a34a' : 'var(--text-soft, #9ca3af)', fontVariantNumeric: 'tabular-nums' }}>{m.totalIndicado > 0 ? `R$ ${brl(m.totalIndicado)}` : '-'}</td>
+                              <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', fontVariantNumeric: 'tabular-nums' }}>{m.comissao > 0 ? `R$ ${brl(m.comissao)}` : '-'}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -4402,7 +4403,7 @@ export default function AdminPage() {
                   <>
                     <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
                       <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
-                        <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalComissoes.toFixed(2)}</div>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {brl(totalComissoes)}</div>
                         <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total em Comissões</div>
                       </div>
                       <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
@@ -4433,7 +4434,7 @@ export default function AdminPage() {
                                     {i.tipoIndicado}
                                   </span>
                                 </td>
-                                <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>R$ {(i.comissao_valor || 0).toFixed(2)}</td>
+                                <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>R$ {brl((i.comissao_valor || 0))}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -4448,15 +4449,15 @@ export default function AdminPage() {
                   <>
                     <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
                       <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
-                        <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {totalEntradasFin.toFixed(2)}</div>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {brl(totalEntradasFin)}</div>
                         <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total Entradas</div>
                       </div>
                       <div style={{ background: '#dc26260d', border: '1px solid #dc262633', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #dc2626' }}>
-                        <div style={{ fontSize: 26, fontWeight: 800, color: '#dc2626' }}>R$ {totalSaidasFin.toFixed(2)}</div>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: '#dc2626' }}>R$ {brl(totalSaidasFin)}</div>
                         <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Total Saídas</div>
                       </div>
                       <div style={{ background: totalEntradasFin - totalSaidasFin >= 0 ? 'var(--surface-hover)' : '#dc26260d', border: `1px solid ${totalEntradasFin - totalSaidasFin >= 0 ? 'var(--border)' : '#dc262633'}`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${totalEntradasFin - totalSaidasFin >= 0 ? 'var(--text-soft, #9ca3af)' : '#dc2626'}` }}>
-                        <div style={{ fontSize: 26, fontWeight: 800, color: totalEntradasFin - totalSaidasFin >= 0 ? 'var(--text)' : '#dc2626' }}>R$ {(totalEntradasFin - totalSaidasFin).toFixed(2)}</div>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: totalEntradasFin - totalSaidasFin >= 0 ? 'var(--text)' : '#dc2626' }}>R$ {brl((totalEntradasFin - totalSaidasFin))}</div>
                         <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Saldo</div>
                       </div>
                     </div>
@@ -4483,7 +4484,7 @@ export default function AdminPage() {
                                 </td>
                                 <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap' }}>{d.categoria}</td>
                                 <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{d.descricao}</td>
-                                <td style={{ padding: '11px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626', fontVariantNumeric: 'tabular-nums' }}>R$ {d.valor.toFixed(2)}</td>
+                                <td style={{ padding: '11px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626', fontVariantNumeric: 'tabular-nums' }}>R$ {brl(d.valor)}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -4568,15 +4569,15 @@ export default function AdminPage() {
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Peças em Estoque</div>
                   </div>
                   <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {valorEstoqueTotal.toFixed(2)}</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {brl(valorEstoqueTotal)}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Valor de Estoque</div>
                   </div>
                   <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {faturamento30d.toFixed(2)}</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>R$ {brl(faturamento30d)}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Faturamento (30D)</div>
                   </div>
                   <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid var(--text-soft, #9ca3af)' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>R$ {lucroBruto30d.toFixed(2)}</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>R$ {brl(lucroBruto30d)}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Lucro Bruto (30D)</div>
                   </div>
                   <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid var(--text-soft, #9ca3af)' }}>
