@@ -94,6 +94,7 @@ export async function sbSaveCadastro(c: Cadastro) {
     rg: c.rg || null, documentos: c.documentos || [],
     comissao_valor: c.comissao_valor ?? null, comissao_paga: c.comissao_paga || false,
     comissao_despesa_id: c.comissao_despesa_id ?? null, categoria: c.categoria || 'normal',
+    receita: c.receita || null, comprovante_pagamento: c.comprovante_pagamento || null,
   });
   if (error) throw new Error(`sbSaveCadastro: ${error.message} (${error.code})`);
 }

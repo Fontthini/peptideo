@@ -40,6 +40,9 @@ export async function PATCH(req: NextRequest) {
     nome: data.nome, sobrenome: data.sobrenome || '', whatsapp: data.whatsapp,
     email: data.email || '', endereco: data.endereco || '',
     status: data.status, obs: data.obs || '',
+    cpf: data.cpf, rg: data.rg, cidade: data.cidade, estado: data.estado,
+    receita: data.receita, comprovante_pagamento: data.comprovante_pagamento,
+    documentos: Array.isArray(data.documentos) ? data.documentos : undefined,
   });
   if (!i) return NextResponse.json({ error: 'Indicação não encontrada' }, { status: 404 });
   try { const { sbSaveIndicacao } = await import('@/lib/supabase-sync'); await sbSaveIndicacao(i); } catch (e) { console.error('[INDICACAO] save error:', e); }

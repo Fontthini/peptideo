@@ -66,6 +66,10 @@ export type Cadastro = {
   comissao_paga?: boolean;
   comissao_despesa_id?: string | null;
   categoria?: 'normal' | 'cortesia';
+  // Médico também precisa apresentar receita/comprovante pra comprar —
+  // mesma exigência que já existia só pra paciente (Indicacao).
+  receita?: string | null;
+  comprovante_pagamento?: string | null;
 };
 
 export type ProdutoMemory = {
@@ -336,7 +340,7 @@ export function mem_adicionarObs(cadastroId: string, obs: string): Cadastro | nu
   return c;
 }
 
-export function mem_editarCadastro(id: string, data: Partial<Pick<Cadastro, 'nome' | 'sobrenome' | 'email' | 'whatsapp' | 'endereco' | 'crm' | 'onde_conheceu' | 'cidade' | 'estado' | 'especialidade' | 'cpf' | 'produtos_interesse' | 'rg' | 'documentos' | 'indicado_por_medico_id' | 'indicado_por_medico_nome' | 'comissao_valor' | 'comissao_paga' | 'comissao_despesa_id' | 'categoria'>>): Cadastro | null {
+export function mem_editarCadastro(id: string, data: Partial<Pick<Cadastro, 'nome' | 'sobrenome' | 'email' | 'whatsapp' | 'endereco' | 'crm' | 'onde_conheceu' | 'cidade' | 'estado' | 'especialidade' | 'cpf' | 'produtos_interesse' | 'rg' | 'documentos' | 'indicado_por_medico_id' | 'indicado_por_medico_nome' | 'comissao_valor' | 'comissao_paga' | 'comissao_despesa_id' | 'categoria' | 'receita' | 'comprovante_pagamento'>>): Cadastro | null {
   const c = getStore().find(c => c.id === id);
   if (!c) return null;
   const campos = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));

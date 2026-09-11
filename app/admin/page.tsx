@@ -20,6 +20,7 @@ type Cadastro = {
   rg?: string | null; documentos?: string[];
   comissao_valor?: number | null; comissao_paga?: boolean; comissao_despesa_id?: string | null;
   categoria?: 'normal' | 'cortesia';
+  receita?: string | null; comprovante_pagamento?: string | null;
 };
 type Produto = {
   id: string; nome: string; dose: string; preco: number;
@@ -405,6 +406,41 @@ export default function AdminPage() {
   // (Indicacao). Substitui o alternador Médicos/Pacientes: agora dá pra ver
   // todo mundo junto ou filtrar por tag, sem esconder ninguém numa aba separada.
   const [filtroContato, setFiltroContato] = useState<'todos' | 'medico' | 'medico_id' | 'paciente'>('todos');
+
+  // Detalhe do cliente (C. Clientes) — checklist editável (endereço, receita,
+  // documentos — igual pra médico e paciente), histórico de pedidos e atalho
+  // pra lançar um novo pedido. Médico que compra continua médico, só também
+  // aparece aqui como cliente — não vira paciente.
+  const [clienteDetalhe, setClienteDetalhe] = useState<{ tipo: 'medico' | 'paciente'; id: string } | null>(null);
+  const [uploadandoCliente, setUploadandoCliente] = useState<string | null>(null);
+  const [salvandoClienteInfo, setSalvandoClienteInfo] = useState(false);
+  const [enderecoClienteInput, setEnderecoClienteInput] = useState('');
+
+  const salvarInfoCliente = async (tipo: 'medico' | 'paciente', id: string, campos: Record<string, unknown>) => {
+    setSalvandoClienteInfo(true);
+    const url = tipo === 'medico' ? '/api/admin/cadastros' : '/api/admin/indicacoes';
+    const method = tipo === 'medico' ? 'PUT' : 'PATCH';
+    const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() }, body: JSON.stringify({ id, ...campos }) });
+    setSalvandoClienteInfo(false);
+    if (r.ok) {
+      const atualizado = await r.json();
+      if (tipo === 'medico') setCadastros(prev => prev.map(c => c.id === id ? { ...c, ...atualizado } : c));
+      else setIndicacoes(prev => prev.map(i => i.id === id ? { ...i, ...atualizado } : i));
+      showMsg('OK: Informação salva!');
+    } else { const d = await r.json().catch(() => ({})); showMsg('R ' + (d.error || 'Erro ao salvar')); }
+  };
+
+  const uploadArquivoCliente = async (field: string, file: File, onUrl: (url: string) => void) => {
+    setUploadandoCliente(field);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await fetch('/api/admin/upload', { method: 'POST', headers: { 'x-admin-key': getKey() }, body: fd });
+      const d = await r.json();
+      if (r.ok) onUrl(d.url);
+      else showMsg('R ' + (d.error || 'Erro ao enviar arquivo'));
+    } finally { setUploadandoCliente(null); }
+  };
 
   const [buscaRastreio, setBuscaRastreio] = useState('');
   const [rastreioSelecionado, setRastreioSelecionado] = useState<{ id: string; nome: string; whatsapp: string; tipo: 'medico' | 'paciente' } | null>(null);
@@ -2192,39 +2228,41 @@ export default function AdminPage() {
               seu próprio checklist do que falta pra fechar o pedido. */}
           {aba === 'clientes' && (() => {
             type ClienteLinha = {
-              key: string; tipo: 'medico' | 'paciente'; nome: string; whatsapp: string; email: string;
+              key: string; tipo: 'medico' | 'paciente'; id: string; nome: string; whatsapp: string; email: string;
               cidade?: string | null; estado?: string | null; indicadoPor?: string;
               pedidosPessoa: Pedido[]; consultorNome?: string; pendencias: string[];
             };
 
+            // Checklist é igual pra todo mundo — médico ou paciente precisa
+            // dos mesmos 3 itens pra fechar: endereço, receita, documentos.
+            const pendenciasComuns = (endereco: string | null | undefined, receita: string | null | undefined, documentos: string[] | undefined): string[] => {
+              const falt: string[] = [];
+              if (!endereco) falt.push('Endereço');
+              if (!receita) falt.push('Receita');
+              if (!(documentos || []).length) falt.push('Documentos');
+              return falt;
+            };
+
             const medicosClientes: ClienteLinha[] = cadastros
               .filter(c => pedidos.some(p => p.cadastro_id === c.id && !p.indicacao_id && p.status === 'pago'))
-              .map(c => {
-                const pendencias: string[] = [];
-                if (!(c.documentos || []).length) pendencias.push('Documentos');
-                return {
-                  key: `medico-${c.id}`, tipo: 'medico', nome: `${c.nome} ${c.sobrenome || ''}`.trim(),
-                  whatsapp: c.whatsapp, email: c.email, cidade: c.cidade, estado: c.estado,
-                  pedidosPessoa: pedidos.filter(p => p.cadastro_id === c.id && !p.indicacao_id),
-                  consultorNome: equipe.find(m => m.id === c.vendedor_id)?.nome,
-                  pendencias,
-                };
-              });
+              .map(c => ({
+                key: `medico-${c.id}`, tipo: 'medico', id: c.id, nome: `${c.nome} ${c.sobrenome || ''}`.trim(),
+                whatsapp: c.whatsapp, email: c.email, cidade: c.cidade, estado: c.estado,
+                pedidosPessoa: pedidos.filter(p => p.cadastro_id === c.id && !p.indicacao_id),
+                consultorNome: equipe.find(m => m.id === c.vendedor_id)?.nome,
+                pendencias: pendenciasComuns(c.endereco, c.receita, c.documentos),
+              }));
 
             const pacientesClientes: ClienteLinha[] = indicacoes
               .filter(i => i.tipo !== 'medico' && pedidos.some(p => p.indicacao_id === i.id && p.status === 'pago'))
               .map(i => {
-                const pendencias: string[] = [];
-                if (!i.receita) pendencias.push('Receita');
-                if (!i.comprovante_pagamento) pendencias.push('Comprovante');
-                if (!(i.documentos || []).length) pendencias.push('Documentos');
                 const medico = cadastros.find(c => c.id === i.medico_id);
                 return {
-                  key: `paciente-${i.id}`, tipo: 'paciente', nome: `${i.nome} ${i.sobrenome || ''}`.trim(),
+                  key: `paciente-${i.id}`, tipo: 'paciente', id: i.id, nome: `${i.nome} ${i.sobrenome || ''}`.trim(),
                   whatsapp: i.whatsapp, email: i.email, cidade: i.cidade, estado: i.estado, indicadoPor: i.medico_nome,
                   pedidosPessoa: pedidos.filter(p => p.indicacao_id === i.id),
                   consultorNome: medico ? equipe.find(m => m.id === medico.vendedor_id)?.nome : undefined,
-                  pendencias,
+                  pendencias: pendenciasComuns(i.endereco, i.receita, i.documentos),
                 };
               });
 
@@ -2251,7 +2289,7 @@ export default function AdminPage() {
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
-                            {['Nome', 'Tipo', 'WhatsApp', 'E-mail', 'Cidade/UF', 'Total Gasto', 'Produtos Comprados', 'Pendências', 'Último Pedido', 'Consultor'].map(h => (
+                            {['Nome', 'Tipo', 'WhatsApp', 'E-mail', 'Cidade/UF', 'Total Gasto', 'Produtos Comprados', 'Pedidos', 'Pendências', 'Último Pedido', 'Consultor', 'Ações'].map(h => (
                               <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>{h}</th>
                             ))}
                           </tr>
@@ -2284,6 +2322,7 @@ export default function AdminPage() {
                                 <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={produtosComprados.join(', ')}>
                                   {produtosComprados.length > 0 ? produtosComprados.join(', ') : '-'}
                                 </td>
+                                <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--text)' }}>{c.pedidosPessoa.length}</td>
                                 <td style={{ padding: '11px 14px' }}>
                                   {c.pendencias.length === 0 ? (
                                     <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>OK Completo</span>
@@ -2295,6 +2334,12 @@ export default function AdminPage() {
                                   {ultimoPedido ? new Date(ultimoPedido.created_at).toLocaleDateString('pt-BR') : '-'}
                                 </td>
                                 <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)' }}>{c.consultorNome || <span style={{ color: 'var(--text-soft, #9ca3af)' }}>-</span>}</td>
+                                <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                  <button onClick={() => setClienteDetalhe({ tipo: c.tipo, id: c.id })}
+                                    style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                                    Ver / Editar
+                                  </button>
+                                </td>
                               </tr>
                             );
                           })}
@@ -2304,6 +2349,137 @@ export default function AdminPage() {
                   )}
                 </div>
               </>
+            );
+          })()}
+
+          {/* Modal: detalhe do cliente — checklist (endereço/receita/
+              documentos, igual pra médico e paciente), histórico de pedidos
+              e atalho pra "+ Novo Pedido". */}
+          {clienteDetalhe && (() => {
+            const tipo = clienteDetalhe.tipo;
+            const c = tipo === 'medico' ? cadastros.find(x => x.id === clienteDetalhe.id) : undefined;
+            const ind = tipo === 'paciente' ? indicacoes.find(x => x.id === clienteDetalhe.id) : undefined;
+            if (!c && !ind) return null;
+            const nome = c ? `${c.nome} ${c.sobrenome || ''}`.trim() : `${ind!.nome} ${ind!.sobrenome || ''}`.trim();
+            const endereco = c ? c.endereco : ind!.endereco;
+            const receita = c ? c.receita : ind!.receita;
+            const documentos = c ? (c.documentos || []) : (ind!.documentos || []);
+            const pedidosPessoa = (tipo === 'medico'
+              ? pedidos.filter(p => p.cadastro_id === clienteDetalhe.id && !p.indicacao_id)
+              : pedidos.filter(p => p.indicacao_id === clienteDetalhe.id)
+            ).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            const totalGasto = pedidosPessoa.filter(p => p.status === 'pago').reduce((s, p) => s + p.preco, 0);
+
+            return (
+              <div style={{ position: 'fixed', inset: 0, zIndex: 700, overflowY: 'auto', padding: '24px 16px' }}>
+                <div onClick={() => setClienteDetalhe(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
+                <div style={{ position: 'relative', maxWidth: 720, margin: '0 auto', background: 'var(--surface)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
+                  <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text)' }}>{nome}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 20, background: tipo === 'medico' ? 'var(--surface-hover)' : '#eff6ff', color: tipo === 'medico' ? 'var(--text-secondary, #374151)' : '#1d4ed8' }}>
+                          {tipo === 'medico' ? 'Médico' : 'Paciente'}
+                        </span>
+                        <span style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)' }}>Total gasto: <strong style={{ color: '#16a34a' }}>R$ {brl(totalGasto)}</strong></span>
+                      </div>
+                    </div>
+                    <button onClick={() => setClienteDetalhe(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--text-muted, #6b7280)' }}>×</button>
+                  </div>
+
+                  <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20, maxHeight: '75vh', overflowY: 'auto' }}>
+                    {/* Checklist — mesmas 3 informações pra todo mundo */}
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 10 }}>O que falta pra fechar</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ width: 90, fontSize: 12, fontWeight: 700, color: endereco ? '#16a34a' : '#dc2626' }}>Endereço</span>
+                          <input defaultValue={endereco || ''} onChange={e => setEnderecoClienteInput(e.target.value)}
+                            placeholder="Endereço completo..." style={{ ...inputStyle, marginBottom: 0, flex: 1 }} />
+                          <button disabled={salvandoClienteInfo} onClick={() => salvarInfoCliente(tipo, clienteDetalhe.id, { endereco: enderecoClienteInput || endereco })}
+                            style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 14px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: 12, fontFamily: 'inherit' }}>
+                            Salvar
+                          </button>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ width: 90, fontSize: 12, fontWeight: 700, color: receita ? '#16a34a' : '#dc2626' }}>Receita</span>
+                          {receita ? (
+                            <>
+                              <a href={receita} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, color: '#15803d', fontWeight: 700 }}>Ver receita anexada</a>
+                              <button onClick={() => salvarInfoCliente(tipo, clienteDetalhe.id, { receita: null })} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 11, fontFamily: 'inherit' }}>Remover</button>
+                            </>
+                          ) : (
+                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--surface-hover)', border: '1px dashed var(--border)', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary, #374151)' }}>
+                              {uploadandoCliente === 'receita' ? 'Enviando...' : 'Anexar receita'}
+                              <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadArquivoCliente('receita', f, url => salvarInfoCliente(tipo, clienteDetalhe.id, { receita: url })); e.target.value = ''; }} />
+                            </label>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                          <span style={{ width: 90, fontSize: 12, fontWeight: 700, color: documentos.length > 0 ? '#16a34a' : '#dc2626', paddingTop: 8 }}>Documentos</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                            {documentos.map((url, idx) => (
+                              <div key={url} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-hover)', borderRadius: 8, padding: '7px 12px' }}>
+                                <a href={url} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, color: 'var(--text-secondary, #374151)' }}>Documento {idx + 1}</a>
+                                <button onClick={() => salvarInfoCliente(tipo, clienteDetalhe.id, { documentos: documentos.filter((_, i2) => i2 !== idx) })}
+                                  style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+                              </div>
+                            ))}
+                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--surface-hover)', border: '1px dashed var(--border)', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary, #374151)', alignSelf: 'flex-start' }}>
+                              {uploadandoCliente === 'documento' ? 'Enviando...' : '+ Anexar documento'}
+                              <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadArquivoCliente('documento', f, url => salvarInfoCliente(tipo, clienteDetalhe.id, { documentos: [...documentos, url] })); e.target.value = ''; }} />
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Histórico de pedidos + novo pedido */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Pedidos ({pedidosPessoa.length})</div>
+                        <button onClick={() => {
+                          if (tipo === 'medico') { setNovoPedidoTipoCliente('medico'); setNovoPedidoMedicoId(clienteDetalhe.id); setBuscaMedicoPedido(''); }
+                          else { setNovoPedidoTipoCliente('paciente'); setNovoPedidoIndicacaoId(clienteDetalhe.id); setBuscaPacientePedido(''); }
+                          setNovoPedidoAberto(true);
+                        }} style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: 12, fontFamily: 'inherit' }}>
+                          + Novo Pedido
+                        </button>
+                      </div>
+                      {pedidosPessoa.length === 0 ? (
+                        <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 8, fontSize: 13 }}>Nenhum pedido ainda.</div>
+                      ) : (
+                        <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                            <thead>
+                              <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
+                                {['Produto', 'Valor', 'Status', 'Data'].map(h => (
+                                  <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {pedidosPessoa.map(p => {
+                                const cc = PIPELINE_STATUS_COLOR[p.status] || { bg: 'var(--surface-hover)', text: 'var(--text-secondary, #374151)' };
+                                return (
+                                  <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                                    <td style={{ padding: '8px 12px', color: 'var(--text)' }}>{p.itens && p.itens.length ? p.itens.map(it => `${it.nome} x${it.quantidade}`).join(', ') : p.produto_nome}</td>
+                                    <td style={{ padding: '8px 12px', fontWeight: 700, color: '#16a34a' }}>R$ {brl(p.preco)}</td>
+                                    <td style={{ padding: '8px 12px' }}>
+                                      <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 10.5, fontWeight: 700, background: cc.bg, color: cc.text }}>{PIPELINE_STATUS_LABEL[p.status] || p.status}</span>
+                                    </td>
+                                    <td style={{ padding: '8px 12px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>{new Date(p.created_at).toLocaleDateString('pt-BR')}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             );
           })()}
 
