@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 
     if (comissaoValor > 0) {
       const descricao = `Comissão — indicação de ${nomeCompleto} por Dr(a). ${medico.nome}`;
-      const d = mem_criarDespesa({ tipo: 'saida', categoria: 'Comissão', descricao, valor: comissaoValor, data: new Date().toISOString().slice(0, 10) });
+      const d = mem_criarDespesa({ tipo: 'saida', categoria: 'Cashback', descricao, valor: comissaoValor, data: new Date().toISOString().slice(0, 10) });
       mem_editarIndicacao(indicacao.id, { comissao_valor: comissaoValor, comissao_paga: true, comissao_despesa_id: d.id });
       mem_registrarLog(ator, 'Lançou comissão de indicação', `${d.categoria} — ${d.descricao} — R$ ${d.valor.toFixed(2)}`);
     }

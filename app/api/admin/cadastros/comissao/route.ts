@@ -22,7 +22,7 @@ export async function PUT(req: NextRequest) {
   const dataHoje = new Date().toISOString().slice(0, 10);
 
   const d = (atual.comissao_despesa_id && mem_editarDespesa(atual.comissao_despesa_id, { valor, descricao, data: dataHoje }))
-    || mem_criarDespesa({ tipo: 'saida', categoria: 'Comissão', descricao, valor, data: dataHoje });
+    || mem_criarDespesa({ tipo: 'saida', categoria: 'Cashback', descricao, valor, data: dataHoje });
 
   const c = mem_editarCadastro(id, { comissao_valor: valor, comissao_paga: true, comissao_despesa_id: d.id });
   if (!c) return NextResponse.json({ error: 'Cadastro não encontrado' }, { status: 404 });

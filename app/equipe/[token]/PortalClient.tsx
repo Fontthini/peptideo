@@ -318,7 +318,7 @@ function EstoqueRow({ produto, vendido, onSalvar }: {
 const ABA_NAV: { key: string; icon: string; label: string; color: string; gerenteOnly?: boolean; vendedorOnly?: boolean }[] = [
   { key: 'dashboard', icon: '#', label: 'Dashboard', color: 'var(--text)', gerenteOnly: true },
   { key: 'leads', icon: 'L', label: 'C. Médicos', color: '#16a34a' },
-  { key: 'clientes', icon: 'C', label: 'C. Clientes', color: 'var(--text)', gerenteOnly: true },
+  { key: 'clientes', icon: 'C', label: 'Clientes', color: 'var(--text)', gerenteOnly: true },
   // "Pedidos" só continua como aba própria pro vendedor — ele não tem
   // Dashboard nem Relatórios (gerenteOnly) pra ver pedido em outro lugar, e
   // o botão "+ Pedido" nas linhas de médico/paciente é só do gerente.

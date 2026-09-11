@@ -1,4 +1,4 @@
-import { mem_criarDespesa, mem_deletarDespesa, mem_atualizarPedido, mem_buscarId, mem_atualizarFunil, mem_registrarLog, type Pedido } from './db-memory';
+import { mem_criarDespesa, mem_deletarDespesa, mem_atualizarPedido, mem_buscarId, mem_atualizarFunil, mem_registrarLog, mem_listarIndicacoes, mem_editarIndicacao, type Pedido } from './db-memory';
 
 // Efeito automático de "pedido virou pago": lança uma entrada no Financeiro
 // e avança o médico dono do pedido pra "cliente" no funil, se ainda não
@@ -32,6 +32,27 @@ export async function aplicarPedidoPago(pedido: Pedido, ator: string): Promise<v
   if (cadastro && cadastro.funil_status !== 'cliente') {
     mem_atualizarFunil(pedido.cadastro_id, 'cliente');
     mem_registrarLog(ator, 'Lead avançou automaticamente no funil', `${pedido.cadastro_nome} → cliente`);
+  }
+
+  // Se o pedido e de um paciente indicado, o status da propria indicacao
+  // tambem precisa avancar pra "pago" — sem isso ela fica com um status
+  // antigo (em_atendimento, ou ate cancelado) pra sempre, mesmo depois de
+  // realmente ter comprado, o que faz Contatos mostrar uma situacao que
+  // ja nao e real.
+  if (pedido.indicacao_id) {
+    const indicacao = mem_listarIndicacoes().find(i => i.id === pedido.indicacao_id);
+    if (indicacao && indicacao.status !== 'pago') {
+      const iAtualizada = mem_editarIndicacao(indicacao.id, { status: 'pago' });
+      if (iAtualizada && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        try {
+          const { sbSaveIndicacao } = await import('./supabase-sync');
+          await sbSaveIndicacao(iAtualizada);
+        } catch (e) {
+          console.error('[PEDIDO-SIDE-EFFECTS] falha ao persistir status da indicacao:', e);
+        }
+      }
+      mem_registrarLog(ator, 'Indicação avançou automaticamente pra pago', `${indicacao.nome} ${indicacao.sobrenome || ''}`.trim());
+    }
   }
 }
 
