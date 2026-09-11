@@ -1318,12 +1318,6 @@ export default function AdminPage() {
           {navItem('carrinho', 'C', 'Monitoramento de Carrinho')}
           {navItem('rastreio', 'R', 'Link de Rastreio')}
           {isSuperadmin && navItem('logs', '!', 'Log')}
-
-          <div className="admin-sidebar-extra" style={{ marginTop: 'auto', paddingTop: 20, borderTop: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
-              {counts.aprovado} aprovados<br />{counts.pendente} pendentes
-            </div>
-          </div>
         </aside>
 
         {/* Main content */}
@@ -1429,7 +1423,7 @@ export default function AdminPage() {
                       <button key={val} onClick={() => setFiltroContato(val)}
                         style={{
                           background: filtroContato === val ? (cor || 'var(--btn-primary-bg)') : 'var(--surface)',
-                          color: filtroContato === val ? '#fff' : 'var(--text-secondary, #374151)',
+                          color: filtroContato === val ? (cor ? '#fff' : 'var(--btn-primary-text)') : 'var(--text-secondary, #374151)',
                           border: `1px solid ${filtroContato === val ? (cor || 'var(--btn-primary-bg)') : 'var(--border)'}`,
                           padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: filtroContato === val ? 700 : 400, fontFamily: 'inherit', fontSize: 13,
                         }}>
