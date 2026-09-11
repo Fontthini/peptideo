@@ -12,7 +12,20 @@ export async function aplicarPedidoPago(pedido: Pedido, ator: string): Promise<v
     descricao: `Pedido pago — ${nomeCliente} (${pedido.produto_nome})`,
     valor: pedido.preco, data: new Date().toISOString().slice(0, 10),
   });
-  mem_atualizarPedido(pedido.id, { despesa_id: d.id });
+  const pAtualizado = mem_atualizarPedido(pedido.id, { despesa_id: d.id });
+  // mem_atualizarPedido ja dispara um persist() em segundo plano (after()), mas
+  // esse vinculo despesa_id e critico pro Financeiro e ja vazou silenciosamente
+  // antes (pedido fica "pago" pra sempre sem a despesa correspondente aparecer
+  // achavel por busca reversa) — por isso aqui a gravacao no Supabase e refeita
+  // de forma explicita e aguardada, sem depender só do after() em segundo plano.
+  if (pAtualizado && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    try {
+      const { sbSavePedido } = await import('./supabase-sync');
+      await sbSavePedido(pAtualizado);
+    } catch (e) {
+      console.error('[PEDIDO-SIDE-EFFECTS] falha ao persistir despesa_id no pedido:', e);
+    }
+  }
   mem_registrarLog(ator, 'Lançou entrada automática (pedido pago)', `${d.categoria} — ${d.descricao} — R$ ${d.valor.toFixed(2)}`);
 
   const cadastro = mem_buscarId(pedido.cadastro_id);

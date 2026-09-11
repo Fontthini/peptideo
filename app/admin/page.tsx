@@ -45,7 +45,7 @@ type Material = { nome: string; url: string };
 type Artigo = { id: string; titulo: string; conteudo: string; imagem?: string; video?: string; categoria?: string; materiais: Material[]; publicado: boolean; created_at: string; updated_at: string; };
 type Membro = { id: string; nome: string; email: string; cargo: string; ativo: boolean; created_at: string; senha?: string; token_acesso?: string; last_seen?: string | null; };
 type PedidoItem = { nome: string; preco: number; quantidade: number };
-type Pedido = { id: string; cadastro_id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string; indicacao_id?: string | null; paciente_nome?: string; produto_nome: string; preco: number; itens?: PedidoItem[]; vendedor_id?: string; status: string; obs?: string; created_at: string; };
+type Pedido = { id: string; cadastro_id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string; indicacao_id?: string | null; paciente_nome?: string; produto_nome: string; preco: number; itens?: PedidoItem[]; vendedor_id?: string; status: string; obs?: string; created_at: string; despesa_id?: string | null; };
 type Indicacao = {
   id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string;
   status: string; created_at: string; tipo?: 'paciente' | 'medico'; crm?: string;
@@ -500,16 +500,6 @@ export default function AdminPage() {
       body: JSON.stringify({ id, funil_status, motivo_perda }),
     });
     if (!r.ok) { showMsg('R Erro ao mover no funil'); carregarCadastros(); }
-  };
-
-  const transferirConsultor = async (id: string, vendedor_id: string) => {
-    setCadastros(prev => prev.map(c => c.id === id ? { ...c, vendedor_id } : c));
-    const r = await fetch('/api/admin/cadastros/vendedor', {
-      method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey() },
-      body: JSON.stringify({ id, vendedor_id }),
-    });
-    if (r.ok) showMsg('OK: Lead transferido!');
-    else { showMsg('R Erro ao transferir'); carregarCadastros(); }
   };
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -1481,7 +1471,7 @@ export default function AdminPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                           <thead>
                             <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
-                              {['Nome', 'Tag', 'WhatsApp', 'Indicado por', 'Produtos Comprados', 'Status', 'Funil', 'Consultor', 'Pendências', 'Data', 'Ações'].map(h => (
+                              {['Nome', 'Tag', 'WhatsApp', 'Indicado por', 'Produtos Comprados', 'Status', 'Funil', 'Pendências', 'Data', 'Ações'].map(h => (
                                 <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'var(--surface-hover)', zIndex: 1 }}>{h}</th>
                               ))}
                             </tr>
@@ -1579,17 +1569,6 @@ export default function AdminPage() {
                                           {FUNIL_ETAPAS.map(e => <option key={e} value={e}>{FUNIL_LABEL[e]}</option>)}
                                         </select>
                                       )
-                                    ) : <span style={{ color: 'var(--text-soft, #9ca3af)' }}>-</span>}
-                                  </td>
-                                  <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
-                                    {c ? (
-                                      <select value={c.vendedor_id || ''} onChange={e => e.target.value && transferirConsultor(c.id, e.target.value)}
-                                        style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontSize: 11.5, fontFamily: 'inherit', color: 'var(--text-secondary, #374151)', cursor: 'pointer', maxWidth: 130 }}>
-                                        <option value="">Sem consultor</option>
-                                        {equipe.filter(m => m.cargo === 'vendedor' && m.ativo).map(m => (
-                                          <option key={m.id} value={m.id}>{m.nome}</option>
-                                        ))}
-                                      </select>
                                     ) : <span style={{ color: 'var(--text-soft, #9ca3af)' }}>-</span>}
                                   </td>
                                   <td style={{ padding: '11px 14px' }}>
@@ -2230,7 +2209,7 @@ export default function AdminPage() {
             type ClienteLinha = {
               key: string; tipo: 'medico' | 'paciente'; id: string; nome: string; whatsapp: string; email: string;
               cidade?: string | null; estado?: string | null; indicadoPor?: string;
-              pedidosPessoa: Pedido[]; consultorNome?: string; pendencias: string[];
+              pedidosPessoa: Pedido[]; pendencias: string[];
             };
 
             // Checklist é igual pra todo mundo — médico ou paciente precisa
@@ -2249,19 +2228,16 @@ export default function AdminPage() {
                 key: `medico-${c.id}`, tipo: 'medico', id: c.id, nome: `${c.nome} ${c.sobrenome || ''}`.trim(),
                 whatsapp: c.whatsapp, email: c.email, cidade: c.cidade, estado: c.estado,
                 pedidosPessoa: pedidos.filter(p => p.cadastro_id === c.id && !p.indicacao_id),
-                consultorNome: equipe.find(m => m.id === c.vendedor_id)?.nome,
                 pendencias: pendenciasComuns(c.endereco, c.receita, c.documentos),
               }));
 
             const pacientesClientes: ClienteLinha[] = indicacoes
               .filter(i => i.tipo !== 'medico' && pedidos.some(p => p.indicacao_id === i.id && p.status === 'pago'))
               .map(i => {
-                const medico = cadastros.find(c => c.id === i.medico_id);
                 return {
                   key: `paciente-${i.id}`, tipo: 'paciente', id: i.id, nome: `${i.nome} ${i.sobrenome || ''}`.trim(),
                   whatsapp: i.whatsapp, email: i.email, cidade: i.cidade, estado: i.estado, indicadoPor: i.medico_nome,
                   pedidosPessoa: pedidos.filter(p => p.indicacao_id === i.id),
-                  consultorNome: medico ? equipe.find(m => m.id === medico.vendedor_id)?.nome : undefined,
                   pendencias: pendenciasComuns(i.endereco, i.receita, i.documentos),
                 };
               });
@@ -2289,7 +2265,7 @@ export default function AdminPage() {
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
-                            {['Nome', 'Tipo', 'WhatsApp', 'E-mail', 'Cidade/UF', 'Total Gasto', 'Produtos Comprados', 'Pedidos', 'Pendências', 'Último Pedido', 'Consultor', 'Ações'].map(h => (
+                            {['Nome', 'Tipo', 'WhatsApp', 'E-mail', 'Cidade/UF', 'Total Gasto', 'Produtos Comprados', 'Pedidos', 'Pendências', 'Último Pedido', 'Ações'].map(h => (
                               <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>{h}</th>
                             ))}
                           </tr>
@@ -2333,7 +2309,6 @@ export default function AdminPage() {
                                 <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
                                   {ultimoPedido ? new Date(ultimoPedido.created_at).toLocaleDateString('pt-BR') : '-'}
                                 </td>
-                                <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)' }}>{c.consultorNome || <span style={{ color: 'var(--text-soft, #9ca3af)' }}>-</span>}</td>
                                 <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                                   <button onClick={() => setClienteDetalhe({ tipo: c.tipo, id: c.id })}
                                     style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
@@ -3985,6 +3960,40 @@ export default function AdminPage() {
               return [...m.entries()].sort((a, b) => b[1] - a[1]).map(([categoria, valor]) => ({ key: categoria, label: categoria, value: Math.round(valor * 100) / 100 }));
             };
 
+            // Em vez de deixar tudo amontoado num texto de descrição, cada
+            // lançamento (pedido pago ou comissão) aponta de volta pro
+            // pedido/indicação/cadastro que o gerou — usa isso pra separar
+            // médico, indicado por e produtos comprados em colunas próprias.
+            const infoDaDespesa = (d: Despesa): { cliente: string; indicadoPor?: string; produtos: string[] } | null => {
+              const pedido = pedidos.find(p => p.despesa_id === d.id);
+              if (pedido) {
+                return {
+                  cliente: pedido.indicacao_id ? (pedido.paciente_nome || '') : pedido.cadastro_nome,
+                  indicadoPor: pedido.indicacao_id ? pedido.cadastro_nome : undefined,
+                  produtos: pedido.itens && pedido.itens.length ? pedido.itens.map(it => it.nome) : [pedido.produto_nome],
+                };
+              }
+              const indicacao = indicacoes.find(i => i.comissao_despesa_id === d.id);
+              if (indicacao) {
+                const ped = pedidos.find(p => p.indicacao_id === indicacao.id && p.status === 'pago');
+                return {
+                  cliente: `${indicacao.nome} ${indicacao.sobrenome || ''}`.trim(),
+                  indicadoPor: indicacao.medico_nome,
+                  produtos: ped ? (ped.itens && ped.itens.length ? ped.itens.map(it => it.nome) : [ped.produto_nome]) : [],
+                };
+              }
+              const cadastro = cadastros.find(c => c.comissao_despesa_id === d.id);
+              if (cadastro) {
+                const ped = pedidos.find(p => p.cadastro_id === cadastro.id && !p.indicacao_id && p.status === 'pago');
+                return {
+                  cliente: `${cadastro.nome} ${cadastro.sobrenome || ''}`.trim(),
+                  indicadoPor: cadastro.indicado_por_medico_nome || undefined,
+                  produtos: ped ? (ped.itens && ped.itens.length ? ped.itens.map(it => it.nome) : [ped.produto_nome]) : [],
+                };
+              }
+              return null;
+            };
+
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                 <div>
@@ -4039,13 +4048,15 @@ export default function AdminPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                           <thead>
                             <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
-                              {['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor', 'Comprovante', 'Ações'].map(h => (
+                              {['Data', 'Tipo', 'Categoria', 'Médico/Cliente', 'Indicado por', 'Produtos Comprados', 'Valor', 'Comprovante', 'Ações'].map(h => (
                                 <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
-                            {despesas.map((d, idx) => (
+                            {despesas.map((d, idx) => {
+                              const info = infoDaDespesa(d);
+                              return (
                               <tr key={d.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
                                 <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
                                   {new Date(d.data + 'T00:00:00').toLocaleDateString('pt-BR')}
@@ -4056,7 +4067,13 @@ export default function AdminPage() {
                                   </span>
                                 </td>
                                 <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap' }}>{d.categoria}</td>
-                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{d.descricao}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                  {info ? info.cliente : <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400 }}>{d.descricao}</span>}
+                                </td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{info?.indicadoPor || '-'}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={info?.produtos.join(', ')}>
+                                  {info && info.produtos.length > 0 ? info.produtos.join(', ') : '-'}
+                                </td>
                                 <td style={{ padding: '11px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                                   R$ {brl(d.valor)}
                                 </td>
@@ -4083,7 +4100,8 @@ export default function AdminPage() {
                                   </div>
                                 </td>
                               </tr>
-                            ))}
+                              );
+                            })}
                           </tbody>
                         </table>
                         </div>

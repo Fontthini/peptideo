@@ -381,8 +381,6 @@ function LeadDetail({
   const [perdaPrompt, setPerdaPrompt] = useState(false);
   const [motivoPerda, setMotivoPerda] = useState('');
 
-  const vendNome = equipe.find(e => e.id === lead.vendedor_id)?.nome;
-
   async function acao(action: string, extra?: object) {
     setLoading(action);
     try {
@@ -451,7 +449,6 @@ function LeadDetail({
               ['Endereco', lead.endereco],
               ['CRM', lead.crm || '—'],
               ['Como conheceu', lead.onde_conheceu || '—'],
-              ['Vendedor', vendNome || 'Sem vendedor'],
             ].map(([k, v]) => (
               <div key={k} style={{ display: 'flex', gap: 8 }}>
                 <span style={{ color: 'var(--text-muted, #6b7280)', minWidth: 110 }}>{k}:</span>
@@ -460,7 +457,7 @@ function LeadDetail({
             ))}
           </div>
 
-          {/* Funil de vendas e consultor (gerente/superadmin) */}
+          {/* Funil de vendas (gerente/superadmin) */}
           {(cargo === 'gerente' || cargo === 'superadmin') && (
             <div style={{ background: 'var(--surface-hover)', borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
@@ -487,16 +484,6 @@ function LeadDetail({
                 {lead.funil_status === 'perdido' && lead.motivo_perda && (
                   <div style={{ fontSize: 11.5, color: 'var(--text-muted, #6b7280)', marginTop: 4 }}>Motivo: {lead.motivo_perda}</div>
                 )}
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-secondary, #374151)', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>Consultor Atribuído</label>
-                <select value={lead.vendedor_id || ''} onChange={e => e.target.value && acao('transferir_vendedor', { vendedor_id: e.target.value })}
-                  style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit', color: 'var(--text)', cursor: 'pointer', background: 'var(--surface)' }}>
-                  <option value="">Sem consultor</option>
-                  {equipe.filter(m => m.cargo === 'vendedor' && m.ativo).map(m => (
-                    <option key={m.id} value={m.id}>{m.nome}</option>
-                  ))}
-                </select>
               </div>
             </div>
           )}
@@ -870,16 +857,6 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
     `${l.nome} ${l.sobrenome} ${l.email} ${l.whatsapp} ${l.crm || ''}`.toLowerCase().includes(buscaQ));
   const todasEtiquetas = Array.from(new Set(lista.flatMap(l => l.tags || []))).sort();
 
-  const vendedores = equipe.filter(e => e.cargo === 'vendedor' && e.ativo);
-  const perf = vendedores.map(v => ({
-    ...v,
-    leads: lista.filter(l => l.vendedor_id === v.id).length,
-    aprovados: lista.filter(l => l.vendedor_id === v.id && l.status === 'aprovado').length,
-    analise: lista.filter(l => l.vendedor_id === v.id && l.status === 'em_analise').length,
-    pedidosVendidos: pedidos.filter(p => p.vendedor_id === v.id && p.status === 'pago').length,
-    valorVendido: pedidos.filter(p => p.vendedor_id === v.id && p.status === 'pago').reduce((s, p) => s + p.preco, 0),
-  }));
-
   const [novoPedidoAberto, setNovoPedidoAberto] = useState(false);
   const [novoPedidoTipoCliente, setNovoPedidoTipoCliente] = useState<'medico' | 'paciente'>('medico');
   const [novoPedidoMedicoId, setNovoPedidoMedicoId] = useState('');
@@ -984,14 +961,6 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
       body: JSON.stringify({ action: 'atualizar_funil', funil_status, motivo_perda }),
     });
     if (!r.ok) { setMsgNovoCadastro('Erro ao mover no funil'); const rl = await fetch('/api/portal/leads', { headers: { 'x-member-token': token } }); if (rl.ok) setLista(await rl.json()); }
-  };
-
-  const transferirConsultor = async (id: string, vendedor_id: string) => {
-    setLista(prev => prev.map(c => c.id === id ? { ...c, vendedor_id } : c));
-    await fetch(`/api/portal/leads/${id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-member-token': token },
-      body: JSON.stringify({ action: 'transferir_vendedor', vendedor_id }),
-    });
   };
 
   const atualizarProdutosInteresseLead = async (id: string, produtos_interesse: string[]) => {
@@ -2382,37 +2351,6 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
           </div>
 
           {tipoCadastroView === 'medico' && (<>
-          {perf.length > 0 && (
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-              <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Performance Vendedores</div>
-              <div className="portal-table-scroll">
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
-                    {['Vendedor', 'Leads', 'Em Analise', 'Aprovados', 'Taxa'].map(h => (
-                      <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {perf.map(v => (
-                    <tr key={v.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text)' }}>{v.nome}</td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)' }}>{v.leads}</td>
-                      <td style={{ padding: '10px 14px' }}>
-                        {v.analise > 0 ? <span style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{v.analise}</span>
-                          : <span style={{ color: 'var(--text-muted, #6b7280)' }}>—</span>}
-                      </td>
-                      <td style={{ padding: '10px 14px', color: '#15803d', fontWeight: 700 }}>{v.aprovados}</td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)' }}>{v.leads > 0 ? `${Math.round((v.aprovados / v.leads) * 100)}%` : '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-            </div>
-          )}
-
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {[['todos', `Todos (${lista.length})`], ['analise', `Analise (${emAnalise.length})`], ['pendente', `Pendentes (${pendentes.length})`], ['aprovado', 'Aprovados'], ['rejeitado', 'Rejeitados']].map(([v, l]) => (
@@ -2453,15 +2391,14 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
-                  {['Paciente', 'Status', 'Vendedor', 'Indicado por', 'Solicitacao', 'Data', 'Ações'].map(h => (
+                  {['Paciente', 'Status', 'Indicado por', 'Solicitacao', 'Data', 'Ações'].map(h => (
                     <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {visivel.length === 0 && <tr><td colSpan={7} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum lead.</td></tr>}
+                {visivel.length === 0 && <tr><td colSpan={6} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum lead.</td></tr>}
                 {visivel.map(l => {
-                  const vendNome = equipe.find(e => e.id === l.vendedor_id)?.nome;
                   return (
                     <tr key={l.id} onClick={() => setSelectedLead(l)}
                       style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', background: l.solicitacao ? 'var(--surface-hover)' : 'var(--surface)' }}>
@@ -2471,15 +2408,6 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                         <TagsLead tags={l.tags} />
                       </td>
                       <td style={{ padding: '11px 14px' }}><Badge status={l.status} map={STATUS_COLOR} /></td>
-                      <td style={{ padding: '11px 14px' }} onClick={e => e.stopPropagation()}>
-                        <select value={l.vendedor_id || ''} onChange={e => e.target.value && transferirConsultor(l.id, e.target.value)}
-                          style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontSize: 11.5, fontFamily: 'inherit', color: 'var(--text-secondary, #374151)', cursor: 'pointer', maxWidth: 130 }}>
-                          <option value="">Sem consultor</option>
-                          {equipe.filter(m => m.cargo === 'vendedor' && m.ativo).map(m => (
-                            <option key={m.id} value={m.id}>{m.nome}</option>
-                          ))}
-                        </select>
-                      </td>
                       <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }} onClick={e => e.stopPropagation()}>
                         {l.indicado_por_medico_nome || '-'}
                         <ComissaoWidget id={l.id} comissaoValor={l.comissao_valor} comissaoPaga={l.comissao_paga} mostrar={!!l.indicado_por_medico_id}
@@ -3009,7 +2937,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
         type ClienteLinha = {
           key: string; tipo: 'medico' | 'paciente'; nome: string; whatsapp: string; email: string;
           cidade?: string | null; estado?: string | null; indicadoPor?: string;
-          pedidosPessoa: Pedido[]; consultorNome?: string; pendencias: string[];
+          pedidosPessoa: Pedido[]; pendencias: string[];
         };
 
         const medicosClientes: ClienteLinha[] = lista
@@ -3021,7 +2949,6 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
               key: `medico-${c.id}`, tipo: 'medico', nome: `${c.nome} ${c.sobrenome || ''}`.trim(),
               whatsapp: c.whatsapp, email: c.email, cidade: null, estado: null,
               pedidosPessoa: pedidos.filter(p => p.cadastro_id === c.id && !p.indicacao_id),
-              consultorNome: equipe.find(m => m.id === c.vendedor_id)?.nome,
               pendencias,
             };
           });
@@ -3031,12 +2958,10 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
           .map(i => {
             const pendencias: string[] = [];
             if (!(i.documentos || []).length) pendencias.push('Documentos');
-            const medico = lista.find(c => c.id === i.medico_id);
             return {
               key: `paciente-${i.id}`, tipo: 'paciente', nome: `${i.nome} ${i.sobrenome || ''}`.trim(),
               whatsapp: i.whatsapp, email: i.email, cidade: null, estado: null, indicadoPor: i.medico_nome,
               pedidosPessoa: pedidos.filter(p => p.indicacao_id === i.id),
-              consultorNome: medico ? equipe.find(m => m.id === medico.vendedor_id)?.nome : undefined,
               pendencias,
             };
           });
@@ -3066,7 +2991,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
-                        {['Nome', 'Tipo', 'WhatsApp', 'E-mail', 'Total Gasto', 'Produtos Comprados', 'Pendências', 'Último Pedido', 'Consultor'].map(h => (
+                        {['Nome', 'Tipo', 'WhatsApp', 'E-mail', 'Total Gasto', 'Produtos Comprados', 'Pendências', 'Último Pedido'].map(h => (
                           <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>{h}</th>
                         ))}
                       </tr>
@@ -3108,7 +3033,6 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                             <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
                               {ultimoPedido ? formatDate(ultimoPedido.created_at) : '-'}
                             </td>
-                            <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)' }}>{c.consultorNome || <span style={{ color: 'var(--text-soft, #9ca3af)' }}>-</span>}</td>
                           </tr>
                         );
                       })}
