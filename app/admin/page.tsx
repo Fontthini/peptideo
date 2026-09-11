@@ -271,7 +271,10 @@ export default function AdminPage() {
   const [loadingCarrinho, setLoadingCarrinho] = useState(false);
 
   const [despesas, setDespesas] = useState<Despesa[]>([]);
-  const [relatorioTipo, setRelatorioTipo] = useState<'faturamento' | 'medicos' | 'comissoes' | 'financeiro'>('faturamento');
+  const [relatorioTipo, setRelatorioTipo] = useState<'faturamento' | 'medicos' | 'comissoes' | 'financeiro' | 'clientes' | 'produtos'>('faturamento');
+  const [relFiltroTag, setRelFiltroTag] = useState<'todos' | 'medico' | 'medico_id' | 'paciente'>('todos');
+  const [relFiltroCompra, setRelFiltroCompra] = useState<'todos' | 'comprou' | 'nao_comprou'>('todos');
+  const [relBuscaCliente, setRelBuscaCliente] = useState('');
   const [relFiltroInicio, setRelFiltroInicio] = useState('');
   const [relFiltroFim, setRelFiltroFim] = useState('');
   const [relFiltroMedico, setRelFiltroMedico] = useState('');
@@ -1336,7 +1339,7 @@ export default function AdminPage() {
                 key: string; tag: ContatoTag; id: string;
                 nome: string; sobrenome: string; whatsapp: string; email: string; crm?: string | null;
                 indicadoPorNome?: string | null; status: string; created_at: string;
-                documentos?: string[]; receita?: string | null; comprovante_pagamento?: string | null;
+                documentos?: string[]; receita?: string | null; comprovante_pagamento?: string | null; endereco?: string | null;
                 cadastro?: Cadastro; indicacao?: Indicacao;
               };
 
@@ -1344,13 +1347,13 @@ export default function AdminPage() {
                 key: `medico-${c.id}`, tag: (c.indicado_por_medico_id ? 'medico_id' : 'medico') as ContatoTag, id: c.id,
                 nome: c.nome, sobrenome: c.sobrenome, whatsapp: c.whatsapp, email: c.email, crm: c.crm,
                 indicadoPorNome: c.indicado_por_medico_nome, status: c.status, created_at: c.created_at,
-                documentos: c.documentos, cadastro: c,
+                documentos: c.documentos, receita: c.receita, comprovante_pagamento: c.comprovante_pagamento, endereco: c.endereco, cadastro: c,
               }));
               const contatosPacientes: ContatoLinha[] = indicacoes.filter(i => i.tipo !== 'medico').map(i => ({
                 key: `paciente-${i.id}`, tag: 'paciente' as ContatoTag, id: i.id,
                 nome: i.nome, sobrenome: i.sobrenome, whatsapp: i.whatsapp, email: i.email,
                 indicadoPorNome: i.medico_nome, status: i.status, created_at: i.created_at,
-                documentos: i.documentos, receita: i.receita, comprovante_pagamento: i.comprovante_pagamento, indicacao: i,
+                documentos: i.documentos, receita: i.receita, comprovante_pagamento: i.comprovante_pagamento, endereco: i.endereco, indicacao: i,
               }));
               const todosContatos = [...contatosMedicos, ...contatosPacientes];
 
@@ -1367,12 +1370,14 @@ export default function AdminPage() {
                   : pedidos.filter(p => p.cadastro_id === linha.id && !p.indicacao_id && p.status === 'pago');
                 return Array.from(new Set(pagos.map(p => p.produto_nome)));
               };
+              // Regra unica de pendencia: todo mundo (medico, medico ID ou
+              // paciente) precisa dos mesmos 3 itens pra fechar — mesma regra
+              // usada em C.Clientes, pra nao ter duas contagens diferentes de
+              // "quem esta faltando documento" em telas diferentes.
               const pendenciasDe = (linha: ContatoLinha): string[] => {
                 const falt: string[] = [];
-                if (linha.tag === 'paciente') {
-                  if (!linha.receita) falt.push('Receita');
-                  if (!linha.comprovante_pagamento) falt.push('Comprovante');
-                }
+                if (!linha.endereco) falt.push('Endereço');
+                if (!linha.receita) falt.push('Receita');
                 if (!(linha.documentos || []).length) falt.push('Documentos');
                 return falt;
               };
@@ -4299,14 +4304,87 @@ export default function AdminPage() {
               ? formatData(key)
               : new Date(key + '-01T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-            const limparFiltros = () => { setRelFiltroInicio(''); setRelFiltroFim(''); setRelFiltroMedico(''); setRelFiltroTipoFin('todos'); setRelFiltroCategoria(''); };
+            const limparFiltros = () => { setRelFiltroInicio(''); setRelFiltroFim(''); setRelFiltroMedico(''); setRelFiltroTipoFin('todos'); setRelFiltroCategoria(''); setRelFiltroTag('todos'); setRelFiltroCompra('todos'); setRelBuscaCliente(''); };
 
             const pills: { key: typeof relatorioTipo; label: string }[] = [
               { key: 'faturamento', label: 'Faturamento' },
+              { key: 'clientes', label: 'Clientes (Auditoria)' },
+              { key: 'produtos', label: 'Produtos' },
               { key: 'medicos', label: 'Por Médico' },
               { key: 'comissoes', label: 'Comissões Atribuídas' },
               { key: 'financeiro', label: 'Entradas e Saídas' },
             ];
+
+            // ===== Clientes (Auditoria) — roster completo (medico, medico ID
+            // e paciente) com quem comprou/nao comprou, quanto, o que e o que
+            // falta de documentacao. Le exatamente os mesmos cadastros/
+            // indicacoes/pedidos que Contatos, C.Clientes e o Dashboard usam,
+            // pra nao ter uma quarta versao divergente dos mesmos numeros.
+            type RelClienteLinha = {
+              tag: 'medico' | 'medico_id' | 'paciente'; id: string; nome: string; whatsapp: string; email: string;
+              indicadoPorNome?: string | null; comprou: boolean; qtdPedidos: number; totalGasto: number;
+              produtos: string[]; pendencias: string[]; ultimoPedido?: string;
+            };
+            const relClientesMedicos: RelClienteLinha[] = cadastros.map(c => {
+              const pedidosDele = pedidos.filter(p => p.cadastro_id === c.id && !p.indicacao_id);
+              const pagos = pedidosDele.filter(p => p.status === 'pago' && dentroPeriodo(p.created_at, relFiltroInicio, relFiltroFim));
+              const pend: string[] = [];
+              if (!c.endereco) pend.push('Endereço');
+              if (!c.receita) pend.push('Receita');
+              if (!(c.documentos || []).length) pend.push('Documentos');
+              return {
+                tag: c.indicado_por_medico_id ? 'medico_id' : 'medico', id: c.id, nome: `${c.nome} ${c.sobrenome || ''}`.trim(),
+                whatsapp: c.whatsapp, email: c.email, indicadoPorNome: c.indicado_por_medico_nome,
+                comprou: pagos.length > 0, qtdPedidos: pagos.length, totalGasto: pagos.reduce((s, p) => s + p.preco, 0),
+                produtos: Array.from(new Set(pagos.map(p => p.produto_nome))), pendencias: pend,
+                ultimoPedido: pedidosDele.length ? pedidosDele.reduce((a, b) => a.created_at > b.created_at ? a : b).created_at : undefined,
+              };
+            });
+            const relClientesPacientes: RelClienteLinha[] = indicacoes.filter(i => i.tipo !== 'medico').map(i => {
+              const pedidosDele = pedidos.filter(p => p.indicacao_id === i.id);
+              const pagos = pedidosDele.filter(p => p.status === 'pago' && dentroPeriodo(p.created_at, relFiltroInicio, relFiltroFim));
+              const pend: string[] = [];
+              if (!i.endereco) pend.push('Endereço');
+              if (!i.receita) pend.push('Receita');
+              if (!(i.documentos || []).length) pend.push('Documentos');
+              return {
+                tag: 'paciente' as const, id: i.id, nome: `${i.nome} ${i.sobrenome || ''}`.trim(),
+                whatsapp: i.whatsapp, email: i.email, indicadoPorNome: i.medico_nome,
+                comprou: pagos.length > 0, qtdPedidos: pagos.length, totalGasto: pagos.reduce((s, p) => s + p.preco, 0),
+                produtos: Array.from(new Set(pagos.map(p => p.produto_nome))), pendencias: pend,
+                ultimoPedido: pedidosDele.length ? pedidosDele.reduce((a, b) => a.created_at > b.created_at ? a : b).created_at : undefined,
+              };
+            });
+            const relBusca = relBuscaCliente.trim().toLowerCase();
+            const relClientesFiltrados = [...relClientesMedicos, ...relClientesPacientes]
+              .filter(c => relFiltroTag === 'todos' || c.tag === relFiltroTag)
+              .filter(c => relFiltroCompra === 'todos' || (relFiltroCompra === 'comprou' ? c.comprou : !c.comprou))
+              .filter(c => !relBusca || `${c.nome} ${c.email} ${c.whatsapp} ${c.indicadoPorNome || ''}`.toLowerCase().includes(relBusca))
+              .sort((a, b) => b.totalGasto - a.totalGasto);
+            const relResumoClientes = {
+              total: relClientesMedicos.length + relClientesPacientes.length,
+              compraram: [...relClientesMedicos, ...relClientesPacientes].filter(c => c.comprou).length,
+              comPendencia: [...relClientesMedicos, ...relClientesPacientes].filter(c => c.pendencias.length > 0).length,
+            };
+            const TAG_LABEL_REL: Record<RelClienteLinha['tag'], string> = { medico: 'Médico', medico_id: 'Médico ID', paciente: 'Paciente' };
+
+            // ===== Produtos — o que estao pedindo, no mesmo periodo/pedidos
+            // pagos que alimentam o relatorio de Faturamento acima.
+            const agrupadoPorProduto = (() => {
+              const m = new Map<string, { qtd: number; total: number; clientes: Set<string> }>();
+              pedidosPeriodo.forEach(p => {
+                const itensDoPedido = p.itens && p.itens.length ? p.itens : [{ nome: p.produto_nome, preco: p.preco, quantidade: 1 }];
+                itensDoPedido.forEach(it => {
+                  const cur = m.get(it.nome) || { qtd: 0, total: 0, clientes: new Set<string>() };
+                  cur.qtd += it.quantidade; cur.total += it.preco * it.quantidade;
+                  cur.clientes.add(p.indicacao_id || p.cadastro_id);
+                  m.set(it.nome, cur);
+                });
+              });
+              return [...m.entries()]
+                .map(([nome, v]) => ({ nome, qtd: v.qtd, total: v.total, clientesDistintos: v.clientes.size }))
+                .sort((a, b) => b.total - a.total);
+            })();
 
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -4321,7 +4399,7 @@ export default function AdminPage() {
                 <div>
                   <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 6, marginTop: 0 }}>Relatórios</h2>
                   <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: 13, margin: 0 }}>
-                    Faturamento, comissões e financeiro — filtre por período e médico, imprima ou baixe em CSV.
+                    Faturamento, auditoria de clientes, produtos, comissões e financeiro — os mesmos números do Dashboard e do Financeiro, filtráveis por período. Imprima ou baixe em CSV.
                   </p>
                 </div>
 
@@ -4392,6 +4470,34 @@ export default function AdminPage() {
                       </div>
                     </>
                   )}
+                  {relatorioTipo === 'clientes' && (
+                    <>
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>TAG</div>
+                        <select value={relFiltroTag} onChange={e => setRelFiltroTag(e.target.value as typeof relFiltroTag)}
+                          style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)', colorScheme: tema }}>
+                          <option value="todos">Todos</option>
+                          <option value="medico">Médicos</option>
+                          <option value="medico_id">Médicos ID</option>
+                          <option value="paciente">Pacientes</option>
+                        </select>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>COMPRA</div>
+                        <select value={relFiltroCompra} onChange={e => setRelFiltroCompra(e.target.value as typeof relFiltroCompra)}
+                          style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)', colorScheme: tema }}>
+                          <option value="todos">Todos</option>
+                          <option value="comprou">Comprou no período</option>
+                          <option value="nao_comprou">Não comprou no período</option>
+                        </select>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>BUSCAR</div>
+                        <input value={relBuscaCliente} onChange={e => setRelBuscaCliente(e.target.value)} placeholder="Nome, e-mail, WhatsApp ou indicador..."
+                          style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', maxWidth: 220, background: 'var(--surface)', color: 'var(--text)' }} />
+                      </div>
+                    </>
+                  )}
                   <button onClick={limparFiltros}
                     style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
                     Limpar filtros
@@ -4411,6 +4517,12 @@ export default function AdminPage() {
                     } else if (relatorioTipo === 'comissoes') {
                       baixarCSV('comissoes-atribuidas.csv', ['Data', 'Médico Indicador', 'Indicado', 'Tipo', 'Valor'],
                         comissoesPeriodo.map(i => [formatData(i._data), i.medico_nome, `${i.nome} ${i.sobrenome || ''}`.trim(), i.tipoIndicado, brl((i.comissao_valor || 0))]));
+                    } else if (relatorioTipo === 'clientes') {
+                      baixarCSV('clientes-auditoria.csv', ['Nome', 'Tag', 'WhatsApp', 'E-mail', 'Indicado por', 'Comprou no período', 'Pedidos', 'Total Gasto', 'Produtos', 'Pendências'],
+                        relClientesFiltrados.map(c => [c.nome, TAG_LABEL_REL[c.tag], c.whatsapp, c.email, c.indicadoPorNome || '-', c.comprou ? 'Sim' : 'Não', c.qtdPedidos, brl(c.totalGasto), c.produtos.join(', '), c.pendencias.join(', ') || 'OK']));
+                    } else if (relatorioTipo === 'produtos') {
+                      baixarCSV('produtos-vendidos.csv', ['Produto', 'Quantidade Vendida', 'Faturamento', 'Clientes Distintos'],
+                        agrupadoPorProduto.map(p => [p.nome, p.qtd, brl(p.total), p.clientesDistintos]));
                     } else {
                       baixarCSV('entradas-e-saidas.csv', ['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor'],
                         despesasPeriodo.map(d => [formatData(d.data), d.tipo === 'entrada' ? 'Entrada' : 'Saída', d.categoria, d.descricao, brl(d.valor)]));
@@ -4462,6 +4574,110 @@ export default function AdminPage() {
                       </div>
                     </div>
                   </>
+                )}
+
+                {/* ===== Clientes (Auditoria) ===== */}
+                {relatorioTipo === 'clientes' && (
+                  <>
+                    <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
+                      <div style={{ background: '#1118270d', border: '1px solid #11182733', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #111827' }}>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{relResumoClientes.total}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Contatos no Sistema</div>
+                      </div>
+                      <div style={{ background: '#16a34a0d', border: '1px solid #16a34a33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #16a34a' }}>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>{relResumoClientes.compraram}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Compraram no Período</div>
+                      </div>
+                      <div style={{ background: '#dc26260d', border: '1px solid #dc262633', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #dc2626' }}>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: '#dc2626' }}>{relClientesMedicos.length + relClientesPacientes.length - relResumoClientes.compraram}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Não Compraram no Período</div>
+                      </div>
+                      <div style={{ background: '#f59e0b0d', border: '1px solid #f59e0b33', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid #f59e0b' }}>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: '#b45309' }}>{relResumoClientes.comPendencia}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>Com Pendência de Documentação</div>
+                      </div>
+                    </div>
+                    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                      <div className="admin-table-scroll">
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
+                              {['Nome', 'Tag', 'Indicado por', 'Comprou?', 'Pedidos', 'Total Gasto', 'Produtos', 'Pendências', 'Ações'].map(h => (
+                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {relClientesFiltrados.length === 0 ? (
+                              <tr><td colSpan={9} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum contato encontrado.</td></tr>
+                            ) : relClientesFiltrados.map((c, idx) => (
+                              <tr key={`${c.tag}-${c.id}`} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                                <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>{c.nome}</td>
+                                <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                  <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 20, background: c.tag === 'paciente' ? '#eff6ff' : c.tag === 'medico_id' ? '#fff7ed' : 'var(--surface-hover)', color: c.tag === 'paciente' ? '#1d4ed8' : c.tag === 'medico_id' ? '#c2410c' : 'var(--text-secondary, #374151)' }}>
+                                    {TAG_LABEL_REL[c.tag]}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{c.indicadoPorNome || '-'}</td>
+                                <td style={{ padding: '11px 14px' }}>
+                                  {c.comprou
+                                    ? <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>Sim</span>
+                                    : <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-soft, #9ca3af)' }}>Não</span>}
+                                </td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{c.qtdPedidos || '-'}</td>
+                                <td style={{ padding: '11px 14px', fontWeight: 700, color: c.totalGasto > 0 ? '#16a34a' : 'var(--text-soft, #9ca3af)', fontVariantNumeric: 'tabular-nums' }}>{c.totalGasto > 0 ? `R$ ${brl(c.totalGasto)}` : '-'}</td>
+                                <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.produtos.join(', ')}>
+                                  {c.produtos.length > 0 ? c.produtos.join(', ') : '-'}
+                                </td>
+                                <td style={{ padding: '11px 14px' }}>
+                                  {c.pendencias.length === 0 ? (
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>OK</span>
+                                  ) : (
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626' }} title={c.pendencias.join(', ')}>Falta: {c.pendencias.join(', ')}</span>
+                                  )}
+                                </td>
+                                <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }} className="no-print">
+                                  <button onClick={() => setClienteDetalhe({ tipo: c.tag === 'paciente' ? 'paciente' : 'medico', id: c.id })}
+                                    style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                                    Ver / Editar
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* ===== Produtos ===== */}
+                {relatorioTipo === 'produtos' && (
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                    <div className="admin-table-scroll">
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
+                            {['Produto', 'Quantidade Vendida', 'Faturamento', 'Clientes Distintos'].map(h => (
+                              <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {agrupadoPorProduto.length === 0 ? (
+                            <tr><td colSpan={4} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum pedido pago no período.</td></tr>
+                          ) : agrupadoPorProduto.map((p, idx) => (
+                            <tr key={p.nome} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                              <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600 }}>{p.nome}</td>
+                              <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{p.qtd}</td>
+                              <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>R$ {brl(p.total)}</td>
+                              <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)' }}>{p.clientesDistintos}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 )}
 
                 {/* ===== Por Médico ===== */}
