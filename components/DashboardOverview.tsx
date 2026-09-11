@@ -153,18 +153,13 @@ export function DashboardOverview({
   const totalSaidas = despesasPeriodo.filter(d => d.tipo === 'saida').reduce((s, d) => s + d.valor, 0);
   const saldo = totalEntradas - totalSaidas;
 
-  // Comissão vem de duas origens: indicação de paciente (Indicacao) e médico
-  // que indicou outro médico (Cadastro.indicado_por_medico_id) — precisa
-  // somar as duas, senão o cashback de médico-para-médico some do painel.
-  // A data que conta pro período é a da despesa lançada (mesmo critério do
-  // relatório de Comissões Atribuídas), com created_at como reserva.
-  const despesaPorId = new Map(despesas.map(d => [d.id, d]));
-  const dataComissao = (comissaoDespesaId: string | null | undefined, criadoEm: string) =>
-    (comissaoDespesaId && despesaPorId.get(comissaoDespesaId)?.data) || criadoEm;
-  const comissoesPagas = indicacoes.filter(i => i.comissao_paga && dentroPeriodo(dataComissao(i.comissao_despesa_id, i.created_at)));
-  const cadastrosComComissaoPaga = cadastros.filter(c => c.indicado_por_medico_id && c.comissao_paga && dentroPeriodo(dataComissao(c.comissao_despesa_id, c.created_at)));
-  const totalComissoesPagas = comissoesPagas.reduce((s, i) => s + (i.comissao_valor || 0), 0)
-    + cadastrosComComissaoPaga.reduce((s, c) => s + (c.comissao_valor || 0), 0);
+  // Comissões pagas soma direto da categoria "Cashback" do Financeiro — a
+  // mesma fonte que a tela Financeiro usa — em vez de somar o campo
+  // comissao_valor espalhado em cada cadastro/indicação. Somar o campo
+  // espalhado diverge do Financeiro sempre que um lançamento existe sem
+  // vínculo de volta, ou quando o valor do lançamento é editado sem
+  // atualizar o campo espelhado — dois problemas reais já vistos aqui.
+  const totalComissoesPagas = despesas.filter(d => d.categoria === 'Cashback' && dentroPeriodo(d.data)).reduce((s, d) => s + d.valor, 0);
   const cadastrosComPedidoProprioPago = new Set(pedidosPagosPeriodo.filter(p => !p.indicacao_id && p.cadastro_id).map(p => p.cadastro_id));
   const comissoesPendentes = indicacoes.filter(i => dentroPeriodo(i.created_at) && !i.comissao_paga && (i.status === 'pago' || i.status === 'convertido')).length
     + cadastros.filter(c => dentroPeriodo(c.created_at) && c.indicado_por_medico_id && !c.comissao_paga && cadastrosComPedidoProprioPago.has(c.id)).length;

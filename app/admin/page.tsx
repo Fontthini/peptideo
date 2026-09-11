@@ -4364,13 +4364,17 @@ export default function AdminPage() {
             // duas num formato comum pra alimentar os relatórios abaixo.
             // tipo='medico' aqui é indicação legada já migrada pra Cadastro
             // (fica só de histórico) — excluída pra não contar em dobro.
+            // O valor exibido vem da despesa real quando ela existe (mesma
+            // fonte que o Financeiro soma) — o campo comissao_valor no
+            // cadastro/indicacao e so um espelho que pode ficar desatualizado
+            // se o lancamento for editado direto no Financeiro depois.
             const comissoesDeIndicacoes = indicacoes
               .filter(i => i.tipo !== 'medico' && i.comissao_paga && (!relFiltroMedico || i.medico_id === relFiltroMedico))
               .map(i => {
                 const desp = i.comissao_despesa_id ? despesaPorId.get(i.comissao_despesa_id) : undefined;
                 return {
                   id: i.id, _data: desp?.data || i.created_at.slice(0, 10), medico_id: i.medico_id, medico_nome: i.medico_nome,
-                  nome: i.nome, sobrenome: i.sobrenome, tipoIndicado: 'Paciente' as const, comissao_valor: i.comissao_valor,
+                  nome: i.nome, sobrenome: i.sobrenome, tipoIndicado: 'Paciente' as const, comissao_valor: desp?.valor ?? i.comissao_valor,
                 };
               });
             const comissoesDeCadastros = cadastros
@@ -4379,7 +4383,7 @@ export default function AdminPage() {
                 const desp = c.comissao_despesa_id ? despesaPorId.get(c.comissao_despesa_id) : undefined;
                 return {
                   id: c.id, _data: desp?.data || c.created_at.slice(0, 10), medico_id: c.indicado_por_medico_id as string, medico_nome: c.indicado_por_medico_nome || '',
-                  nome: c.nome, sobrenome: c.sobrenome, tipoIndicado: 'Médico Indicado' as const, comissao_valor: c.comissao_valor,
+                  nome: c.nome, sobrenome: c.sobrenome, tipoIndicado: 'Médico Indicado' as const, comissao_valor: desp?.valor ?? c.comissao_valor,
                 };
               });
             const comissoesPeriodo = [...comissoesDeIndicacoes, ...comissoesDeCadastros]

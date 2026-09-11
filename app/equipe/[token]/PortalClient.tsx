@@ -68,7 +68,7 @@ type Pedido = {
   id: string; cadastro_id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string;
   indicacao_id?: string | null; paciente_nome?: string;
   produto_nome: string; preco: number; itens?: PedidoItem[];
-  status: string; obs?: string; created_at: string; vendedor_id?: string;
+  status: string; obs?: string; created_at: string; vendedor_id?: string; despesa_id?: string | null;
 };
 type Indicacao = {
   id: string; medico_id: string; medico_nome: string;
@@ -815,6 +815,11 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
   const [novaDespesa, setNovaDespesa] = useState({ tipo: 'saida' as 'entrada' | 'saida', categoria: '', descricao: '', valor: '', data: new Date().toISOString().slice(0, 10), comprovante_url: '' });
   const [editandoDespesa, setEditandoDespesa] = useState<Despesa | null>(null);
   const [msgFinanceiro, setMsgFinanceiro] = useState('');
+  const [finFiltroTipo, setFinFiltroTipo] = useState<'todos' | 'entrada' | 'saida'>('todos');
+  const [finFiltroCategoria, setFinFiltroCategoria] = useState('');
+  const [finFiltroInicio, setFinFiltroInicio] = useState('');
+  const [finFiltroFim, setFinFiltroFim] = useState('');
+  const [finBusca, setFinBusca] = useState('');
 
   const [buscaRastreio, setBuscaRastreio] = useState('');
   const [rastreioSelecionado, setRastreioSelecionado] = useState<{ id: string; nome: string; whatsapp: string; tipo: 'medico' | 'paciente' } | null>(null);
@@ -1415,6 +1420,68 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
           despesas.filter(d => d.tipo === tipo).forEach(d => m.set(d.categoria, (m.get(d.categoria) || 0) + d.valor));
           return [...m.entries()].sort((a, b) => b[1] - a[1]).map(([categoria, valor]) => ({ key: categoria, label: categoria, value: Math.round(valor * 100) / 100 }));
         };
+
+        // Mesma logica do admin: cada lancamento aponta de volta pro
+        // pedido/indicacao/cadastro que o gerou, pra mostrar medico/cliente
+        // e produtos em vez de descricao livre, e pra juntar entrada+
+        // comissao da MESMA pessoa numa linha so.
+        const infoDaDespesa = (d: Despesa): { pessoaKey: string; cliente: string; indicadoPor?: string; produtos: string[] } | null => {
+          const pedido = pedidos.find(p => p.despesa_id === d.id);
+          if (pedido) {
+            if (pedido.indicacao_id) {
+              return { pessoaKey: `ind:${pedido.indicacao_id}`, cliente: pedido.paciente_nome || '', indicadoPor: pedido.cadastro_nome, produtos: pedido.itens && pedido.itens.length ? pedido.itens.map(it => it.nome) : [pedido.produto_nome] };
+            }
+            return { pessoaKey: `cad:${pedido.cadastro_id}`, cliente: pedido.cadastro_nome, produtos: pedido.itens && pedido.itens.length ? pedido.itens.map(it => it.nome) : [pedido.produto_nome] };
+          }
+          const indicacao = indicacoes.find(i => i.comissao_despesa_id === d.id);
+          if (indicacao) {
+            const ped = pedidos.find(p => p.indicacao_id === indicacao.id && p.status === 'pago');
+            return { pessoaKey: `ind:${indicacao.id}`, cliente: `${indicacao.nome} ${indicacao.sobrenome || ''}`.trim(), indicadoPor: indicacao.medico_nome, produtos: ped ? (ped.itens && ped.itens.length ? ped.itens.map(it => it.nome) : [ped.produto_nome]) : [] };
+          }
+          const cadastro = lista.find(c => c.comissao_despesa_id === d.id);
+          if (cadastro) {
+            const ped = pedidos.find(p => p.cadastro_id === cadastro.id && !p.indicacao_id && p.status === 'pago');
+            return { pessoaKey: `cad:${cadastro.id}`, cliente: `${cadastro.nome} ${cadastro.sobrenome || ''}`.trim(), indicadoPor: cadastro.indicado_por_medico_nome || undefined, produtos: ped ? (ped.itens && ped.itens.length ? ped.itens.map(it => it.nome) : [ped.produto_nome]) : [] };
+          }
+          return null;
+        };
+        const categoriasPresentesFin = [...new Set(despesas.map(d => d.categoria))].sort((a, b) => a.localeCompare(b));
+        const finBuscaQ = finBusca.trim().toLowerCase();
+        const despesasFiltradas = despesas.filter(d => {
+          if (finFiltroTipo !== 'todos' && d.tipo !== finFiltroTipo) return false;
+          if (finFiltroCategoria && d.categoria !== finFiltroCategoria) return false;
+          if (!dentroPeriodo(d.data, finFiltroInicio, finFiltroFim)) return false;
+          if (finBuscaQ) {
+            const info = infoDaDespesa(d);
+            const alvo = `${info?.cliente || ''} ${info?.indicadoPor || ''} ${info?.produtos.join(' ') || ''} ${d.categoria} ${d.descricao}`.toLowerCase();
+            if (!alvo.includes(finBuscaQ)) return false;
+          }
+          return true;
+        });
+        const finFiltrosAtivos = finFiltroTipo !== 'todos' || !!finFiltroCategoria || !!finFiltroInicio || !!finFiltroFim || !!finBusca;
+        const limparFiltrosFin = () => { setFinFiltroTipo('todos'); setFinFiltroCategoria(''); setFinFiltroInicio(''); setFinFiltroFim(''); setFinBusca(''); };
+
+        type LinhaFinanceiro = { key: string; data: string; cliente: string; indicadoPor?: string; produtos: string[]; totalEntrada: number; totalSaida: number; despesasDoGrupo: Despesa[] };
+        const gruposFin = new Map<string, LinhaFinanceiro>();
+        despesasFiltradas.forEach(d => {
+          const info = infoDaDespesa(d);
+          const key = info ? info.pessoaKey : `avulsa:${d.id}`;
+          let g = gruposFin.get(key);
+          if (!g) {
+            g = { key, data: d.data, cliente: info ? info.cliente : d.descricao, indicadoPor: info?.indicadoPor, produtos: info?.produtos || [], totalEntrada: 0, totalSaida: 0, despesasDoGrupo: [] };
+            gruposFin.set(key, g);
+          }
+          if (d.data > g.data) g.data = d.data;
+          if (info) {
+            if (!g.cliente) g.cliente = info.cliente;
+            if (!g.indicadoPor) g.indicadoPor = info.indicadoPor;
+            info.produtos.forEach(p => { if (!g!.produtos.includes(p)) g!.produtos.push(p); });
+          }
+          if (d.tipo === 'entrada') g.totalEntrada += d.valor; else g.totalSaida += d.valor;
+          g.despesasDoGrupo.push(d);
+        });
+        const linhasFin = [...gruposFin.values()].sort((a, b) => b.data.localeCompare(a.data));
+
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div className="portal-grid-auto" style={{ display: 'grid', gap: 14 }}>
@@ -1435,46 +1502,101 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
             </div>
 
             <div className="portal-split-380" style={{ display: 'grid', gap: 20, alignItems: 'start' }}>
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                  <div>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>TIPO</div>
+                    <select value={finFiltroTipo} onChange={e => setFinFiltroTipo(e.target.value as typeof finFiltroTipo)}
+                      style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '7px 9px', fontSize: 12, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' }}>
+                      <option value="todos">Todos</option>
+                      <option value="entrada">Entrada</option>
+                      <option value="saida">Saída</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>CATEGORIA</div>
+                    <select value={finFiltroCategoria} onChange={e => setFinFiltroCategoria(e.target.value)}
+                      style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '7px 9px', fontSize: 12, fontFamily: 'inherit', maxWidth: 160, background: 'var(--surface)', color: 'var(--text)' }}>
+                      <option value="">Todas</option>
+                      {categoriasPresentesFin.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>DE</div>
+                    <input type="date" value={finFiltroInicio} onChange={e => setFinFiltroInicio(e.target.value)}
+                      style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '7px 9px', fontSize: 12, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>ATÉ</div>
+                    <input type="date" value={finFiltroFim} onChange={e => setFinFiltroFim(e.target.value)}
+                      style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '7px 9px', fontSize: 12, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 140 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>BUSCAR</div>
+                    <input value={finBusca} onChange={e => setFinBusca(e.target.value)} placeholder="Cliente, produto, categoria..."
+                      style={{ width: '100%', boxSizing: 'border-box', border: '1px solid var(--border)', borderRadius: 6, padding: '7px 9px', fontSize: 12, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' }} />
+                  </div>
+                  {finFiltrosAtivos && (
+                    <button onClick={limparFiltrosFin}
+                      style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '7px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                      Limpar
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                 <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Lançamentos</div>
                 {loadingDespesas ? (
                   <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
                 ) : despesas.length === 0 ? (
                   <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum lançamento ainda.</div>
+                ) : linhasFin.length === 0 ? (
+                  <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum lançamento pra esse filtro.</div>
                 ) : (
                   <div className="portal-table-scroll">
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
-                        {['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor', 'Ações'].map(h => (
+                        {['Data', 'Médico/Cliente', 'Produtos', 'Entrada', 'Saída / Comissão', 'Ações'].map(h => (
                           <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {despesas.map(d => (
-                        <tr key={d.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(d.data + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
-                          <td style={{ padding: '10px 14px' }}>
-                            <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: d.tipo === 'entrada' ? '#dcfce7' : '#fee2e2', color: d.tipo === 'entrada' ? '#15803d' : '#dc2626' }}>
-                              {d.tipo === 'entrada' ? 'Entrada' : 'Saída'}
-                            </span>
+                      {linhasFin.map(g => {
+                        const unica = g.despesasDoGrupo.length === 1 ? g.despesasDoGrupo[0] : null;
+                        return (
+                        <tr key={g.key} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(g.data + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                          <td style={{ padding: '10px 14px', color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                            {g.cliente || <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400 }}>{unica?.categoria}</span>}
+                            {g.indicadoPor && <div style={{ fontSize: 10, color: 'var(--text-soft, #9ca3af)', fontWeight: 400 }}>indicado por {g.indicadoPor}</div>}
                           </td>
-                          <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)' }}>{d.categoria}</td>
-                          <td style={{ padding: '10px 14px', color: 'var(--text-muted, #6b7280)' }}>{d.descricao}</td>
-                          <td style={{ padding: '10px 14px', fontWeight: 700, color: d.tipo === 'entrada' ? '#16a34a' : '#dc2626' }}>R$ {brl(d.valor)}</td>
+                          <td style={{ padding: '10px 14px', color: 'var(--text-secondary, #374151)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={g.produtos.join(', ')}>
+                            {g.produtos.length > 0 ? g.produtos.join(', ') : '-'}
+                          </td>
+                          <td style={{ padding: '10px 14px', fontWeight: 700, color: g.totalEntrada > 0 ? '#16a34a' : 'var(--text-soft, #9ca3af)', whiteSpace: 'nowrap' }}>
+                            {g.totalEntrada > 0 ? `R$ ${brl(g.totalEntrada)}` : '-'}
+                          </td>
+                          <td style={{ padding: '10px 14px', fontWeight: 700, color: g.totalSaida > 0 ? '#dc2626' : 'var(--text-soft, #9ca3af)', whiteSpace: 'nowrap' }}>
+                            {g.totalSaida > 0 ? `R$ ${brl(g.totalSaida)}` : '-'}
+                          </td>
                           <td style={{ padding: '10px 14px' }}>
-                            <button onClick={() => setEditandoDespesa(d)}
-                              style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
-                              Editar
-                            </button>
+                            {unica && (
+                              <button onClick={() => setEditandoDespesa(unica)}
+                                style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                                Editar
+                              </button>
+                            )}
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                   </div>
                 )}
+                </div>
               </div>
 
               <div style={{ position: 'sticky', top: 24, background: 'var(--surface)', border: `1px solid ${editandoDespesa ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 12, padding: 22 }}>
@@ -2975,7 +3097,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
-                C. Clientes <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400 }}>({todosClientes.length})</span>
+                Clientes <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400 }}>({todosClientes.length})</span>
               </div>
               <input value={buscaCliente} onChange={e => setBuscaCliente(e.target.value)}
                 placeholder="Buscar cliente por nome, e-mail ou WhatsApp..."
