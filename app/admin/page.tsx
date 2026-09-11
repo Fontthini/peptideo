@@ -399,7 +399,12 @@ export default function AdminPage() {
   // Pivot: cadastro unificado — a aba "C. Médicos" alterna entre a lista de
   // médicos (Cadastro) e a de pacientes (Indicacao), absorvendo as antigas
   // abas "Indicações" e "Indicações Médicas".
-  const [tipoCadastroView, setTipoCadastroView] = useState<'medico' | 'paciente'>('medico');
+  // Contatos: lista única de todo mundo no sistema, com 3 tags — Médico
+  // (cadastro comum), Médico ID (cadastro com indicado_por_medico_id, só
+  // pra controlar comissão de indicação entre médicos) e Paciente
+  // (Indicacao). Substitui o alternador Médicos/Pacientes: agora dá pra ver
+  // todo mundo junto ou filtrar por tag, sem esconder ninguém numa aba separada.
+  const [filtroContato, setFiltroContato] = useState<'todos' | 'medico' | 'medico_id' | 'paciente'>('todos');
 
   const [buscaRastreio, setBuscaRastreio] = useState('');
   const [rastreioSelecionado, setRastreioSelecionado] = useState<{ id: string; nome: string; whatsapp: string; tipo: 'medico' | 'paciente' } | null>(null);
@@ -1264,7 +1269,7 @@ export default function AdminPage() {
         <aside className="admin-sidebar" style={{ background: 'var(--surface)', flexShrink: 0, display: 'flex' }}>
           <div className="admin-sidebar-title" style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-soft)', letterSpacing: 1, marginBottom: 10, paddingLeft: 6, textTransform: 'uppercase' }}>Menu</div>
           {navItem('dashboard', '#', 'Dashboard')}
-          {navItem('leads', '-', 'C. Médicos')}
+          {navItem('leads', '-', 'Contatos')}
           {navItem('clientes', 'C', 'C. Clientes')}
           {navItem('produtos', '+', 'Produtos')}
           {navItem('estoque', 'E', 'Estoque')}
@@ -1299,442 +1304,340 @@ export default function AdminPage() {
 
           {/* ======== ABA LEADS ======== */}
           {aba === 'leads' && (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: 0 }}>C. Médicos</h2>
-                <button onClick={() => setNovoCadastroTipo('escolher')}
-                  style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 16px', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
-                  + Cadastro Novo
-                </button>
-              </div>
+            <>{(() => {
+              type ContatoTag = 'medico' | 'medico_id' | 'paciente';
+              type ContatoLinha = {
+                key: string; tag: ContatoTag; id: string;
+                nome: string; sobrenome: string; whatsapp: string; email: string; crm?: string | null;
+                indicadoPorNome?: string | null; status: string; created_at: string;
+                documentos?: string[]; receita?: string | null; comprovante_pagamento?: string | null;
+                cadastro?: Cadastro; indicacao?: Indicacao;
+              };
 
-              {/* Total / Médicos / Pacientes */}
-              <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 14 }}>
-                {[
-                  { label: 'Total', val: counts.todos + totalPacientes },
-                  { label: 'Médicos', val: counts.todos },
-                  { label: 'Pacientes', val: totalPacientes },
-                ].map(s => (
-                  <div key={s.label} style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', borderTop: '4px solid var(--text-soft, #9ca3af)' }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--text)' }}>{s.val}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>{s.label}</div>
+              const contatosMedicos: ContatoLinha[] = cadastros.map(c => ({
+                key: `medico-${c.id}`, tag: (c.indicado_por_medico_id ? 'medico_id' : 'medico') as ContatoTag, id: c.id,
+                nome: c.nome, sobrenome: c.sobrenome, whatsapp: c.whatsapp, email: c.email, crm: c.crm,
+                indicadoPorNome: c.indicado_por_medico_nome, status: c.status, created_at: c.created_at,
+                documentos: c.documentos, cadastro: c,
+              }));
+              const contatosPacientes: ContatoLinha[] = indicacoes.filter(i => i.tipo !== 'medico').map(i => ({
+                key: `paciente-${i.id}`, tag: 'paciente' as ContatoTag, id: i.id,
+                nome: i.nome, sobrenome: i.sobrenome, whatsapp: i.whatsapp, email: i.email,
+                indicadoPorNome: i.medico_nome, status: i.status, created_at: i.created_at,
+                documentos: i.documentos, receita: i.receita, comprovante_pagamento: i.comprovante_pagamento, indicacao: i,
+              }));
+              const todosContatos = [...contatosMedicos, ...contatosPacientes];
+
+              const contagens = {
+                todos: todosContatos.length,
+                medico: contatosMedicos.filter(c => c.tag === 'medico').length,
+                medico_id: contatosMedicos.filter(c => c.tag === 'medico_id').length,
+                paciente: contatosPacientes.length,
+              };
+
+              const produtosCompradosDe = (linha: ContatoLinha): string[] => {
+                const pagos = linha.tag === 'paciente'
+                  ? pedidos.filter(p => p.indicacao_id === linha.id && p.status === 'pago')
+                  : pedidos.filter(p => p.cadastro_id === linha.id && !p.indicacao_id && p.status === 'pago');
+                return Array.from(new Set(pagos.map(p => p.produto_nome)));
+              };
+              const pendenciasDe = (linha: ContatoLinha): string[] => {
+                const falt: string[] = [];
+                if (linha.tag === 'paciente') {
+                  if (!linha.receita) falt.push('Receita');
+                  if (!linha.comprovante_pagamento) falt.push('Comprovante');
+                }
+                if (!(linha.documentos || []).length) falt.push('Documentos');
+                return falt;
+              };
+
+              const q = buscaLead.trim().toLowerCase();
+              const contatosFiltrados = todosContatos
+                .filter(c => filtroContato === 'todos' || c.tag === filtroContato)
+                .filter(c => !q || `${c.nome} ${c.sobrenome} ${c.email} ${c.whatsapp} ${c.crm || ''} ${c.indicadoPorNome || ''}`.toLowerCase().includes(q))
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+              const TAG_LABEL: Record<ContatoTag, string> = { medico: 'Médico', medico_id: 'Médico ID', paciente: 'Paciente' };
+              const TAG_COLOR: Record<ContatoTag, { bg: string; text: string }> = {
+                medico: { bg: 'var(--surface-hover)', text: 'var(--text-secondary, #374151)' },
+                medico_id: { bg: '#fff7ed', text: '#c2410c' },
+                paciente: { bg: '#eff6ff', text: '#1d4ed8' },
+              };
+
+              return (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
+                    <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: 0 }}>Contatos</h2>
+                    <button onClick={() => setNovoCadastroTipo('escolher')}
+                      style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '9px 16px', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}>
+                      + Cadastro Novo
+                    </button>
                   </div>
-                ))}
-              </div>
 
-              {/* Alternador Médicos / Pacientes — absorve as antigas abas
-                  "Indicações" e "Indicações Médicas" nesta mesma tela */}
-              <div style={{ display: 'inline-flex', background: 'var(--surface-hover)', borderRadius: 8, padding: 3, gap: 2, marginBottom: 20 }}>
-                {(['medico', 'paciente'] as const).map(t => (
-                  <button key={t} type="button" onClick={() => setTipoCadastroView(t)}
-                    style={{ padding: '7px 18px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', background: tipoCadastroView === t ? 'var(--btn-primary-bg)' : 'transparent', color: tipoCadastroView === t ? 'var(--btn-primary-text)' : 'var(--text-muted, #6b7280)' }}>
-                    {t === 'medico' ? `Médicos (${counts.todos})` : `Pacientes (${totalPacientes})`}
-                  </button>
-                ))}
-              </div>
-
-              {tipoCadastroView === 'medico' && (
-              <>
-              {/* Stats médicos */}
-              <div className="admin-grid-auto" style={{ display: 'grid', gap: 14, marginBottom: 24 }}>
-                {[
-                  { label: 'Pendentes', val: counts.pendente, cor: null },
-                  { label: 'Aprovados', val: counts.aprovado, cor: '#15803d' },
-                  { label: 'Rejeitados', val: counts.rejeitado, cor: '#dc2626' },
-                ].map(s => (
-                  <div key={s.label} style={{ background: s.cor ? `${s.cor}0d` : 'var(--surface-hover)', border: `1px solid ${s.cor ? s.cor + '33' : 'var(--border)'}`, borderRadius: 10, padding: '16px 20px', borderTop: `4px solid ${s.cor || 'var(--text-soft, #9ca3af)'}` }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: s.cor || 'var(--text)' }}>{s.val}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', marginTop: 4, fontWeight: 600 }}>{s.label}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Comissões (cashback) de médico que indicou médico */}
-              {(() => {
-                const medicosComComissao = cadastros.filter(c => c.indicado_por_medico_id && c.comissao_paga);
-                const totalComissoesMedicos = medicosComComissao.reduce((s, c) => s + (c.comissao_valor || 0), 0);
-                if (medicosComComissao.length === 0) return null;
-                return (
-                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Comissões (Cashback) Pagas — médico indicou médico</div>
-                      <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {brl(totalComissoesMedicos)}</div>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Filtros */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                {[['todos', 'Todos', ''], ['pendente', 'Pendentes', ''], ['aprovado', 'Aprovados', '#15803d'], ['rejeitado', 'Rejeitados', '#dc2626']].map(([val, label, cor]) => (
-                  <button key={val} onClick={() => setFiltro(val)}
-                    style={{
-                      background: filtro === val ? (cor || 'var(--btn-primary-bg)') : 'var(--surface)',
-                      color: filtro === val ? (cor ? '#fff' : 'var(--btn-primary-text)') : 'var(--text-secondary, #374151)',
-                      border: `1px solid ${filtro === val ? (cor || 'var(--btn-primary-bg)') : 'var(--border)'}`,
-                      padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: filtro === val ? 700 : 400, fontFamily: 'inherit', fontSize: 13,
-                    }}>
-                    {label} ({counts[val as keyof typeof counts]})
-                  </button>
-                ))}
-              </div>
-
-              {/* Filtro por etiqueta */}
-              {todasEtiquetas.length > 0 && (
-                <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-soft, #9ca3af)', textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 2 }}>Etiqueta:</span>
-                  <button onClick={() => setFiltroEtiqueta('todas')}
-                    style={{ background: filtroEtiqueta === 'todas' ? 'var(--btn-primary-bg)' : 'var(--surface)', color: filtroEtiqueta === 'todas' ? 'var(--btn-primary-text)' : 'var(--text-secondary, #374151)', border: `1px solid ${filtroEtiqueta === 'todas' ? 'var(--btn-primary-bg)' : '#d1d5db'}`, padding: '3px 12px', borderRadius: 20, cursor: 'pointer', fontWeight: filtroEtiqueta === 'todas' ? 700 : 500, fontFamily: 'inherit', fontSize: 12 }}>
-                    Todas
-                  </button>
-                  {todasEtiquetas.map(tag => {
-                    const cor = corDaEtiqueta(tag);
-                    const ativo = filtroEtiqueta === tag;
-                    return (
-                      <button key={tag} onClick={() => setFiltroEtiqueta(ativo ? 'todas' : tag)}
-                        style={{ background: ativo ? cor : `${cor}1a`, color: ativo ? '#fff' : cor, border: `1px solid ${cor}55`, padding: '3px 12px', borderRadius: 20, cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit', fontSize: 12 }}>
-                        {tag} ({cadastros.filter(c => (c.tags || []).includes(tag)).length})
+                  {/* Tags — Médicos / Médicos ID (indicados por outro médico, só
+                      pra controlar comissão) / Pacientes. Substitui o antigo
+                      alternador: agora dá pra ver todo mundo junto. */}
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                    {([['todos', 'Todos', null], ['medico', 'Médicos', null], ['medico_id', 'Médicos ID', '#c2410c'], ['paciente', 'Pacientes', '#1d4ed8']] as const).map(([val, label, cor]) => (
+                      <button key={val} onClick={() => setFiltroContato(val)}
+                        style={{
+                          background: filtroContato === val ? (cor || 'var(--btn-primary-bg)') : 'var(--surface)',
+                          color: filtroContato === val ? '#fff' : 'var(--text-secondary, #374151)',
+                          border: `1px solid ${filtroContato === val ? (cor || 'var(--btn-primary-bg)') : 'var(--border)'}`,
+                          padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: filtroContato === val ? 700 : 400, fontFamily: 'inherit', fontSize: 13,
+                        }}>
+                        {label} ({contagens[val as keyof typeof contagens]})
                       </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Busca */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-                <input value={buscaLead} onChange={e => setBuscaLead(e.target.value)}
-                  placeholder="Buscar médico por nome, e-mail, WhatsApp ou CRM..."
-                  style={{ ...inputStyle, maxWidth: 420, marginBottom: 0 }} />
-              </div>
-
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-                {loadingLeads ? (
-                  <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
-                ) : filtrados.length === 0 ? (
-                  <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum cadastro encontrado</div>
-                ) : (
-                  <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 360px)' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
-                          {['Nome','Sobrenome','E-mail','WhatsApp','CRM','Indicado por','Onde Conheceu','Etiquetas','Endereço','Status','Funil','Consultor','Data','Ações'].map(h => (
-                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'var(--surface-hover)', zIndex: 1 }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filtrados.map((c, i) => {
-                          const whatsDup = whatsappCounts[(c.whatsapp || '').replace(/\D/g, '')] > 1;
-                          return (
-                          <tr key={c.id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
-                            <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                              {c.nome}
-                              {whatsDup && (
-                                <span title="Este WhatsApp aparece em mais de um cadastro — pode ser a mesma pessoa cadastrada duas vezes."
-                                  style={{ marginLeft: 6, background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, cursor: 'help' }}>
-                                  ⚠ possível duplicado
-                                </span>
-                              )}
-                            </td>
-                            <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap' }}>{c.sobrenome || '-'}</td>
-                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{c.email}</td>
-                            <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                              <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: whatsDup ? 'var(--text-secondary, #374151)' : '#16a34a', textDecoration: 'none', fontWeight: whatsDup ? 700 : 400 }}>{c.whatsapp}</a>
-                            </td>
-                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{c.crm || '-'}</td>
-                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
-                              {c.indicado_por_medico_nome || '-'}
-                              <ComissaoWidget id={c.id} comissaoValor={c.comissao_valor} comissaoPaga={c.comissao_paga} mostrar={!!c.indicado_por_medico_id}
-                                totalBase={totalBaseForCadastro(c.id)} promptId={comissaoCadastroPromptId} setPromptId={setComissaoCadastroPromptId}
-                                input={comissaoCadastroInput} setInput={setComissaoCadastroInput} onConfirmar={lancarComissaoCadastro} />
-                            </td>
-                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{c.onde_conheceu || '-'}</td>
-                            <td style={{ padding: '11px 14px', minWidth: 160 }} onClick={e => e.stopPropagation()}>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
-                                {(c.tags || []).map(tag => {
-                                  const cor = corDaEtiqueta(tag);
-                                  return (
-                                    <span key={tag} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: `${cor}1a`, color: cor, border: `1px solid ${cor}55`, padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
-                                      {tag}
-                                      <button onClick={() => atualizarTagsLead(c.id, (c.tags || []).filter(t => t !== tag))}
-                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: cor, fontSize: 13, lineHeight: 1, padding: 0, fontWeight: 900 }}
-                                        title="Remover etiqueta">×</button>
-                                    </span>
-                                  );
-                                })}
-                                {editandoTagsId === c.id ? (
-                                  <input autoFocus value={novaTagInput}
-                                    onChange={e => setNovaTagInput(e.target.value)}
-                                    onBlur={() => { setEditandoTagsId(null); setNovaTagInput(''); }}
-                                    onKeyDown={e => {
-                                      if (e.key === 'Enter') {
-                                        const v = novaTagInput.trim();
-                                        if (v && !(c.tags || []).includes(v)) atualizarTagsLead(c.id, [...(c.tags || []), v]);
-                                        setNovaTagInput(''); setEditandoTagsId(null);
-                                      } else if (e.key === 'Escape') { setNovaTagInput(''); setEditandoTagsId(null); }
-                                    }}
-                                    placeholder="nova..."
-                                    style={{ width: 76, border: '1px solid var(--border)', borderRadius: 20, padding: '2px 8px', fontSize: 11, fontFamily: 'inherit' }} />
-                                ) : (
-                                  <button onClick={() => setEditandoTagsId(c.id)}
-                                    style={{ background: 'var(--surface-hover)', color: 'var(--text-muted, #6b7280)', border: '1px dashed var(--border)', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                                    + tag
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.endereco}</td>
-                            <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                              <span style={{
-                                padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                                background: c.status === 'aprovado' ? '#dcfce7' : c.status === 'pendente' ? 'var(--surface-hover)' : '#fee2e2',
-                                color: c.status === 'aprovado' ? '#15803d' : c.status === 'pendente' ? 'var(--text-secondary, #374151)' : '#dc2626',
-                              }}>{c.status}</span>
-                            </td>
-                            <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
-                              {perdaPromptId === c.id ? (
-                                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                                  <select autoFocus value={motivoPerdaInput} onChange={e => setMotivoPerdaInput(e.target.value)}
-                                    style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '3px 6px', fontSize: 11, fontFamily: 'inherit' }}>
-                                    <option value="">Motivo...</option>
-                                    {MOTIVOS_PERDA.map(m => <option key={m} value={m}>{m}</option>)}
-                                  </select>
-                                  <button onClick={() => { atualizarFunilLead(c.id, 'perdido', motivoPerdaInput); setPerdaPromptId(null); setMotivoPerdaInput(''); }}
-                                    style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
-                                  <button onClick={() => { setPerdaPromptId(null); setMotivoPerdaInput(''); }}
-                                    style={{ background: 'none', border: 'none', color: 'var(--text-muted, #6b7280)', cursor: 'pointer', fontSize: 13 }}>×</button>
-                                </div>
-                              ) : (
-                                <select value={c.funil_status || 'novo'}
-                                  onChange={e => {
-                                    const v = e.target.value;
-                                    if (v === 'perdido') { setPerdaPromptId(c.id); setMotivoPerdaInput(''); }
-                                    else atualizarFunilLead(c.id, v);
-                                  }}
-                                  style={{ background: '#f1f5f9', color: FUNIL_COLOR_FIXO[c.funil_status || 'novo'], border: `1px solid ${FUNIL_COLOR_FIXO[c.funil_status || 'novo']}55`, borderRadius: 6, padding: '4px 8px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}
-                                  title={c.funil_status === 'perdido' && c.motivo_perda ? `Motivo: ${c.motivo_perda}` : undefined}>
-                                  {FUNIL_ETAPAS.map(e => <option key={e} value={e}>{FUNIL_LABEL[e]}</option>)}
-                                </select>
-                              )}
-                            </td>
-                            <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
-                              <select value={c.vendedor_id || ''} onChange={e => e.target.value && transferirConsultor(c.id, e.target.value)}
-                                style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontSize: 11.5, fontFamily: 'inherit', color: 'var(--text-secondary, #374151)', cursor: 'pointer', maxWidth: 130 }}>
-                                <option value="">Sem consultor</option>
-                                {equipe.filter(m => m.cargo === 'vendedor' && m.ativo).map(m => (
-                                  <option key={m.id} value={m.id}>{m.nome}</option>
-                                ))}
-                              </select>
-                            </td>
-                            <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
-                              {new Date(c.created_at).toLocaleDateString('pt-BR')}
-                            </td>
-                            <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                              <div style={{ display: 'flex', gap: 6 }}>
-                                {c.status === 'pendente' && (
-                                  <>
-                                    <button onClick={() => aprovar(c.id)} style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontWeight: 700, fontSize: 12, fontFamily: 'inherit' }}>
-                                      Aprovar
-                                    </button>
-                                    <button onClick={() => rejeitar(c.id)} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
-                                      Rejeitar
-                                    </button>
-                                  </>
-                                )}
-                                {c.status === 'aprovado' && c.token && (
-                                  <>
-                                    <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/acesso/${c.token}`); showMsg('Link copiado!'); }}
-                                      style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
-                                      Copiar Link
-                                    </button>
-                                    <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/indicar/${c.token}`); showMsg('Link de indicação copiado!'); }}
-                                      style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
-                                      Link Indicação
-                                    </button>
-                                    <button onClick={() => reenviarEmail(c.id, c.nome)} disabled={reenviandoId === c.id}
-                                      style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: reenviandoId === c.id ? 'default' : 'pointer', fontSize: 12, fontFamily: 'inherit', opacity: reenviandoId === c.id ? 0.6 : 1 }}
-                                      title="Reenviar o e-mail de acesso para este médico">
-                                      {reenviandoId === c.id ? 'Enviando...' : 'Reenviar E-mail'}
-                                    </button>
-                                  </>
-                                )}
-                                <button onClick={() => { setEditandoLead(c); setNovoProdutoInteresseInput(''); }}
-                                  style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}
-                                  title="Editar dados do cadastro">
-                                  Editar
-                                </button>
-                                {c.status === 'aprovado' && (
-                                  <button onClick={() => { setNovoPedidoTipoCliente('medico'); setNovoPedidoMedicoId(c.id); setBuscaMedicoPedido(''); setNovoPedidoAberto(true); }}
-                                    style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}
-                                    title="Lançar um novo pedido para este médico">
-                                    + Pedido
-                                  </button>
-                                )}
-                                {c.whatsapp && (
-                                  <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
-                                    style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
-                                    WhatsApp
-                                  </a>
-                                )}
-                                {isSuperadmin && (
-                                  <button onClick={() => excluirCadastro(c.id, c.nome)}
-                                    style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 13 }}
-                                    title="Excluir cadastro">
-                                    Excluir
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                    ))}
                   </div>
-                )}
-              </div>
-              </>
-              )}
 
-              {tipoCadastroView === 'paciente' && (() => {
-                const indicacoesPacientes = indicacoes.filter(i => i.tipo !== 'medico');
-                const porFiltro = filtroIndicacao === 'todos' ? indicacoesPacientes : indicacoesPacientes.filter(i => i.status === filtroIndicacao);
-                const q = buscaIndicacao.trim().toLowerCase();
-                const indicacoesFiltradas = !q ? porFiltro : porFiltro.filter(i =>
-                  `${i.medico_nome} ${i.nome} ${i.sobrenome} ${i.email || ''}`.toLowerCase().includes(q));
-                const comComissao = indicacoesPacientes.filter(i => i.comissao_paga);
-                const totalComissoes = comComissao.reduce((s, i) => s + (i.comissao_valor || 0), 0);
-                const pendencias = (i: Indicacao) => {
-                  const faltando: string[] = [];
-                  if (!i.receita) faltando.push('Receita');
-                  if (!i.comprovante_pagamento) faltando.push('Comprovante');
-                  if (!(i.documentos || []).length) faltando.push('Documentos');
-                  return faltando;
-                };
-                return (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-                      <input value={buscaIndicacao} onChange={e => setBuscaIndicacao(e.target.value)}
-                        placeholder="Buscar por médico indicador ou paciente indicado..."
-                        style={{ ...inputStyle, maxWidth: 420, marginBottom: 0 }} />
-                    </div>
+                  {/* Comissões (cashback) — médico indicou médico + pacientes indicados */}
+                  {(() => {
+                    const medicosComComissao = cadastros.filter(c => c.indicado_por_medico_id && c.comissao_paga);
+                    const pacientesComComissao = indicacoes.filter(i => i.tipo !== 'medico' && i.comissao_paga);
+                    const total = medicosComComissao.reduce((s, c) => s + (c.comissao_valor || 0), 0) + pacientesComComissao.reduce((s, i) => s + (i.comissao_valor || 0), 0);
+                    if (medicosComComissao.length === 0 && pacientesComComissao.length === 0) return null;
+                    return (
+                      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Comissões (Cashback) Pagas</div>
+                          <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {brl(total)}</div>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-                      {(['todos', 'em_atendimento', 'negociacao', 'pago', 'cancelado'] as const).map(val => {
-                        const corSemantica = val === 'pago' ? '#15803d' : val === 'cancelado' ? '#dc2626' : null;
-                        const label = val === 'todos' ? 'Todos' : PIPELINE_STATUS_LABEL[val];
-                        const n = val === 'todos' ? indicacoesPacientes.length : indicacoesPacientes.filter(i => i.status === val).length;
-                        const ativo = filtroIndicacao === val;
+                  {/* Filtro por etiqueta (médicos) */}
+                  {todasEtiquetas.length > 0 && (filtroContato === 'todos' || filtroContato === 'medico' || filtroContato === 'medico_id') && (
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-soft, #9ca3af)', textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 2 }}>Etiqueta:</span>
+                      <button onClick={() => setFiltroEtiqueta('todas')}
+                        style={{ background: filtroEtiqueta === 'todas' ? 'var(--btn-primary-bg)' : 'var(--surface)', color: filtroEtiqueta === 'todas' ? 'var(--btn-primary-text)' : 'var(--text-secondary, #374151)', border: `1px solid ${filtroEtiqueta === 'todas' ? 'var(--btn-primary-bg)' : '#d1d5db'}`, padding: '3px 12px', borderRadius: 20, cursor: 'pointer', fontWeight: filtroEtiqueta === 'todas' ? 700 : 500, fontFamily: 'inherit', fontSize: 12 }}>
+                        Todas
+                      </button>
+                      {todasEtiquetas.map(tag => {
+                        const cor = corDaEtiqueta(tag);
+                        const ativo = filtroEtiqueta === tag;
                         return (
-                          <button key={val} onClick={() => setFiltroIndicacao(val)}
-                            style={{
-                              background: ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--surface)',
-                              color: ativo ? (corSemantica ? '#fff' : 'var(--btn-primary-text)') : 'var(--text-secondary, #374151)',
-                              border: `1px solid ${ativo ? (corSemantica || 'var(--btn-primary-bg)') : 'var(--border)'}`,
-                              padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: ativo ? 700 : 400, fontFamily: 'inherit', fontSize: 13,
-                            }}>
-                            {label} ({n})
+                          <button key={tag} onClick={() => setFiltroEtiqueta(ativo ? 'todas' : tag)}
+                            style={{ background: ativo ? cor : `${cor}1a`, color: ativo ? '#fff' : cor, border: `1px solid ${cor}55`, padding: '3px 12px', borderRadius: 20, cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit', fontSize: 12 }}>
+                            {tag} ({cadastros.filter(c => (c.tags || []).includes(tag)).length})
                           </button>
                         );
                       })}
                     </div>
+                  )}
 
-                    {comComissao.length > 0 && (
-                      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Comissões (Cashback) Pagas</div>
-                          <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {brl(totalComissoes)}</div>
-                        </div>
-                      </div>
-                    )}
+                  {/* Busca */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+                    <input value={buscaLead} onChange={e => setBuscaLead(e.target.value)}
+                      placeholder="Buscar por nome, e-mail, WhatsApp, CRM ou indicador..."
+                      style={{ ...inputStyle, maxWidth: 420, marginBottom: 0 }} />
+                  </div>
 
-                    {loadingIndicacoes ? (
-                      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
-                    ) : indicacoesFiltradas.length === 0 ? (
-                      <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
-                        {indicacoesPacientes.length === 0 ? <>Nenhum paciente cadastrado ainda.</> : <>Nenhum paciente encontrado para essa busca.</>}
-                      </div>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                    {loadingLeads ? (
+                      <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
+                    ) : contatosFiltrados.length === 0 ? (
+                      <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum contato encontrado</div>
                     ) : (
-                      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-                        <div className="admin-table-scroll">
+                      <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 360px)' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                           <thead>
                             <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
-                              {['Paciente', 'WhatsApp', 'CPF', 'Cidade/UF', 'Médico Indicador', 'Status', 'Pendências', 'Data', 'Ações'].map(h => (
-                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+                              {['Nome', 'Tag', 'WhatsApp', 'Indicado por', 'Produtos Comprados', 'Status', 'Funil', 'Consultor', 'Pendências', 'Data', 'Ações'].map(h => (
+                                <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'var(--surface-hover)', zIndex: 1 }}>{h}</th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
-                            {indicacoesFiltradas.map((i, idx) => {
-                              const falt = pendencias(i);
+                            {contatosFiltrados.map((linha, i) => {
+                              const whatsDup = whatsappCounts[(linha.whatsapp || '').replace(/\D/g, '')] > 1;
+                              const produtos = produtosCompradosDe(linha);
+                              const falt = pendenciasDe(linha);
+                              const c = linha.cadastro;
+                              const ind = linha.indicacao;
                               return (
-                              <tr key={i.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
-                                <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--text)' }}>{i.nome} {i.sobrenome}</td>
-                                <td style={{ padding: '11px 14px' }}>
-                                  {i.whatsapp && (
-                                    <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
-                                      style={{ color: '#128C46', textDecoration: 'none', fontWeight: 600 }}>{i.whatsapp}</a>
-                                  )}
-                                </td>
-                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)' }}>{i.cpf || '-'}</td>
-                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{i.cidade ? `${i.cidade}/${i.estado || ''}` : '-'}</td>
-                                <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 700 }}>{i.medico_nome}</td>
-                                <td style={{ padding: '11px 14px' }}>
-                                  <select value={i.status} onChange={e => atualizarStatusIndicacao(i, e.target.value)}
-                                    style={{ background: (PIPELINE_STATUS_COLOR[i.status] || { bg: 'var(--surface)' }).bg, color: (PIPELINE_STATUS_COLOR[i.status] || { text: 'var(--text)' }).text, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
-                                    <option value="em_atendimento">Em Atendimento</option>
-                                    <option value="negociacao">Negociação</option>
-                                    <option value="pago">Pago</option>
-                                    <option value="cancelado">Cancelado</option>
-                                  </select>
-                                  <ComissaoWidget id={i.id} comissaoValor={i.comissao_valor} comissaoPaga={i.comissao_paga} totalBase={totalBaseFor(i.id)}
-                                    mostrar={i.status === 'pago'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
-                                    input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
-                                </td>
-                                <td style={{ padding: '11px 14px' }}>
-                                  {falt.length === 0 ? (
-                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>OK Completo</span>
-                                  ) : (
-                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626' }} title={falt.join(', ')}>Faltando: {falt.join(', ')}</span>
-                                  )}
-                                </td>
-                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
-                                  {new Date(i.created_at).toLocaleDateString('pt-BR')}
-                                </td>
-                                <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                                  <div style={{ display: 'flex', gap: 6 }}>
-                                    <button onClick={() => { setNovoPedidoTipoCliente('paciente'); setNovoPedidoIndicacaoId(i.id); setBuscaPacientePedido(''); setNovoPedidoAberto(true); }}
-                                      style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}
-                                      title="Lançar um novo pedido para este paciente">
-                                      + Pedido
-                                    </button>
-                                    {i.whatsapp && (
-                                      <a href={`https://wa.me/55${i.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
-                                        style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
-                                        WhatsApp
-                                      </a>
+                                <tr key={linha.key} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
+                                  <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                    {linha.nome} {linha.sobrenome}
+                                    {whatsDup && (
+                                      <span title="Este WhatsApp aparece em mais de um contato — pode ser a mesma pessoa cadastrada duas vezes."
+                                        style={{ marginLeft: 6, background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, cursor: 'help' }}>
+                                        ⚠ duplicado?
+                                      </span>
                                     )}
-                                    {isSuperadmin && (
-                                      <button onClick={() => excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`)}
-                                        style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
-                                        Excluir
-                                      </button>
+                                    {c && (c.tags || []).length > 0 && (
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 3 }}>
+                                        {(c.tags || []).map(tag => {
+                                          const cor = corDaEtiqueta(tag);
+                                          return <span key={tag} style={{ fontSize: 9.5, fontWeight: 700, background: `${cor}1a`, color: cor, padding: '1px 6px', borderRadius: 10 }}>{tag}</span>;
+                                        })}
+                                      </div>
                                     )}
-                                  </div>
-                                </td>
-                              </tr>
+                                  </td>
+                                  <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 20, background: TAG_COLOR[linha.tag].bg, color: TAG_COLOR[linha.tag].text }}>
+                                      {TAG_LABEL[linha.tag]}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                    {linha.whatsapp && <a href={`https://wa.me/55${linha.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: whatsDup ? 'var(--text-secondary, #374151)' : '#16a34a', textDecoration: 'none', fontWeight: whatsDup ? 700 : 400 }}>{linha.whatsapp}</a>}
+                                  </td>
+                                  <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
+                                    {linha.indicadoPorNome || '-'}
+                                    {c && (
+                                      <ComissaoWidget id={c.id} comissaoValor={c.comissao_valor} comissaoPaga={c.comissao_paga} mostrar={!!c.indicado_por_medico_id}
+                                        totalBase={totalBaseForCadastro(c.id)} promptId={comissaoCadastroPromptId} setPromptId={setComissaoCadastroPromptId}
+                                        input={comissaoCadastroInput} setInput={setComissaoCadastroInput} onConfirmar={lancarComissaoCadastro} />
+                                    )}
+                                    {ind && (
+                                      <ComissaoWidget id={ind.id} comissaoValor={ind.comissao_valor} comissaoPaga={ind.comissao_paga} totalBase={totalBaseFor(ind.id)}
+                                        mostrar={ind.status === 'pago'} promptId={comissaoPromptId} setPromptId={setComissaoPromptId}
+                                        input={comissaoInput} setInput={setComissaoInput} onConfirmar={lancarComissao} />
+                                    )}
+                                  </td>
+                                  <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={produtos.join(', ')}>
+                                    {produtos.length > 0 ? produtos.join(', ') : '-'}
+                                  </td>
+                                  <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                    {c ? (
+                                      <span style={{
+                                        padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                                        background: c.status === 'aprovado' ? '#dcfce7' : c.status === 'pendente' ? 'var(--surface-hover)' : '#fee2e2',
+                                        color: c.status === 'aprovado' ? '#15803d' : c.status === 'pendente' ? 'var(--text-secondary, #374151)' : '#dc2626',
+                                      }}>{c.status}</span>
+                                    ) : ind ? (
+                                      <select value={ind.status} onChange={e => atualizarStatusIndicacao(ind, e.target.value)}
+                                        style={{ background: (PIPELINE_STATUS_COLOR[ind.status] || { bg: 'var(--surface)' }).bg, color: (PIPELINE_STATUS_COLOR[ind.status] || { text: 'var(--text)' }).text, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                        <option value="em_atendimento">Em Atendimento</option>
+                                        <option value="negociacao">Negociação</option>
+                                        <option value="pago">Pago</option>
+                                        <option value="cancelado">Cancelado</option>
+                                      </select>
+                                    ) : null}
+                                  </td>
+                                  <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
+                                    {c ? (
+                                      perdaPromptId === c.id ? (
+                                        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                          <select autoFocus value={motivoPerdaInput} onChange={e => setMotivoPerdaInput(e.target.value)}
+                                            style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '3px 6px', fontSize: 11, fontFamily: 'inherit' }}>
+                                            <option value="">Motivo...</option>
+                                            {MOTIVOS_PERDA.map(m => <option key={m} value={m}>{m}</option>)}
+                                          </select>
+                                          <button onClick={() => { atualizarFunilLead(c.id, 'perdido', motivoPerdaInput); setPerdaPromptId(null); setMotivoPerdaInput(''); }}
+                                            style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
+                                          <button onClick={() => { setPerdaPromptId(null); setMotivoPerdaInput(''); }}
+                                            style={{ background: 'none', border: 'none', color: 'var(--text-muted, #6b7280)', cursor: 'pointer', fontSize: 13 }}>×</button>
+                                        </div>
+                                      ) : (
+                                        <select value={c.funil_status || 'novo'}
+                                          onChange={e => {
+                                            const v = e.target.value;
+                                            if (v === 'perdido') { setPerdaPromptId(c.id); setMotivoPerdaInput(''); }
+                                            else atualizarFunilLead(c.id, v);
+                                          }}
+                                          style={{ background: '#f1f5f9', color: FUNIL_COLOR_FIXO[c.funil_status || 'novo'], border: `1px solid ${FUNIL_COLOR_FIXO[c.funil_status || 'novo']}55`, borderRadius: 6, padding: '4px 8px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}
+                                          title={c.funil_status === 'perdido' && c.motivo_perda ? `Motivo: ${c.motivo_perda}` : undefined}>
+                                          {FUNIL_ETAPAS.map(e => <option key={e} value={e}>{FUNIL_LABEL[e]}</option>)}
+                                        </select>
+                                      )
+                                    ) : <span style={{ color: 'var(--text-soft, #9ca3af)' }}>-</span>}
+                                  </td>
+                                  <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
+                                    {c ? (
+                                      <select value={c.vendedor_id || ''} onChange={e => e.target.value && transferirConsultor(c.id, e.target.value)}
+                                        style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontSize: 11.5, fontFamily: 'inherit', color: 'var(--text-secondary, #374151)', cursor: 'pointer', maxWidth: 130 }}>
+                                        <option value="">Sem consultor</option>
+                                        {equipe.filter(m => m.cargo === 'vendedor' && m.ativo).map(m => (
+                                          <option key={m.id} value={m.id}>{m.nome}</option>
+                                        ))}
+                                      </select>
+                                    ) : <span style={{ color: 'var(--text-soft, #9ca3af)' }}>-</span>}
+                                  </td>
+                                  <td style={{ padding: '11px 14px' }}>
+                                    {falt.length === 0 ? (
+                                      <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>OK</span>
+                                    ) : (
+                                      <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626' }} title={falt.join(', ')}>Falta: {falt.join(', ')}</span>
+                                    )}
+                                  </td>
+                                  <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', fontSize: 12 }}>
+                                    {new Date(linha.created_at).toLocaleDateString('pt-BR')}
+                                  </td>
+                                  <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                    <div style={{ display: 'flex', gap: 6 }}>
+                                      {c && c.status === 'pendente' && (
+                                        <>
+                                          <button onClick={() => aprovar(c.id)} style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontWeight: 700, fontSize: 12, fontFamily: 'inherit' }}>
+                                            Aprovar
+                                          </button>
+                                          <button onClick={() => rejeitar(c.id)} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                                            Rejeitar
+                                          </button>
+                                        </>
+                                      )}
+                                      {c && c.status === 'aprovado' && (
+                                        <button onClick={() => { setEditandoLead(c); setNovoProdutoInteresseInput(''); }}
+                                          style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}
+                                          title="Editar dados do cadastro">
+                                          Editar
+                                        </button>
+                                      )}
+                                      {c && c.status !== 'aprovado' && (
+                                        <button onClick={() => { setEditandoLead(c); setNovoProdutoInteresseInput(''); }}
+                                          style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                                          Editar
+                                        </button>
+                                      )}
+                                      {c && c.status === 'aprovado' && (
+                                        <button onClick={() => { setNovoPedidoTipoCliente('medico'); setNovoPedidoMedicoId(c.id); setBuscaMedicoPedido(''); setNovoPedidoAberto(true); }}
+                                          style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}
+                                          title="Lançar um novo pedido para este médico">
+                                          + Pedido
+                                        </button>
+                                      )}
+                                      {ind && (
+                                        <button onClick={() => { setNovoPedidoTipoCliente('paciente'); setNovoPedidoIndicacaoId(ind.id); setBuscaPacientePedido(''); setNovoPedidoAberto(true); }}
+                                          style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '5px 11px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}
+                                          title="Lançar um novo pedido para este paciente">
+                                          + Pedido
+                                        </button>
+                                      )}
+                                      {linha.whatsapp && (
+                                        <a href={`https://wa.me/55${linha.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                                          style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 5, fontSize: 12, fontFamily: 'inherit', textDecoration: 'none' }}>
+                                          WhatsApp
+                                        </a>
+                                      )}
+                                      {isSuperadmin && c && (
+                                        <button onClick={() => excluirCadastro(c.id, c.nome)}
+                                          style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 13 }}
+                                          title="Excluir cadastro">
+                                          Excluir
+                                        </button>
+                                      )}
+                                      {isSuperadmin && ind && (
+                                        <button onClick={() => excluirIndicacao(ind.id, `${ind.nome} ${ind.sobrenome}`)}
+                                          style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 13 }}
+                                          title="Excluir">
+                                          Excluir
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
                               );
                             })}
                           </tbody>
                         </table>
-                        </div>
                       </div>
                     )}
                   </div>
-                );
-              })()}
-
+                </>
+              );
+            })()}
               {/* Modal: editar cadastro */}
               {editandoLead && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 700, overflowY: 'auto', padding: '24px 16px' }}>
