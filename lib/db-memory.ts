@@ -234,7 +234,7 @@ export type Indicacao = {
   migrado_para_cadastro_id?: string | null;
 };
 
-export type PedidoItem = { nome: string; preco: number; quantidade: number };
+export type PedidoItem = { nome: string; preco: number; quantidade: number; cortesia?: boolean };
 
 export type Pedido = {
   id: string;

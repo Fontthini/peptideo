@@ -10,7 +10,7 @@ export type DashCadastro = {
   last_seen_loja?: string | null; last_seen_blog?: string | null;
   indicado_por_medico_id?: string | null; comissao_valor?: number | null; comissao_paga?: boolean; comissao_despesa_id?: string | null;
 };
-export type DashPedidoItem = { nome: string; preco: number; quantidade: number };
+export type DashPedidoItem = { nome: string; preco: number; quantidade: number; cortesia?: boolean };
 export type DashPedido = { id: string; cadastro_id?: string; cadastro_nome: string; cadastro_email: string; indicacao_id?: string | null; paciente_nome?: string; produto_nome: string; preco: number; itens?: DashPedidoItem[]; status: string; created_at: string; };
 export type DashMembro = { id: string; nome: string; cargo: string; ativo: boolean; };
 export type DashProduto = { id: string; nome: string; preco?: number; views?: number; views_hoje?: number; cart_adds?: number; estoque_inicial?: number; estoque_minimo?: number; custo?: number; };

@@ -45,7 +45,7 @@ type BannerItem = { id: string; imagem: string; titulo: string; subtitulo: strin
 type Material = { nome: string; url: string };
 type Artigo = { id: string; titulo: string; conteudo: string; imagem?: string; video?: string; categoria?: string; materiais: Material[]; publicado: boolean; created_at: string; updated_at: string; };
 type Membro = { id: string; nome: string; email: string; cargo: string; ativo: boolean; created_at: string; senha?: string; token_acesso?: string; last_seen?: string | null; };
-type PedidoItem = { nome: string; preco: number; quantidade: number };
+type PedidoItem = { nome: string; preco: number; quantidade: number; cortesia?: boolean };
 type Pedido = { id: string; cadastro_id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string; indicacao_id?: string | null; paciente_nome?: string; produto_nome: string; preco: number; itens?: PedidoItem[]; vendedor_id?: string; status: string; obs?: string; created_at: string; despesa_id?: string | null; };
 type Indicacao = {
   id: string; medico_id: string; medico_nome: string; nome: string; sobrenome: string; whatsapp: string; email: string; endereco: string;
@@ -375,7 +375,7 @@ export default function AdminPage() {
   const [buscaMedicoPedido, setBuscaMedicoPedido] = useState('');
   const [novoPedidoIndicacaoId, setNovoPedidoIndicacaoId] = useState('');
   const [buscaPacientePedido, setBuscaPacientePedido] = useState('');
-  const [novoPedidoItens, setNovoPedidoItens] = useState<{ nome: string; preco: string; quantidade: string }[]>([{ nome: '', preco: '', quantidade: '1' }]);
+  const [novoPedidoItens, setNovoPedidoItens] = useState<{ nome: string; preco: string; quantidade: string; cortesia: boolean }[]>([{ nome: '', preco: '', quantidade: '1', cortesia: false }]);
   const [novoPedidoStatus, setNovoPedidoStatus] = useState('em_atendimento');
   const [salvandoPedido, setSalvandoPedido] = useState(false);
 
@@ -384,7 +384,7 @@ export default function AdminPage() {
     setNovoPedidoTipoCliente('medico');
     setNovoPedidoMedicoId(''); setBuscaMedicoPedido('');
     setNovoPedidoIndicacaoId(''); setBuscaPacientePedido('');
-    setNovoPedidoItens([{ nome: '', preco: '', quantidade: '1' }]);
+    setNovoPedidoItens([{ nome: '', preco: '', quantidade: '1', cortesia: false }]);
     setNovoPedidoStatus('em_atendimento');
   };
 
@@ -3430,12 +3430,18 @@ export default function AdminPage() {
                                 <option value="">Selecione o produto...</option>
                                 {produtos.map(p => <option key={p.id} value={p.nome}>{p.nome}</option>)}
                               </select>
-                              <input type="number" min="0" step="0.01" value={it.preco} placeholder="Preço"
+                              <input type="number" min="0" step="0.01" value={it.preco} placeholder="Preço" disabled={it.cortesia}
                                 onChange={e => setNovoPedidoItens(prev => prev.map((x, i) => i === idx ? { ...x, preco: e.target.value } : x))}
-                                style={{ ...inputStyle, flex: 1 }} />
+                                style={{ ...inputStyle, flex: 1, opacity: it.cortesia ? 0.5 : 1 }} />
                               <input type="number" min="1" value={it.quantidade} placeholder="Qtd"
                                 onChange={e => setNovoPedidoItens(prev => prev.map((x, i) => i === idx ? { ...x, quantidade: e.target.value } : x))}
                                 style={{ ...inputStyle, width: 60 }} />
+                              <label title="Item de cortesia — dado de graça, entra com valor R$0 mesmo num pedido pago"
+                                style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap', cursor: 'pointer' }}>
+                                <input type="checkbox" checked={it.cortesia}
+                                  onChange={e => setNovoPedidoItens(prev => prev.map((x, i) => i === idx ? { ...x, cortesia: e.target.checked, preco: e.target.checked ? '0' : x.preco } : x))} />
+                                Cortesia
+                              </label>
                               {novoPedidoItens.length > 1 && (
                                 <button type="button" onClick={() => setNovoPedidoItens(prev => prev.filter((_, i) => i !== idx))}
                                   style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 18, padding: '0 4px' }}>×</button>
@@ -3443,7 +3449,7 @@ export default function AdminPage() {
                             </div>
                           ))}
                         </div>
-                        <button type="button" onClick={() => setNovoPedidoItens(prev => [...prev, { nome: '', preco: '', quantidade: '1' }])}
+                        <button type="button" onClick={() => setNovoPedidoItens(prev => [...prev, { nome: '', preco: '', quantidade: '1', cortesia: false }])}
                           style={{ marginTop: 8, background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px dashed var(--border)', padding: '7px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>
                           + Adicionar outro produto
                         </button>
@@ -3981,6 +3987,7 @@ export default function AdminPage() {
             // médico, indicado por e produtos comprados em colunas próprias,
             // e pra agrupar entrada+comissão da MESMA pessoa numa linha só
             // (pessoaKey identifica quem gerou o lançamento).
+            const nomeItemComTag = (it: PedidoItem) => it.cortesia ? `${it.nome} (cortesia)` : it.nome;
             const infoDaDespesa = (d: Despesa): { pessoaKey: string; clienteId: string; clienteTag: 'medico' | 'paciente'; cliente: string; indicadoPor?: string; produtos: string[] } | null => {
               const pedido = pedidos.find(p => p.despesa_id === d.id);
               if (pedido) {
@@ -3988,13 +3995,13 @@ export default function AdminPage() {
                   return {
                     pessoaKey: `ind:${pedido.indicacao_id}`, clienteId: pedido.indicacao_id, clienteTag: 'paciente',
                     cliente: pedido.paciente_nome || '', indicadoPor: pedido.cadastro_nome,
-                    produtos: pedido.itens && pedido.itens.length ? pedido.itens.map(it => it.nome) : [pedido.produto_nome],
+                    produtos: pedido.itens && pedido.itens.length ? pedido.itens.map(nomeItemComTag) : [pedido.produto_nome],
                   };
                 }
                 return {
                   pessoaKey: `cad:${pedido.cadastro_id}`, clienteId: pedido.cadastro_id, clienteTag: 'medico',
                   cliente: pedido.cadastro_nome, indicadoPor: undefined,
-                  produtos: pedido.itens && pedido.itens.length ? pedido.itens.map(it => it.nome) : [pedido.produto_nome],
+                  produtos: pedido.itens && pedido.itens.length ? pedido.itens.map(nomeItemComTag) : [pedido.produto_nome],
                 };
               }
               const indicacao = indicacoes.find(i => i.comissao_despesa_id === d.id);
@@ -4003,7 +4010,7 @@ export default function AdminPage() {
                 return {
                   pessoaKey: `ind:${indicacao.id}`, clienteId: indicacao.id, clienteTag: 'paciente',
                   cliente: `${indicacao.nome} ${indicacao.sobrenome || ''}`.trim(), indicadoPor: indicacao.medico_nome,
-                  produtos: ped ? (ped.itens && ped.itens.length ? ped.itens.map(it => it.nome) : [ped.produto_nome]) : [],
+                  produtos: ped ? (ped.itens && ped.itens.length ? ped.itens.map(nomeItemComTag) : [ped.produto_nome]) : [],
                 };
               }
               const cadastro = cadastros.find(c => c.comissao_despesa_id === d.id);
@@ -4012,7 +4019,7 @@ export default function AdminPage() {
                 return {
                   pessoaKey: `cad:${cadastro.id}`, clienteId: cadastro.id, clienteTag: 'medico',
                   cliente: `${cadastro.nome} ${cadastro.sobrenome || ''}`.trim(), indicadoPor: cadastro.indicado_por_medico_nome || undefined,
-                  produtos: ped ? (ped.itens && ped.itens.length ? ped.itens.map(it => it.nome) : [ped.produto_nome]) : [],
+                  produtos: ped ? (ped.itens && ped.itens.length ? ped.itens.map(nomeItemComTag) : [ped.produto_nome]) : [],
                 };
               }
               return null;

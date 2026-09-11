@@ -64,7 +64,7 @@ const labelStyle: React.CSSProperties = {
 };
 
 type Membro = { id: string; nome: string; email: string; cargo: string; ativo: boolean; created_at: string; };
-type PedidoItem = { nome: string; preco: number; quantidade: number };
+type PedidoItem = { nome: string; preco: number; quantidade: number; cortesia?: boolean };
 type Pedido = {
   id: string; cadastro_id: string; cadastro_nome: string; cadastro_email: string; cadastro_whatsapp?: string;
   indicacao_id?: string | null; paciente_nome?: string;
@@ -869,7 +869,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
   const [buscaMedicoPedido, setBuscaMedicoPedido] = useState('');
   const [novoPedidoIndicacaoId, setNovoPedidoIndicacaoId] = useState('');
   const [buscaPacientePedido, setBuscaPacientePedido] = useState('');
-  const [novoPedidoItens, setNovoPedidoItens] = useState<{ nome: string; preco: string; quantidade: string }[]>([{ nome: '', preco: '', quantidade: '1' }]);
+  const [novoPedidoItens, setNovoPedidoItens] = useState<{ nome: string; preco: string; quantidade: string; cortesia: boolean }[]>([{ nome: '', preco: '', quantidade: '1', cortesia: false }]);
   const [novoPedidoStatus, setNovoPedidoStatus] = useState('em_atendimento');
   const [salvandoPedido, setSalvandoPedido] = useState(false);
   const [msgPedido, setMsgPedido] = useState('');
@@ -879,7 +879,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
     setNovoPedidoTipoCliente('medico');
     setNovoPedidoMedicoId(''); setBuscaMedicoPedido('');
     setNovoPedidoIndicacaoId(''); setBuscaPacientePedido('');
-    setNovoPedidoItens([{ nome: '', preco: '', quantidade: '1' }]);
+    setNovoPedidoItens([{ nome: '', preco: '', quantidade: '1', cortesia: false }]);
     setNovoPedidoStatus('em_atendimento');
     setMsgPedido('');
   };
@@ -1362,12 +1362,18 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                         <option value="">Selecione o produto...</option>
                         {produtosCatalogo.map(p => <option key={p.id} value={p.nome}>{p.nome}</option>)}
                       </select>
-                      <input type="number" step="0.01" placeholder="Preço" value={it.preco}
+                      <input type="number" step="0.01" placeholder="Preço" value={it.preco} disabled={it.cortesia}
                         onChange={e => setNovoPedidoItens(prev => prev.map((x, i) => i === idx ? { ...x, preco: e.target.value } : x))}
-                        style={{ ...inputStyle, flex: '1 1 80px' }} />
+                        style={{ ...inputStyle, flex: '1 1 80px', opacity: it.cortesia ? 0.5 : 1 }} />
                       <input type="number" min="1" placeholder="Qtd" value={it.quantidade}
                         onChange={e => setNovoPedidoItens(prev => prev.map((x, i) => i === idx ? { ...x, quantidade: e.target.value } : x))}
                         style={{ ...inputStyle, flex: '0 1 60px' }} />
+                      <label title="Item de cortesia — dado de graça, entra com valor R$0 mesmo num pedido pago"
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={it.cortesia}
+                          onChange={e => setNovoPedidoItens(prev => prev.map((x, i) => i === idx ? { ...x, cortesia: e.target.checked, preco: e.target.checked ? '0' : x.preco } : x))} />
+                        Cortesia
+                      </label>
                       {novoPedidoItens.length > 1 && (
                         <button type="button" onClick={() => setNovoPedidoItens(prev => prev.filter((_, i) => i !== idx))}
                           style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 18, padding: '0 4px' }}>×</button>
@@ -1375,7 +1381,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                     </div>
                   ))}
                 </div>
-                <button type="button" onClick={() => setNovoPedidoItens(prev => [...prev, { nome: '', preco: '', quantidade: '1' }])}
+                <button type="button" onClick={() => setNovoPedidoItens(prev => [...prev, { nome: '', preco: '', quantidade: '1', cortesia: false }])}
                   style={{ marginTop: 8, background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '7px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>
                   + Adicionar outro produto
                 </button>

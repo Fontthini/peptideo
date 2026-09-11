@@ -40,10 +40,11 @@ export async function POST(req: NextRequest) {
   if (!cadastro) return NextResponse.json({ error: 'Médico não encontrado' }, { status: 404 });
 
   const itensValidos = itens
-    .map((it: { nome?: unknown; preco?: unknown; quantidade?: unknown }) => ({
+    .map((it: { nome?: unknown; preco?: unknown; quantidade?: unknown; cortesia?: unknown }) => ({
       nome: String(it.nome || '').trim(),
-      preco: parseFloat(String(it.preco)) || 0,
+      preco: it.cortesia ? 0 : parseFloat(String(it.preco)) || 0,
       quantidade: parseInt(String(it.quantidade), 10) || 1,
+      cortesia: !!it.cortesia,
     }))
     .filter((it: { nome: string }) => it.nome);
   if (itensValidos.length === 0) return NextResponse.json({ error: 'Ao menos um produto válido é obrigatório' }, { status: 400 });
