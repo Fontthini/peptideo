@@ -5,6 +5,7 @@ import { estaOnline, HBarChart, LeadsChart30d, FaturamentoChart30d, type HBarIte
 import { DashboardOverview } from '@/components/DashboardOverview';
 import { corDaEtiqueta } from '@/lib/etiquetas';
 import { brl } from '@/lib/format';
+import { calcularVendidoPorProduto, casarProdutoId } from '@/lib/estoque';
 
 type Cadastro = {
   id: string; nome: string; sobrenome: string; email: string; whatsapp: string;
@@ -4499,18 +4500,25 @@ export default function AdminPage() {
             // ===== Produtos — o que estao pedindo, no mesmo periodo/pedidos
             // pagos que alimentam o relatorio de Faturamento acima.
             const agrupadoPorProduto = (() => {
-              const m = new Map<string, { qtd: number; total: number; clientes: Set<string> }>();
+              // Agrupa pelo produto do catalogo casado (nome base + preco
+              // mais proximo), nao pelo nome exato do item — o mesmo produto
+              // as vezes foi vendido com o nome escrito de um jeito diferente
+              // (com/sem "- 30mg" no final), o que duplicava a linha aqui.
+              const m = new Map<string, { nome: string; qtd: number; total: number; clientes: Set<string> }>();
               pedidosPeriodo.forEach(p => {
                 const itensDoPedido = p.itens && p.itens.length ? p.itens : [{ nome: p.produto_nome, preco: p.preco, quantidade: 1 }];
                 itensDoPedido.forEach(it => {
-                  const cur = m.get(it.nome) || { qtd: 0, total: 0, clientes: new Set<string>() };
+                  const produtoId = casarProdutoId(produtos, it);
+                  const chave = produtoId || `?:${it.nome}`;
+                  const nomeExibido = (produtoId && produtos.find(pr => pr.id === produtoId)?.nome) || it.nome;
+                  const cur = m.get(chave) || { nome: nomeExibido, qtd: 0, total: 0, clientes: new Set<string>() };
                   cur.qtd += it.quantidade; cur.total += it.preco * it.quantidade;
                   cur.clientes.add(p.indicacao_id || p.cadastro_id);
-                  m.set(it.nome, cur);
+                  m.set(chave, cur);
                 });
               });
-              return [...m.entries()]
-                .map(([nome, v]) => ({ nome, qtd: v.qtd, total: v.total, clientesDistintos: v.clientes.size }))
+              return [...m.values()]
+                .map(v => ({ nome: v.nome, qtd: v.qtd, total: v.total, clientesDistintos: v.clientes.size }))
                 .sort((a, b) => b.total - a.total);
             })();
 
@@ -4942,18 +4950,17 @@ export default function AdminPage() {
           {aba === 'estoque' && (() => {
             const pedidosPagos = pedidos.filter(p => p.status === 'pago');
 
-            // Vendido total — usa TODO o historico de pedidos pagos (nao so um periodo)
-            const vendidoPorNome = new Map<string, number>();
-            pedidosPagos.forEach(p => {
-              if (p.itens && p.itens.length) {
-                p.itens.forEach(item => vendidoPorNome.set(item.nome, (vendidoPorNome.get(item.nome) || 0) + item.quantidade));
-              } else {
-                vendidoPorNome.set(p.produto_nome, (vendidoPorNome.get(p.produto_nome) || 0) + 1);
-              }
-            });
+            // Vendido total — usa TODO o historico de pedidos pagos (nao so um
+            // periodo). Casa por produto (id) via calcularVendidoPorProduto em
+            // vez de nome exato, porque a mesma dose as vezes foi vendida com
+            // o nome escrito de um jeito ligeiramente diferente do catalogo.
+            const itensVendidosTotal = pedidosPagos.flatMap(p =>
+              p.itens && p.itens.length ? p.itens : [{ nome: p.produto_nome, preco: p.preco, quantidade: 1 }]
+            );
+            const vendidoPorId = calcularVendidoPorProduto(produtos, itensVendidosTotal);
 
             const linhas = produtos.map(p => {
-              const vendido = vendidoPorNome.get(p.nome) || 0;
+              const vendido = vendidoPorId.get(p.id) || 0;
               const inicial = p.estoque_inicial ?? 0;
               const atual = inicial - vendido;
               const status: 'esgotado' | 'ok' | 'nao_configurado' = inicial <= 0 ? 'nao_configurado' : atual <= 0 ? 'esgotado' : 'ok';
@@ -5079,7 +5086,7 @@ export default function AdminPage() {
                         ) : produtos.length === 0 ? (
                           <tr><td colSpan={9} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum produto cadastrado.</td></tr>
                         ) : produtos.map(p => (
-                          <EstoqueRow key={p.id} produto={p} vendido={vendidoPorNome.get(p.nome) || 0} onSalvar={salvarEstoqueProduto} />
+                          <EstoqueRow key={p.id} produto={p} vendido={vendidoPorId.get(p.id) || 0} onSalvar={salvarEstoqueProduto} />
                         ))}
                       </tbody>
                     </table>

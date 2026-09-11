@@ -5,6 +5,7 @@ import { DashboardOverview, type DashProduto, type DashConfig } from '@/componen
 import { HBarChart } from '@/components/DashboardCharts';
 import { corDaEtiqueta } from '@/lib/etiquetas';
 import { brl } from '@/lib/format';
+import { calcularVendidoPorProduto } from '@/lib/estoque';
 
 type Cadastro = {
   id: string; nome: string; sobrenome: string; email: string; whatsapp: string;
@@ -1677,17 +1678,13 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
       {/* ABA ESTOQUE */}
       {aba === 'estoque' && (() => {
         const pedidosPagos = pedidos.filter(p => p.status === 'pago');
-        const vendidoPorNome = new Map<string, number>();
-        pedidosPagos.forEach(p => {
-          if (p.itens && p.itens.length) {
-            p.itens.forEach(item => vendidoPorNome.set(item.nome, (vendidoPorNome.get(item.nome) || 0) + item.quantidade));
-          } else {
-            vendidoPorNome.set(p.produto_nome, (vendidoPorNome.get(p.produto_nome) || 0) + 1);
-          }
-        });
+        const itensVendidosTotal = pedidosPagos.flatMap(p =>
+          p.itens && p.itens.length ? p.itens : [{ nome: p.produto_nome, preco: p.preco, quantidade: 1 }]
+        );
+        const vendidoPorId = calcularVendidoPorProduto(produtosCatalogo, itensVendidosTotal);
 
         const linhas = produtosCatalogo.map(p => {
-          const vendido = vendidoPorNome.get(p.nome) || 0;
+          const vendido = vendidoPorId.get(p.id) || 0;
           const inicial = p.estoque_inicial ?? 0;
           const atual = inicial - vendido;
           const status: 'esgotado' | 'ok' | 'nao_configurado' = inicial <= 0 ? 'nao_configurado' : atual <= 0 ? 'esgotado' : 'ok';
@@ -1767,7 +1764,7 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                     {produtosCatalogo.length === 0 ? (
                       <tr><td colSpan={9} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum produto cadastrado.</td></tr>
                     ) : produtosCatalogo.map(p => (
-                      <EstoqueRow key={p.id} produto={p} vendido={vendidoPorNome.get(p.nome) || 0} onSalvar={salvarEstoqueProdutoPortal} />
+                      <EstoqueRow key={p.id} produto={p} vendido={vendidoPorId.get(p.id) || 0} onSalvar={salvarEstoqueProdutoPortal} />
                     ))}
                   </tbody>
                 </table>

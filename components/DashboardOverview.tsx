@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { estaOnline, HBarChart, LeadsChart30d, FaturamentoChart30d } from './DashboardCharts';
 import { brl } from '@/lib/format';
+import { calcularVendidoPorProduto } from '@/lib/estoque';
 
 export type DashCadastro = {
   id: string; nome: string; sobrenome: string; status: string; onde_conheceu: string | null;
@@ -12,7 +13,7 @@ export type DashCadastro = {
 export type DashPedidoItem = { nome: string; preco: number; quantidade: number };
 export type DashPedido = { id: string; cadastro_id?: string; cadastro_nome: string; cadastro_email: string; indicacao_id?: string | null; paciente_nome?: string; produto_nome: string; preco: number; itens?: DashPedidoItem[]; status: string; created_at: string; };
 export type DashMembro = { id: string; nome: string; cargo: string; ativo: boolean; };
-export type DashProduto = { id: string; nome: string; views?: number; views_hoje?: number; cart_adds?: number; estoque_inicial?: number; estoque_minimo?: number; custo?: number; };
+export type DashProduto = { id: string; nome: string; preco?: number; views?: number; views_hoje?: number; cart_adds?: number; estoque_inicial?: number; estoque_minimo?: number; custo?: number; };
 export type DashConfig = {
   emails_enviados_hoje?: number; limite_emails_dia?: number;
   emails_enviados_mes?: number; limite_emails_mes?: number;
@@ -164,13 +165,12 @@ export function DashboardOverview({
   const comissoesPendentes = indicacoes.filter(i => dentroPeriodo(i.created_at) && !i.comissao_paga && (i.status === 'pago' || i.status === 'convertido')).length
     + cadastros.filter(c => dentroPeriodo(c.created_at) && c.indicado_por_medico_id && !c.comissao_paga && cadastrosComPedidoProprioPago.has(c.id)).length;
 
-  const vendidoPorNome = new Map<string, number>();
-  pedidosPagos.forEach(p => {
-    if (p.itens && p.itens.length) p.itens.forEach(it => vendidoPorNome.set(it.nome, (vendidoPorNome.get(it.nome) || 0) + it.quantidade));
-    else vendidoPorNome.set(p.produto_nome, (vendidoPorNome.get(p.produto_nome) || 0) + 1);
-  });
+  const itensVendidosTotal = pedidosPagos.flatMap(p =>
+    p.itens && p.itens.length ? p.itens : [{ nome: p.produto_nome, preco: p.preco, quantidade: 1 }]
+  );
+  const vendidoPorId = calcularVendidoPorProduto(produtos.map(p => ({ ...p, preco: p.preco ?? 0 })), itensVendidosTotal);
   const estoqueLinhas = produtos.map(p => {
-    const vendido = vendidoPorNome.get(p.nome) || 0;
+    const vendido = vendidoPorId.get(p.id) || 0;
     const inicial = p.estoque_inicial ?? 0;
     const atual = inicial - vendido;
     const status: 'esgotado' | 'ok' | 'nao_configurado' = inicial <= 0 ? 'nao_configurado' : atual <= 0 ? 'esgotado' : 'ok';
