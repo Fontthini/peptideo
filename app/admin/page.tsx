@@ -1348,18 +1348,28 @@ export default function AdminPage() {
                 cadastro?: Cadastro; indicacao?: Indicacao;
               };
 
-              const contatosMedicos: ContatoLinha[] = cadastros.map(c => ({
-                key: `medico-${c.id}`, tag: (c.indicado_por_medico_id ? 'medico_id' : 'medico') as ContatoTag, id: c.id,
-                nome: c.nome, sobrenome: c.sobrenome, whatsapp: c.whatsapp, email: c.email, crm: c.crm,
-                indicadoPorNome: c.indicado_por_medico_nome, status: c.status, created_at: c.created_at,
-                documentos: c.documentos, receita: c.receita, comprovante_pagamento: c.comprovante_pagamento, endereco: c.endereco, cadastro: c,
-              }));
-              const contatosPacientes: ContatoLinha[] = indicacoes.filter(i => i.tipo !== 'medico').map(i => ({
-                key: `paciente-${i.id}`, tag: 'paciente' as ContatoTag, id: i.id,
-                nome: i.nome, sobrenome: i.sobrenome, whatsapp: i.whatsapp, email: i.email,
-                indicadoPorNome: i.medico_nome, status: i.status, created_at: i.created_at,
-                documentos: i.documentos, receita: i.receita, comprovante_pagamento: i.comprovante_pagamento, endereco: i.endereco, indicacao: i,
-              }));
+              // Quem ja comprou (tem pedido pago) vira Cliente e sai de
+              // Contatos — Contatos passa a ser so quem ainda nao converteu.
+              const jaEhCliente = (idPessoa: string, tipo: 'medico' | 'paciente') => tipo === 'medico'
+                ? pedidos.some(p => p.cadastro_id === idPessoa && !p.indicacao_id && p.status === 'pago')
+                : pedidos.some(p => p.indicacao_id === idPessoa && p.status === 'pago');
+
+              const contatosMedicos: ContatoLinha[] = cadastros
+                .filter(c => !jaEhCliente(c.id, 'medico'))
+                .map(c => ({
+                  key: `medico-${c.id}`, tag: (c.indicado_por_medico_id ? 'medico_id' : 'medico') as ContatoTag, id: c.id,
+                  nome: c.nome, sobrenome: c.sobrenome, whatsapp: c.whatsapp, email: c.email, crm: c.crm,
+                  indicadoPorNome: c.indicado_por_medico_nome, status: c.status, created_at: c.created_at,
+                  documentos: c.documentos, receita: c.receita, comprovante_pagamento: c.comprovante_pagamento, endereco: c.endereco, cadastro: c,
+                }));
+              const contatosPacientes: ContatoLinha[] = indicacoes
+                .filter(i => i.tipo !== 'medico' && !jaEhCliente(i.id, 'paciente'))
+                .map(i => ({
+                  key: `paciente-${i.id}`, tag: 'paciente' as ContatoTag, id: i.id,
+                  nome: i.nome, sobrenome: i.sobrenome, whatsapp: i.whatsapp, email: i.email,
+                  indicadoPorNome: i.medico_nome, status: i.status, created_at: i.created_at,
+                  documentos: i.documentos, receita: i.receita, comprovante_pagamento: i.comprovante_pagamento, endereco: i.endereco, indicacao: i,
+                }));
               const todosContatos = [...contatosMedicos, ...contatosPacientes];
 
               const contagens = {
