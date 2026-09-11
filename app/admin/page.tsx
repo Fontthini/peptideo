@@ -287,6 +287,11 @@ export default function AdminPage() {
   const [mostrarCatsFinanceiras, setMostrarCatsFinanceiras] = useState(false);
   const [novaDespesa, setNovaDespesa] = useState({ tipo: 'saida' as 'entrada' | 'saida', categoria: '', descricao: '', valor: '', data: new Date().toISOString().slice(0, 10), comprovante_url: '' });
   const [editandoDespesa, setEditandoDespesa] = useState<Despesa | null>(null);
+  const [finFiltroTipo, setFinFiltroTipo] = useState<'todos' | 'entrada' | 'saida'>('todos');
+  const [finFiltroCategoria, setFinFiltroCategoria] = useState('');
+  const [finFiltroInicio, setFinFiltroInicio] = useState('');
+  const [finFiltroFim, setFinFiltroFim] = useState('');
+  const [finBusca, setFinBusca] = useState('');
 
   const [cadastros, setCadastros] = useState<Cadastro[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
@@ -3999,6 +4004,22 @@ export default function AdminPage() {
               return null;
             };
 
+            const categoriasPresentesFin = [...new Set(despesas.map(d => d.categoria))].sort((a, b) => a.localeCompare(b));
+            const finBuscaQ = finBusca.trim().toLowerCase();
+            const despesasFiltradas = despesas.filter(d => {
+              if (finFiltroTipo !== 'todos' && d.tipo !== finFiltroTipo) return false;
+              if (finFiltroCategoria && d.categoria !== finFiltroCategoria) return false;
+              if (!dentroPeriodo(d.data, finFiltroInicio, finFiltroFim)) return false;
+              if (finBuscaQ) {
+                const info = infoDaDespesa(d);
+                const alvo = `${info?.cliente || ''} ${info?.indicadoPor || ''} ${info?.produtos.join(' ') || ''} ${d.categoria} ${d.descricao}`.toLowerCase();
+                if (!alvo.includes(finBuscaQ)) return false;
+              }
+              return true;
+            });
+            const finFiltrosAtivos = finFiltroTipo !== 'todos' || !!finFiltroCategoria || !!finFiltroInicio || !!finFiltroFim || !!finBusca;
+            const limparFiltrosFin = () => { setFinFiltroTipo('todos'); setFinFiltroCategoria(''); setFinFiltroInicio(''); setFinFiltroFim(''); setFinBusca(''); };
+
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                 <div>
@@ -4040,6 +4061,48 @@ export default function AdminPage() {
 
                 <div className="admin-split-340" style={{ display: 'grid', gap: 24, alignItems: 'start' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    {/* Filtros da lista */}
+                    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>TIPO</div>
+                        <select value={finFiltroTipo} onChange={e => setFinFiltroTipo(e.target.value as typeof finFiltroTipo)}
+                          style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)', colorScheme: tema }}>
+                          <option value="todos">Todos</option>
+                          <option value="entrada">Entrada</option>
+                          <option value="saida">Saída</option>
+                        </select>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>CATEGORIA</div>
+                        <select value={finFiltroCategoria} onChange={e => setFinFiltroCategoria(e.target.value)}
+                          style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', maxWidth: 180, background: 'var(--surface)', color: 'var(--text)', colorScheme: tema }}>
+                          <option value="">Todas</option>
+                          {categoriasPresentesFin.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>DE</div>
+                        <input type="date" value={finFiltroInicio} onChange={e => setFinFiltroInicio(e.target.value)}
+                          style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)', colorScheme: tema }} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>ATÉ</div>
+                        <input type="date" value={finFiltroFim} onChange={e => setFinFiltroFim(e.target.value)}
+                          style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)', colorScheme: tema }} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 160 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', marginBottom: 4 }}>BUSCAR</div>
+                        <input value={finBusca} onChange={e => setFinBusca(e.target.value)} placeholder="Cliente, indicador, produto, categoria..."
+                          style={{ width: '100%', boxSizing: 'border-box', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' }} />
+                      </div>
+                      {finFiltrosAtivos && (
+                        <button onClick={limparFiltrosFin}
+                          style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
+                          Limpar filtros
+                        </button>
+                      )}
+                    </div>
+
                     {/* Lista de lancamentos */}
                     {loadingDespesas ? (
                       <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Carregando...</div>
@@ -4047,19 +4110,23 @@ export default function AdminPage() {
                       <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
                         Nenhum lançamento ainda.
                       </div>
+                    ) : despesasFiltradas.length === 0 ? (
+                      <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted, #6b7280)', background: 'var(--surface-hover)', borderRadius: 12, border: '1px dashed var(--border)' }}>
+                        Nenhum lançamento encontrado para esse filtro.
+                      </div>
                     ) : (
                       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                         <div className="admin-table-scroll">
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                           <thead>
                             <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
-                              {['Data', 'Tipo', 'Categoria', 'Médico/Cliente', 'Indicado por', 'Produtos Comprados', 'Valor', 'Comprovante', 'Ações'].map(h => (
+                              {['Data', 'Tipo', 'Categoria', 'Médico/Cliente', 'Produtos Comprados', 'Valor', 'Comprovante', 'Ações'].map(h => (
                                 <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
-                            {despesas.map((d, idx) => {
+                            {despesasFiltradas.map((d, idx) => {
                               const info = infoDaDespesa(d);
                               return (
                               <tr key={d.id} style={{ borderBottom: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface-hover)' }}>
@@ -4074,8 +4141,8 @@ export default function AdminPage() {
                                 <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', whiteSpace: 'nowrap' }}>{d.categoria}</td>
                                 <td style={{ padding: '11px 14px', color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>
                                   {info ? info.cliente : <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400 }}>{d.descricao}</span>}
+                                  {info?.indicadoPor && <div style={{ fontSize: 10.5, color: 'var(--text-soft, #9ca3af)', fontWeight: 400 }}>indicado por {info.indicadoPor}</div>}
                                 </td>
-                                <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>{info?.indicadoPor || '-'}</td>
                                 <td style={{ padding: '11px 14px', color: 'var(--text-secondary, #374151)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={info?.produtos.join(', ')}>
                                   {info && info.produtos.length > 0 ? info.produtos.join(', ') : '-'}
                                 </td>
