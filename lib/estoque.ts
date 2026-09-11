@@ -7,7 +7,7 @@ function baseNomeProduto(nome: string): string {
   return nome
     .trim()
     .toLowerCase()
-    .replace(/\s*-\s*\d+\s*mg\s*$/i, '')
+    .replace(/\s*-?\s*\d+\s*mg\s*$/i, '')
     .replace(/\s*-\s*$/, '')
     .trim();
 }
