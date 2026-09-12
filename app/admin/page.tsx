@@ -1397,7 +1397,9 @@ export default function AdminPage() {
               // de paciente) — o equivalente dele de "ainda sendo trabalhado,
               // nao fechou" e "aprovado" (aprovado mas sem virar cliente ainda
               // ja sai de Contatos pela regra de "quem comprou some daqui").
-              const emAtendimento = (c: ContatoLinha) => c.tag === 'paciente' ? c.status === 'em_atendimento' : c.status === 'aprovado';
+              const emAtendimento = (c: ContatoLinha) => c.tag === 'paciente'
+                ? c.status === 'em_atendimento'
+                : c.status === 'aprovado' && c.cadastro?.funil_status !== 'cliente' && c.cadastro?.funil_status !== 'perdido';
 
               const q = buscaLead.trim().toLowerCase();
               const contatosFiltrados = todosContatos
@@ -1574,11 +1576,29 @@ export default function AdminPage() {
                                         <option value="pago">Pago</option>
                                         <option value="cancelado">Cancelado</option>
                                       </select>
-                                    ) : c ? (
-                                      <span style={{ fontSize: 11, fontWeight: 700, color: emAtendimento(linha) ? '#b45309' : 'var(--text-soft, #9ca3af)' }}>
-                                        {emAtendimento(linha) ? 'Sim' : '-'}
-                                      </span>
-                                    ) : null}
+                                    ) : c ? (() => {
+                                      // Medico nao tem campo proprio de pipeline pago/cancelado —
+                                      // reaproveita funil_status (cliente=pago, perdido=cancelado,
+                                      // qualquer outra etapa=em atendimento) pra dar as mesmas 3
+                                      // opcoes que paciente tem, sem criar um campo novo.
+                                      const valorAtual = c.funil_status === 'cliente' ? 'pago' : c.funil_status === 'perdido' ? 'cancelado' : 'em_atendimento';
+                                      const corMedico: Record<string, { bg: string; text: string }> = {
+                                        em_atendimento: { bg: 'var(--surface-hover)', text: '#b45309' },
+                                        pago: { bg: '#dcfce7', text: '#15803d' },
+                                        cancelado: { bg: '#fee2e2', text: '#dc2626' },
+                                      };
+                                      return (
+                                        <select value={valorAtual} onChange={e => {
+                                            const v = e.target.value;
+                                            atualizarFunilLead(c.id, v === 'pago' ? 'cliente' : v === 'cancelado' ? 'perdido' : 'novo');
+                                          }}
+                                          style={{ background: corMedico[valorAtual].bg, color: corMedico[valorAtual].text, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                          <option value="em_atendimento">Em Atendimento</option>
+                                          <option value="pago">Pago</option>
+                                          <option value="cancelado">Cancelado</option>
+                                        </select>
+                                      );
+                                    })() : null}
                                   </td>
                                   <td style={{ padding: '11px 14px' }}>
                                     {falt.length === 0 ? (
