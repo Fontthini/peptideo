@@ -1501,7 +1501,7 @@ export default function AdminPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                           <thead>
                             <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
-                              {['Nome', 'Tag', 'WhatsApp', 'Indicado por', 'Produtos Comprados', 'Status', 'Funil', 'Pendências', 'Data', 'Ações'].map(h => (
+                              {['Nome', 'Tag', 'WhatsApp', 'Indicado por', 'Produtos Comprados', 'Aprovado', 'Em Atendimento', 'Pendências', 'Data', 'Ações'].map(h => (
                                 <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'var(--surface-hover)', zIndex: 1 }}>{h}</th>
                               ))}
                             </tr>
@@ -1563,7 +1563,10 @@ export default function AdminPage() {
                                         background: c.status === 'aprovado' ? '#dcfce7' : c.status === 'pendente' ? 'var(--surface-hover)' : '#fee2e2',
                                         color: c.status === 'aprovado' ? '#15803d' : c.status === 'pendente' ? 'var(--text-secondary, #374151)' : '#dc2626',
                                       }}>{c.status}</span>
-                                    ) : ind ? (
+                                    ) : <span style={{ color: 'var(--text-soft, #9ca3af)' }}>-</span>}
+                                  </td>
+                                  <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                    {ind ? (
                                       <select value={ind.status} onChange={e => atualizarStatusIndicacao(ind, e.target.value)}
                                         style={{ background: (PIPELINE_STATUS_COLOR[ind.status] || { bg: 'var(--surface)' }).bg, color: (PIPELINE_STATUS_COLOR[ind.status] || { text: 'var(--text)' }).text, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
                                         <option value="em_atendimento">Em Atendimento</option>
@@ -1571,35 +1574,11 @@ export default function AdminPage() {
                                         <option value="pago">Pago</option>
                                         <option value="cancelado">Cancelado</option>
                                       </select>
+                                    ) : c ? (
+                                      <span style={{ fontSize: 11, fontWeight: 700, color: emAtendimento(linha) ? '#b45309' : 'var(--text-soft, #9ca3af)' }}>
+                                        {emAtendimento(linha) ? 'Sim' : '-'}
+                                      </span>
                                     ) : null}
-                                  </td>
-                                  <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
-                                    {c ? (
-                                      perdaPromptId === c.id ? (
-                                        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                                          <select autoFocus value={motivoPerdaInput} onChange={e => setMotivoPerdaInput(e.target.value)}
-                                            style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '3px 6px', fontSize: 11, fontFamily: 'inherit' }}>
-                                            <option value="">Motivo...</option>
-                                            {MOTIVOS_PERDA.map(m => <option key={m} value={m}>{m}</option>)}
-                                          </select>
-                                          <button onClick={() => { atualizarFunilLead(c.id, 'perdido', motivoPerdaInput); setPerdaPromptId(null); setMotivoPerdaInput(''); }}
-                                            style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>OK</button>
-                                          <button onClick={() => { setPerdaPromptId(null); setMotivoPerdaInput(''); }}
-                                            style={{ background: 'none', border: 'none', color: 'var(--text-muted, #6b7280)', cursor: 'pointer', fontSize: 13 }}>×</button>
-                                        </div>
-                                      ) : (
-                                        <select value={c.funil_status || 'novo'}
-                                          onChange={e => {
-                                            const v = e.target.value;
-                                            if (v === 'perdido') { setPerdaPromptId(c.id); setMotivoPerdaInput(''); }
-                                            else atualizarFunilLead(c.id, v);
-                                          }}
-                                          style={{ background: '#f1f5f9', color: FUNIL_COLOR_FIXO[c.funil_status || 'novo'], border: `1px solid ${FUNIL_COLOR_FIXO[c.funil_status || 'novo']}55`, borderRadius: 6, padding: '4px 8px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}
-                                          title={c.funil_status === 'perdido' && c.motivo_perda ? `Motivo: ${c.motivo_perda}` : undefined}>
-                                          {FUNIL_ETAPAS.map(e => <option key={e} value={e}>{FUNIL_LABEL[e]}</option>)}
-                                        </select>
-                                      )
-                                    ) : <span style={{ color: 'var(--text-soft, #9ca3af)' }}>-</span>}
                                   </td>
                                   <td style={{ padding: '11px 14px' }}>
                                     {falt.length === 0 ? (
