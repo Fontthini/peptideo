@@ -1456,22 +1456,6 @@ export default function AdminPage() {
                     ))}
                   </div>
 
-                  {/* Comissões (cashback) — médico indicou médico + pacientes indicados */}
-                  {(() => {
-                    const medicosComComissao = cadastros.filter(c => c.indicado_por_medico_id && c.comissao_paga);
-                    const pacientesComComissao = indicacoes.filter(i => i.tipo !== 'medico' && i.comissao_paga);
-                    const total = medicosComComissao.reduce((s, c) => s + (c.comissao_valor || 0), 0) + pacientesComComissao.reduce((s, i) => s + (i.comissao_valor || 0), 0);
-                    if (medicosComComissao.length === 0 && pacientesComComissao.length === 0) return null;
-                    return (
-                      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Comissões (Cashback) Pagas</div>
-                          <div style={{ fontSize: 16, fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>R$ {brl(total)}</div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
                   {/* Filtro por etiqueta (médicos) */}
                   {todasEtiquetas.length > 0 && (filtroContato === 'todos' || filtroContato === 'medico' || filtroContato === 'medico_id') && (
                     <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
