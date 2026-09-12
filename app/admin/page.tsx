@@ -1393,11 +1393,17 @@ export default function AdminPage() {
                 return falt;
               };
 
+              // Medico nao tem status "em_atendimento"/"negociacao" (isso e so
+              // de paciente) — o equivalente dele de "ainda sendo trabalhado,
+              // nao fechou" e "aprovado" (aprovado mas sem virar cliente ainda
+              // ja sai de Contatos pela regra de "quem comprou some daqui").
+              const emAtendimento = (c: ContatoLinha) => c.tag === 'paciente' ? c.status === 'em_atendimento' : c.status === 'aprovado';
+
               const q = buscaLead.trim().toLowerCase();
               const contatosFiltrados = todosContatos
                 .filter(c => filtroContato === 'todos' || c.tag === filtroContato)
                 .filter(c => filtroEtiqueta === 'todas' || (c.cadastro?.tags || []).includes(filtroEtiqueta))
-                .filter(c => filtroStatusRapido === 'todos' || (filtroStatusRapido === 'aprovacao' ? c.status === 'pendente' : (c.status === 'em_atendimento' || c.status === 'negociacao')))
+                .filter(c => filtroStatusRapido === 'todos' || (filtroStatusRapido === 'aprovacao' ? c.status === 'pendente' : emAtendimento(c)))
                 .filter(c => !q || `${c.nome} ${c.sobrenome} ${c.email} ${c.whatsapp} ${c.crm || ''} ${c.indicadoPorNome || ''}`.toLowerCase().includes(q))
                 .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -1436,13 +1442,14 @@ export default function AdminPage() {
                   </div>
 
                   {/* Status rápido — pra saber de cara quanto tem esperando
-                      aprovação (médico novo) e quanto tem em atendimento ou
-                      negociação (paciente ainda não fechou). */}
+                      aprovação (médico novo) e quanto tem em atendimento
+                      (paciente ainda não fechou, ou médico aprovado que ainda
+                      não virou cliente). */}
                   <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
                     {([
                       ['todos', 'Todos os status', todosContatos.length],
                       ['aprovacao', 'Aguardando Aprovação', todosContatos.filter(c => c.status === 'pendente').length],
-                      ['atendimento', 'Em Atendimento / Negociação', todosContatos.filter(c => c.status === 'em_atendimento' || c.status === 'negociacao').length],
+                      ['atendimento', 'Em Atendimento', todosContatos.filter(emAtendimento).length],
                     ] as const).map(([val, label, n]) => (
                       <button key={val} onClick={() => setFiltroStatusRapido(val)}
                         style={{
