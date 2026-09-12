@@ -299,6 +299,7 @@ export default function AdminPage() {
   const [filtro, setFiltro] = useState('todos');
   const [buscaLead, setBuscaLead] = useState('');
   const [filtroEtiqueta, setFiltroEtiqueta] = useState('todas');
+  const [filtroStatusRapido, setFiltroStatusRapido] = useState<'todos' | 'aprovacao' | 'atendimento'>('todos');
   const [buscaIndicacao, setBuscaIndicacao] = useState('');
   const [novoCadastroTipo, setNovoCadastroTipo] = useState<'escolher' | 'medico' | 'paciente' | null>(null);
   const [wizardStep, setWizardStep] = useState(0);
@@ -1395,6 +1396,8 @@ export default function AdminPage() {
               const q = buscaLead.trim().toLowerCase();
               const contatosFiltrados = todosContatos
                 .filter(c => filtroContato === 'todos' || c.tag === filtroContato)
+                .filter(c => filtroEtiqueta === 'todas' || (c.cadastro?.tags || []).includes(filtroEtiqueta))
+                .filter(c => filtroStatusRapido === 'todos' || (filtroStatusRapido === 'aprovacao' ? c.status === 'pendente' : (c.status === 'em_atendimento' || c.status === 'negociacao')))
                 .filter(c => !q || `${c.nome} ${c.sobrenome} ${c.email} ${c.whatsapp} ${c.crm || ''} ${c.indicadoPorNome || ''}`.toLowerCase().includes(q))
                 .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -1428,6 +1431,27 @@ export default function AdminPage() {
                           padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: filtroContato === val ? 700 : 400, fontFamily: 'inherit', fontSize: 13,
                         }}>
                         {label} ({contagens[val as keyof typeof contagens]})
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Status rápido — pra saber de cara quanto tem esperando
+                      aprovação (médico novo) e quanto tem em atendimento ou
+                      negociação (paciente ainda não fechou). */}
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                    {([
+                      ['todos', 'Todos os status', todosContatos.length],
+                      ['aprovacao', 'Aguardando Aprovação', todosContatos.filter(c => c.status === 'pendente').length],
+                      ['atendimento', 'Em Atendimento / Negociação', todosContatos.filter(c => c.status === 'em_atendimento' || c.status === 'negociacao').length],
+                    ] as const).map(([val, label, n]) => (
+                      <button key={val} onClick={() => setFiltroStatusRapido(val)}
+                        style={{
+                          background: filtroStatusRapido === val ? '#f59e0b' : 'var(--surface)',
+                          color: filtroStatusRapido === val ? '#fff' : 'var(--text-secondary, #374151)',
+                          border: `1px solid ${filtroStatusRapido === val ? '#f59e0b' : 'var(--border)'}`,
+                          padding: '6px 14px', borderRadius: 20, cursor: 'pointer', fontWeight: filtroStatusRapido === val ? 700 : 500, fontFamily: 'inherit', fontSize: 12,
+                        }}>
+                        {label} ({n})
                       </button>
                     ))}
                   </div>
