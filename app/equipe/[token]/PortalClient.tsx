@@ -2516,14 +2516,23 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
-                  {['Paciente', 'Status', 'Indicado por', 'Solicitacao', 'Data', 'Ações'].map(h => (
+                  {['Paciente', 'Status', 'Em Atendimento', 'Indicado por', 'Solicitacao', 'Data', 'Ações'].map(h => (
                     <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {visivel.length === 0 && <tr><td colSpan={6} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum lead.</td></tr>}
+                {visivel.length === 0 && <tr><td colSpan={7} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>Nenhum lead.</td></tr>}
                 {visivel.map(l => {
+                  // Medico nao tem campo proprio de pipeline pago/cancelado —
+                  // reaproveita funil_status (cliente=Pago, perdido=Cancelado,
+                  // qualquer outra etapa=Em Atendimento), mesma regra do admin.
+                  const valorAtendimento = l.funil_status === 'cliente' ? 'pago' : l.funil_status === 'perdido' ? 'cancelado' : 'em_atendimento';
+                  const corAtendimento: Record<string, { bg: string; text: string }> = {
+                    em_atendimento: { bg: 'var(--surface-hover)', text: '#b45309' },
+                    pago: { bg: '#dcfce7', text: '#15803d' },
+                    cancelado: { bg: '#fee2e2', text: '#dc2626' },
+                  };
                   return (
                     <tr key={l.id} onClick={() => setSelectedLead(l)}
                       style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', background: l.solicitacao ? 'var(--surface-hover)' : 'var(--surface)' }}>
@@ -2533,6 +2542,17 @@ function GerenteView({ membro, leads: leadsInit, equipe, token, logo }: Props) {
                         <TagsLead tags={l.tags} />
                       </td>
                       <td style={{ padding: '11px 14px' }}><Badge status={l.status} map={STATUS_COLOR} /></td>
+                      <td style={{ padding: '11px 14px' }} onClick={e => e.stopPropagation()}>
+                        <select value={valorAtendimento} onChange={e => {
+                            const v = e.target.value;
+                            atualizarFunilLead(l.id, v === 'pago' ? 'cliente' : v === 'cancelado' ? 'perdido' : 'novo');
+                          }}
+                          style={{ background: corAtendimento[valorAtendimento].bg, color: corAtendimento[valorAtendimento].text, border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                          <option value="em_atendimento">Em Atendimento</option>
+                          <option value="pago">Pago</option>
+                          <option value="cancelado">Cancelado</option>
+                        </select>
+                      </td>
                       <td style={{ padding: '11px 14px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }} onClick={e => e.stopPropagation()}>
                         {l.indicado_por_medico_nome || '-'}
                         <ComissaoWidget id={l.id} comissaoValor={l.comissao_valor} comissaoPaga={l.comissao_paga} mostrar={!!l.indicado_por_medico_id}
