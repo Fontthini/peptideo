@@ -1655,14 +1655,14 @@ export default function AdminPage() {
                                           WhatsApp
                                         </a>
                                       )}
-                                      {isSuperadmin && c && (
+                                      {c && (
                                         <button onClick={() => excluirCadastro(c.id, c.nome)}
                                           style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 13 }}
                                           title="Excluir cadastro">
                                           Excluir
                                         </button>
                                       )}
-                                      {isSuperadmin && ind && (
+                                      {ind && (
                                         <button onClick={() => excluirIndicacao(ind.id, `${ind.nome} ${ind.sobrenome}`)}
                                           style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 13 }}
                                           title="Excluir">
@@ -1726,12 +1726,10 @@ export default function AdminPage() {
                           WhatsApp
                         </a>
                       )}
-                      {isSuperadmin && (
-                        <button onClick={() => { excluirCadastro(editandoLead.id, editandoLead.nome); setEditandoLead(null); }}
-                          style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontFamily: 'inherit' }}>
-                          Excluir
-                        </button>
-                      )}
+                      <button onClick={() => { excluirCadastro(editandoLead.id, editandoLead.nome); setEditandoLead(null); }}
+                        style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontFamily: 'inherit' }}>
+                        Excluir
+                      </button>
                     </div>
                     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
                       <div className="admin-grid-auto" style={{ display: 'grid', gap: 14 }}>
@@ -2532,7 +2530,7 @@ export default function AdminPage() {
                               title="Duplicar produto">
                               Dup
                             </button>
-                            {p.custom && isSuperadmin && (
+                            {p.custom && (
                               <button onClick={() => deletarProduto(p.id)}
                                 style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
                                 -
@@ -2573,9 +2571,7 @@ export default function AdminPage() {
                           {categoriasCustom.map(c => (
                             <span key={c} style={{ background: '#f0fdf4', border: '1px solid #86efac', color: '#15803d', padding: '3px 10px', borderRadius: 12, fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}>
                               {c}
-                                {isSuperadmin && (
-                                  <button type="button" onClick={() => deletarCategoria(c)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: 0 }}>-</button>
-                                )}
+                                <button type="button" onClick={() => deletarCategoria(c)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: 0 }}>-</button>
                               </span>
                             ))}
                           </div>
@@ -2866,12 +2862,10 @@ export default function AdminPage() {
                               style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', fontWeight: 600 }}>
                               {b.ativo ? '⏸ Pausar' : '- Ativar'}
                             </button>
-                            {isSuperadmin && (
-                              <button onClick={() => deletarBanner(b.id)}
-                                style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>
-                                -
-                              </button>
-                            )}
+                            <button onClick={() => deletarBanner(b.id)}
+                              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>
+                              -
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -2947,9 +2941,7 @@ export default function AdminPage() {
                           <button onClick={() => toggleBannerBlog(b.id)} style={{ background: b.ativo ? '#f0fdf4' : 'var(--surface-hover)', color: b.ativo ? '#15803d' : 'var(--text-muted, #6b7280)', border: `1px solid ${b.ativo ? '#86efac' : 'var(--border)'}`, padding: '5px 11px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, fontFamily: 'inherit' }}>
                             {b.ativo ? 'Ativo' : 'Inativo'}
                           </button>
-                          {isSuperadmin && (
-                            <button onClick={() => deletarBannerBlog(b.id)} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 9px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>-</button>
-                          )}
+                          <button onClick={() => deletarBannerBlog(b.id)} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 9px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>-</button>
                         </div>
                       </div>
                     ))}
@@ -3018,12 +3010,10 @@ export default function AdminPage() {
                               style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', padding: '5px 11px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}>
                               Editar
                             </button>
-                            {isSuperadmin && (
-                              <button onClick={() => deletarArtigo(a.id)}
-                                style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>
-                                -
-                              </button>
-                            )}
+                            <button onClick={() => deletarArtigo(a.id)}
+                              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>
+                              -
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -3060,9 +3050,7 @@ export default function AdminPage() {
                           {categoriasBlog.map(c => (
                             <span key={c} style={{ background: '#f0fdf4', border: '1px solid #86efac', color: '#15803d', padding: '3px 10px', borderRadius: 12, fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}>
                               {c}
-                              {isSuperadmin && (
-                                <button type="button" onClick={() => deletarCategoriaBlog(c)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: 0 }}>-</button>
-                              )}
+                              <button type="button" onClick={() => deletarCategoriaBlog(c)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: 0 }}>-</button>
                             </span>
                           ))}
                         </div>
@@ -3729,12 +3717,10 @@ export default function AdminPage() {
                               {new Date(c.created_at).toLocaleString('pt-BR')}
                             </td>
                             <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                              {isSuperadmin && (
-                                <button onClick={() => excluirCliqueMentoria(c.id, c.medico_nome)}
-                                  style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
-                                  Excluir
-                                </button>
-                              )}
+                              <button onClick={() => excluirCliqueMentoria(c.id, c.medico_nome)}
+                                style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>
+                                Excluir
+                              </button>
                             </td>
                           </tr>
                           );
@@ -5135,12 +5121,10 @@ export default function AdminPage() {
                         WhatsApp
                       </a>
                     )}
-                    {isSuperadmin && (
-                      <button onClick={() => { excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`); setEditandoIndicacao(null); }}
-                        style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontFamily: 'inherit' }}>
-                        Excluir
-                      </button>
-                    )}
+                    <button onClick={() => { excluirIndicacao(i.id, `${i.nome} ${i.sobrenome}`); setEditandoIndicacao(null); }}
+                      style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '7px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontFamily: 'inherit' }}>
+                      Excluir
+                    </button>
                   </div>
 
                   <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>

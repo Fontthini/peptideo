@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isAdminKeyValid, isSuperadminKey, adminAtorFromKey } from '@/lib/admin-auth';
+import { isAdminKeyValid, adminAtorFromKey } from '@/lib/admin-auth';
 import {
   mem_listar, mem_deletarCadastro, mem_editarCadastro, mem_buscarId, mem_registrarLog, mem_criar, mem_buscarEmail,
   mem_proximoVendedor, mem_atribuirVendedor, mem_listarProdutos, mem_criarPedido, mem_deletarPedido, mem_criarDespesa,
@@ -116,7 +116,6 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-  if (!isSuperadminKey(req.headers.get('x-admin-key'))) return NextResponse.json({ error: 'Apenas o superadmin pode excluir.' }, { status: 403 });
   await reloadCadastros();
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });

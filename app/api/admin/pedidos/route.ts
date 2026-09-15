@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isAdminKeyValid, isSuperadminKey, adminAtorFromKey } from '@/lib/admin-auth';
+import { isAdminKeyValid, adminAtorFromKey } from '@/lib/admin-auth';
 import { mem_listarPedidos, mem_atualizarPedido, mem_deletarPedido, mem_registrarLog, mem_deletarDespesa, mem_buscarId, mem_criarPedido, mem_listarIndicacoes } from '@/lib/db-memory';
 import { reloadPedidos, ensurePedidos, ensureCadastros, ensureIndicacoes } from '@/lib/ensure-equipe';
 import { aplicarPedidoPago, reverterPedidoPago } from '@/lib/pedido-side-effects';
@@ -110,7 +110,6 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 });
-  if (!isSuperadminKey(req.headers.get('x-admin-key'))) return NextResponse.json({ error: 'Apenas o superadmin pode excluir.' }, { status: 403 });
   await ensurePedidos();
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: 'id obrigatorio' }, { status: 400 });
