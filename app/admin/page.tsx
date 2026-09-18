@@ -425,6 +425,8 @@ export default function AdminPage() {
   const [uploadandoCliente, setUploadandoCliente] = useState<string | null>(null);
   const [salvandoClienteInfo, setSalvandoClienteInfo] = useState(false);
   const [enderecoClienteInput, setEnderecoClienteInput] = useState('');
+  const [pedidoEditandoId, setPedidoEditandoId] = useState<string | null>(null);
+  const [pedidoEditPreco, setPedidoEditPreco] = useState('');
 
   const salvarInfoCliente = async (tipo: 'medico' | 'paciente', id: string, campos: Record<string, unknown>) => {
     setSalvandoClienteInfo(true);
@@ -2455,7 +2457,7 @@ export default function AdminPage() {
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                             <thead>
                               <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
-                                {['Produto', 'Valor', 'Status', 'Data'].map(h => (
+                                {['Produto', 'Valor', 'Status', 'Data', 'Ações'].map(h => (
                                   <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase' }}>{h}</th>
                                 ))}
                               </tr>
@@ -2463,14 +2465,56 @@ export default function AdminPage() {
                             <tbody>
                               {pedidosPessoa.map(p => {
                                 const cc = PIPELINE_STATUS_COLOR[p.status] || { bg: 'var(--surface-hover)', text: 'var(--text-secondary, #374151)' };
+                                const emEdicao = pedidoEditandoId === p.id;
                                 return (
                                   <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
                                     <td style={{ padding: '8px 12px', color: 'var(--text)' }}>{p.itens && p.itens.length ? p.itens.map(it => `${it.nome} x${it.quantidade}`).join(', ') : p.produto_nome}</td>
-                                    <td style={{ padding: '8px 12px', fontWeight: 700, color: '#16a34a' }}>R$ {brl(p.preco)}</td>
+                                    <td style={{ padding: '8px 12px', fontWeight: 700, color: '#16a34a' }}>
+                                      {emEdicao ? (
+                                        <input type="number" step="0.01" value={pedidoEditPreco} onChange={e => setPedidoEditPreco(e.target.value)}
+                                          style={{ ...inputStyle, marginBottom: 0, width: 100, padding: '4px 8px', fontSize: 13 }} />
+                                      ) : (
+                                        <>R$ {brl(p.preco)}</>
+                                      )}
+                                    </td>
                                     <td style={{ padding: '8px 12px' }}>
-                                      <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 10.5, fontWeight: 700, background: cc.bg, color: cc.text }}>{PIPELINE_STATUS_LABEL[p.status] || p.status}</span>
+                                      <select value={p.status} onChange={e => atualizarStatusPedido(p.id, e.target.value)}
+                                        style={{ background: cc.bg, color: cc.text, border: '1px solid var(--border)', borderRadius: 20, padding: '2px 8px', fontSize: 10.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                                        {Object.entries(PIPELINE_STATUS_LABEL).map(([val, label]) => (
+                                          <option key={val} value={val}>{label}</option>
+                                        ))}
+                                      </select>
                                     </td>
                                     <td style={{ padding: '8px 12px', color: 'var(--text-muted, #6b7280)', fontSize: 12 }}>{new Date(p.created_at).toLocaleDateString('pt-BR')}</td>
+                                    <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                                      <div style={{ display: 'flex', gap: 6 }}>
+                                        {emEdicao ? (
+                                          <>
+                                            <button onClick={async () => { await atualizarValorPedido(p.id, parseFloat(pedidoEditPreco) || 0); setPedidoEditandoId(null); }}
+                                              style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', border: 'none', padding: '4px 10px', borderRadius: 5, cursor: 'pointer', fontWeight: 700, fontSize: 11, fontFamily: 'inherit' }}>
+                                              Salvar
+                                            </button>
+                                            <button onClick={() => setPedidoEditandoId(null)}
+                                              style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '4px 10px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit' }}>
+                                              Cancelar
+                                            </button>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <button onClick={() => { setPedidoEditandoId(p.id); setPedidoEditPreco(String(p.preco)); }}
+                                              style={{ background: 'var(--surface-hover)', color: 'var(--text-secondary, #374151)', border: '1px solid var(--border)', padding: '4px 10px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit' }}
+                                              title="Editar valor">
+                                              Editar
+                                            </button>
+                                            <button onClick={() => excluirPedido(p.id, nome)}
+                                              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '4px 10px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit' }}
+                                              title="Excluir pedido">
+                                              Excluir
+                                            </button>
+                                          </>
+                                        )}
+                                      </div>
+                                    </td>
                                   </tr>
                                 );
                               })}
